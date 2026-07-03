@@ -1,0 +1,396 @@
+"""Inline order entry, shown below the live order book on the market screen.
+
+Keyboard-first: b/s opens it preset to a side, price/size are the only two
+fields (empty price = market order at the touch), up/down bump the price by
+one tick, enter advances price -> size -> review, and confirmation is a plain
+'y' in the same panel - the book stays visible and live the whole time.
+"""
+
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
+
+from rich.text import Text
+from textual import work
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
+from textual.message import Message
+from textual.widgets import Input, Label, Static
+
+from polymarket_tui.core import fmt
+from polymarket_tui.core.config import Mode
+from polymarket_tui.models.market import Market, OrderBook
+from polymarket_tui.services.orders import (
+    IssueLevel,
+    OrderDraft,
+    Side,
+    Tif,
+    parse_price,
+    round_to_tick,
+    tick_size,
+)
+
+TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
+
+
+class PriceInput(Input):
+    """Price field: up/down bump by one market tick."""
+
+    BINDINGS = [
+        Binding("up", "bump(1)", "tick up", show=False),
+        Binding("down", "bump(-1)", "tick down", show=False),
+    ]
+
+    class Bumped(Message):
+        def __init__(self, direction: int) -> None:
+            super().__init__()
+            self.direction = direction
+
+    def action_bump(self, direction: int) -> None:
+        self.post_message(self.Bumped(direction))
+
+
+class OrderPanel(Vertical):
+    BINDINGS = [
+        Binding("escape", "close_or_back", "close", show=False),
+        Binding("tab", "next_field", "next field", show=False),
+        Binding("shift+tab", "next_field", "prev field", show=False),
+        Binding("ctrl+g", "cycle_tif", "tif", show=False),
+        Binding("y", "confirm_yes", "place", show=False),
+        Binding("n", "confirm_no", "edit", show=False),
+    ]
+
+    DEFAULT_CSS = """
+    OrderPanel {
+        height: auto;
+        border-top: solid $panel-lighten-2;
+        padding: 0 1;
+        display: none;
+    }
+    OrderPanel.open {
+        display: block;
+    }
+    OrderPanel .field-row {
+        height: 3;
+    }
+    OrderPanel Label {
+        padding: 1 1 0 0;
+        width: 6;
+    }
+    OrderPanel Input {
+        width: 1fr;
+    }
+    OrderPanel #op-summary {
+        height: 1;
+        text-style: bold;
+    }
+    OrderPanel #op-info {
+        height: auto;
+        color: $text-muted;
+    }
+    OrderPanel #op-issues {
+        height: auto;
+    }
+    OrderPanel #op-confirm {
+        height: auto;
+        display: none;
+    }
+    OrderPanel.confirming #op-confirm {
+        display: block;
+    }
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._market: Market | None = None
+        self._side: Side = Side.BUY
+        self._outcome_index = 0
+        self._tif: Tif = Tif.GTC
+        self._confirming: OrderDraft | None = None
+
+    def compose(self):
+        yield Static(id="op-summary")
+        with Horizontal(classes="field-row"):
+            yield Label("price")
+            # Disabled while closed: hidden-but-focusable inputs would steal
+            # the screen's autofocus and swallow the b/s keys.
+            yield PriceInput(placeholder="empty = market", id="op-price", disabled=True)
+            yield Label("size")
+            yield Input(placeholder="shares", id="op-size", type="number", disabled=True)
+        yield Static(id="op-info")
+        yield Static(id="op-issues")
+        yield Static(id="op-confirm")
+
+    # -- open / close -----------------------------------------------------------
+
+    @property
+    def is_open(self) -> bool:
+        return self.has_class("open")
+
+    def open(self, market: Market, side: Side, outcome_index: int, book: OrderBook | None) -> None:
+        self._market = market
+        self._side = side
+        self._outcome_index = outcome_index
+        self._set_confirming(None)
+        self.add_class("open")
+        for field in ("#op-price", "#op-size"):
+            self.query_one(field, Input).disabled = False
+        price_input = self.query_one("#op-price", PriceInput)
+        if book is not None and book.midpoint is not None and not price_input.value:
+            price_input.value = f"{round_to_tick(market, Decimal(str(book.midpoint))) * 100:.1f}"
+        self.query_one("#op-issues", Static).update("")
+        self.query_one("#op-size", Input).focus()
+        self._refresh_summary()
+
+    def close(self) -> None:
+        self.remove_class("open")
+        self._set_confirming(None)
+        for field in ("#op-price", "#op-size"):
+            widget = self.query_one(field, Input)
+            widget.value = ""
+            widget.disabled = True
+        self.screen.set_focus(None)
+
+    def set_side(self, side: Side) -> None:
+        self._side = side
+        self._set_confirming(None)
+        self._refresh_summary()
+        self.query_one("#op-size", Input).focus()
+
+    def set_outcome(self, outcome_index: int) -> None:
+        if self._outcome_index != outcome_index:
+            self._outcome_index = outcome_index
+            self._set_confirming(None)
+            # Old price belonged to the other outcome's book.
+            self.query_one("#op-price", PriceInput).value = ""
+            self._refresh_summary()
+
+    # -- draft ------------------------------------------------------------------
+
+    def _screen_book(self) -> OrderBook | None:
+        return getattr(self.screen, "_book", None)
+
+    def _current_draft(self) -> tuple[OrderDraft | None, str]:
+        market = self._market
+        if market is None:
+            return None, "no market"
+        token_id = market.token_id(self._outcome_index)
+        if token_id is None:
+            return None, "no token for this outcome"
+        outcomes = market.outcomes or ["Yes", "No"]
+        outcome_label = outcomes[self._outcome_index]
+
+        raw_price = self.query_one("#op-price", PriceInput).value.strip()
+        book = self._screen_book()
+        if not raw_price:
+            # Market order: marketable limit at the touch, FAK.
+            if book is None:
+                return None, "book still loading"
+            touch = book.best_ask if self._side is Side.BUY else book.best_bid
+            if touch is None:
+                return None, "book empty on that side"
+            price = Decimal(str(touch.price))
+            is_market = True
+            tif = Tif.FAK
+        else:
+            parsed = parse_price(raw_price)
+            if parsed is None:
+                return None, "price? (e.g. 33.4 or empty for market)"
+            price = parsed
+            is_market = False
+            tif = self._tif
+
+        raw_size = self.query_one("#op-size", Input).value.strip()
+        try:
+            size = Decimal(raw_size)
+        except InvalidOperation:
+            return None, "size?"
+
+        return (
+            OrderDraft(
+                market=market,
+                token_id=token_id,
+                outcome_label=outcome_label,
+                side=self._side,
+                price=price,
+                size=size,
+                tif=tif,
+                is_market_order=is_market,
+            ),
+            "",
+        )
+
+    # -- rendering ----------------------------------------------------------------
+
+    def _refresh_summary(self) -> None:
+        summary = self.query_one("#op-summary", Static)
+        info = self.query_one("#op-info", Static)
+        side_style = "bold green" if self._side is Side.BUY else "bold red"
+        draft, error = self._current_draft()
+        out = Text()
+        out.append(f"{self._side.value} ", style=side_style)
+        if draft is None:
+            outcomes = (self._market.outcomes if self._market else None) or ["Yes", "No"]
+            out.append(f"{outcomes[self._outcome_index]}  ", style="bold")
+            out.append(error, style="dim")
+            summary.update(out)
+            info.update(
+                Text("enter: next/review  esc: close  up/down: tick  ctrl+g: tif", style="dim")
+            )
+            return
+        kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
+        out.append(f"{draft.size:,.0f} {draft.outcome_label.upper()} ", style="bold")
+        out.append(f"@ {draft.price * 100:.1f}c ", style="bold cyan")
+        out.append(f"({kind})", style="dim")
+        summary.update(out)
+
+        detail = Text()
+        if draft.side is Side.BUY:
+            detail.append(f"cost {fmt.money(float(draft.notional))}")
+            detail.append(
+                f" -> pays {fmt.money(float(draft.size))} if {draft.outcome_label.upper()}",
+                style="green",
+            )
+        else:
+            detail.append(f"proceeds {fmt.money(float(draft.notional))}")
+        book = self._screen_book()
+        if book and book.midpoint is not None:
+            detail.append(f"   mid {fmt.cents(book.midpoint)}", style="dim")
+        mode = self.app.settings.mode
+        detail.append(f"   [{mode.value}]", style="yellow" if mode is Mode.TRADER_DRY else "red")
+        info.update(detail)
+
+    def _set_confirming(self, draft: OrderDraft | None) -> None:
+        self._confirming = draft
+        confirm = self.query_one("#op-confirm", Static) if self.is_mounted else None
+        if draft is None:
+            self.remove_class("confirming")
+            self.can_focus = False
+            if confirm is not None:
+                confirm.update("")
+            return
+        self.add_class("confirming")
+        self.can_focus = True  # so the y/n/esc bindings receive keys
+        live = self.app.settings.mode is Mode.TRADER_LIVE
+        out = Text()
+        out.append(
+            " PLACE " if live else " DRY-RUN ",
+            style="bold reverse red" if live else "bold reverse yellow",
+        )
+        out.append(f" {draft.summary()}  ", style="bold")
+        out.append("y", style="bold reverse")
+        out.append(" place  ")
+        out.append("esc", style="bold reverse")
+        out.append(" edit")
+        if confirm is not None:
+            confirm.update(out)
+        self.focus()  # move focus off the inputs so y/esc hit panel bindings
+
+    # -- events --------------------------------------------------------------------
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self._set_confirming(None)
+        self._refresh_summary()
+
+    def on_price_input_bumped(self, event: PriceInput.Bumped) -> None:
+        self.bump_price(event.direction)
+
+    def bump_price(self, direction: int) -> None:
+        if self._market is None:
+            return
+        price_input = self.query_one("#op-price", PriceInput)
+        current = parse_price(price_input.value)
+        book = self._screen_book()
+        if current is None:
+            if book is None or book.midpoint is None:
+                return
+            current = round_to_tick(self._market, Decimal(str(book.midpoint)))
+        tick = tick_size(self._market)
+        bumped = max(tick, min(Decimal("1") - tick, current + tick * direction))
+        price_input.value = f"{bumped * 100:.1f}"
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "op-price":
+            self.query_one("#op-size", Input).focus()
+            return
+        self.run_review()
+
+    # -- review & place ---------------------------------------------------------------
+
+    @work(exclusive=True, group="op-review")
+    async def run_review(self) -> None:
+        issues_widget = self.query_one("#op-issues", Static)
+        draft, error = self._current_draft()
+        if draft is None:
+            issues_widget.update(Text(error, style="red"))
+            return
+        app = self.app
+        try:
+            cash = await app.portfolio.usdc_balance()
+        except Exception:
+            cash = None
+        position = None
+        if draft.side is Side.SELL:
+            try:
+                await app.portfolio.positions()
+                pos = app.portfolio.position_for(draft.token_id)
+                position = pos.size if pos else 0.0
+            except Exception:
+                position = None
+
+        issues = app.orders.validate(draft, self._screen_book(), cash, position)
+        blocks = [i for i in issues if i.level is IssueLevel.BLOCK]
+        warns = [i for i in issues if i.level is IssueLevel.WARN]
+        report = Text()
+        for issue in blocks:
+            report.append(f"x {issue.message}\n", style="red")
+        for issue in warns:
+            report.append(f"! {issue.message}\n", style="yellow")
+        issues_widget.update(report)
+        if blocks:
+            self._set_confirming(None)
+            return
+        self._set_confirming(draft)
+
+    def action_confirm_yes(self) -> None:
+        if self._confirming is None:
+            return
+        draft = self._confirming
+        app = self.app
+        self._set_confirming(None)
+
+        async def _place_and_report() -> None:
+            result = await app.orders.place(draft)
+            if result.ok and result.dry_run:
+                app.notify(f"DRY RUN: {draft.summary()} signed, not posted", timeout=6)
+            elif result.ok:
+                app.portfolio.invalidate()
+                app.refresh_account_status()
+                app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
+            else:
+                app.notify(result.error, severity="error", timeout=10)
+
+        # App-lifetime worker: closing the panel must not cancel an in-flight post.
+        app.run_worker(_place_and_report(), group="place-order", exclusive=False)
+        self.close()
+
+    def action_confirm_no(self) -> None:
+        if self._confirming is not None:
+            self._set_confirming(None)
+            self.query_one("#op-size", Input).focus()
+
+    def action_close_or_back(self) -> None:
+        if self._confirming is not None:
+            self.action_confirm_no()
+        else:
+            self.close()
+
+    def action_next_field(self) -> None:
+        price = self.query_one("#op-price", PriceInput)
+        size = self.query_one("#op-size", Input)
+        (size if price.has_focus else price).focus()
+
+    def action_cycle_tif(self) -> None:
+        self._tif = TIF_CYCLE[(TIF_CYCLE.index(self._tif) + 1) % len(TIF_CYCLE)]
+        self._set_confirming(None)
+        self._refresh_summary()

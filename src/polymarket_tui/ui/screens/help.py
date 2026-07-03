@@ -58,7 +58,12 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 | tab or 1-6 | chart timeframe |
 | x | inspect chart (crosshair; left/right scrub, esc exit) |
 | t | flip order book YES/NO |
-| b / s | buy / sell order form |
+| b / s | open order entry below the book (BUY / SELL) |
+
+Order entry: price + size only. Empty price = market order at the touch.
+up/down bump the price one tick, tab hops between fields, enter reviews,
+y places (esc edits). ctrl+g cycles TIF (GTC/FOK/FAK). The book stays
+live above the form. Orders are dry-run unless LIVE mode is on.
 
 Order book auto-refreshes every 3 seconds.
 

@@ -11,7 +11,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import StrEnum
 from pathlib import Path
 
@@ -81,6 +81,24 @@ class PlaceResult:
 
 def _tick(market: Market) -> Decimal:
     return Decimal(str(market.order_price_min_tick_size or 0.01))
+
+
+def tick_size(market: Market) -> Decimal:
+    return _tick(market)
+
+
+def parse_price(raw: str) -> Decimal | None:
+    """Accept '0.123', '12.3c', or '12.3' (cents when >= 1)."""
+    raw = raw.strip().lower().rstrip("c").strip()
+    if not raw:
+        return None
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        return None
+    if value >= 1:
+        value = value / 100
+    return value
 
 
 def round_to_tick(market: Market, price: Decimal) -> Decimal:

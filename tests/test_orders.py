@@ -16,9 +16,9 @@ from polymarket_tui.services.orders import (
     Side,
     Tif,
     map_error,
+    parse_price,
     round_to_tick,
 )
-from polymarket_tui.ui.screens.order_modal import parse_price
 
 
 def make_market(**overrides) -> Market:
@@ -56,6 +56,14 @@ def make_draft(**overrides) -> OrderDraft:
     )
     base.update(overrides)
     return OrderDraft(**base)
+
+
+@pytest.fixture(autouse=True)
+def isolated_audit(tmp_path, monkeypatch):
+    """Keep test orders/cancels out of the real ~/.local/share audit log."""
+    import polymarket_tui.services.orders as orders_module
+
+    monkeypatch.setattr(orders_module, "AUDIT_PATH", tmp_path / "orders.jsonl")
 
 
 @pytest.fixture

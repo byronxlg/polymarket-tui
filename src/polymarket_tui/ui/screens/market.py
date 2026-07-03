@@ -14,12 +14,15 @@ from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
+from polymarket_tui.ui.widgets.order_panel import OrderPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
 
 BOOK_POLL_SECONDS = 3.0
 
 
 class MarketScreen(Screen):
+    AUTO_FOCUS = None  # the order panel's inputs must not grab focus while hidden
+
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
         Binding("t", "toggle_outcome", "yes/no"),
@@ -62,6 +65,7 @@ class MarketScreen(Screen):
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
                     scroll.can_focus = False
                     yield scroll
+                    yield OrderPanel(id="order-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
         yield Footer()
 
@@ -178,6 +182,7 @@ class MarketScreen(Screen):
     def action_toggle_outcome(self) -> None:
         self._outcome_index = 1 - self._outcome_index
         self._book = None  # stale: belongs to the other outcome until load_book returns
+        self.query_one(OrderPanel).set_outcome(self._outcome_index)
         self.query_one("#book-title", Static).update(self._book_header())
         self.query_one(BookPanel).update("loading book...")
         self.load_book()
@@ -225,17 +230,12 @@ class MarketScreen(Screen):
             )
             return
         from polymarket_tui.services.orders import Side
-        from polymarket_tui.ui.screens.order_modal import OrderModal
 
-        app.push_screen(
-            OrderModal(
-                self._market,
-                self._event,
-                self._outcome_index,
-                Side(side),
-                self._book,
-            )
-        )
+        panel = self.query_one(OrderPanel)
+        if panel.is_open:
+            panel.set_side(Side(side))
+        else:
+            panel.open(self._market, Side(side), self._outcome_index, self._book)
 
     def action_toggle_watch(self) -> None:
         slug = self._event.slug if self._event else self._market.slug

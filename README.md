@@ -29,7 +29,8 @@ every session starts DRY. Every placed/cancelled order is appended to
 - Home: `o` cycle sort, `W` star
 - Event: multi-outcome chart, `x` inspect (scrub with arrows), `i` rules pane,
   `R` related markets (series siblings for dailies, same-tag otherwise)
-- Market: `t` flip YES/NO book, `x` inspect, `b`/`s` buy/sell form
+- Market: `t` flip YES/NO book, `x` inspect, `b`/`s` order entry inline below
+  the live book (empty price = market order; up/down = tick; enter review, y place)
 - Portfolio: `p` from anywhere; `x` cancels the highlighted order
 - A preview rail on the right follows the highlighted row on every list screen
 
