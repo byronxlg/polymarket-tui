@@ -46,14 +46,15 @@ class EventsTable(VimDataTable):
             if top is not None:
                 outcome = top.display_title if not event.is_binary else "Yes"
                 price = Text(fmt.cents(top.yes_price), style="bold cyan")
+            ends = fmt.end_date(event.end_date)
             self.add_row(
                 Text("*", style="yellow") if event.slug in watched else " ",
-                event.title.strip()[:46],
-                outcome[:24],
+                fmt.trunc(event.title, 46),
+                fmt.trunc(outcome, 24),
                 price,
                 change_text(top.one_day_price_change if top else None),
                 fmt.money(event.volume_24hr),
-                fmt.end_date(event.end_date),
+                Text(ends, style="dim red") if ends == "ended" else ends,
                 key=event.slug,
             )
 

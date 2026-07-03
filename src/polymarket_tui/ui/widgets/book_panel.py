@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from rich.text import Text
 from textual.widgets import Static
 
@@ -20,10 +22,11 @@ class BookPanel(Static):
         self.update(Text(message, style="dim"))
 
     def _level_line(self, level: BookLevel, max_size: float, style: str) -> Text:
-        # sqrt scale so one whale level doesn't flatten every other bar to nothing
+        # log scale so one whale level doesn't flatten every other bar to nothing
         filled = 0
         if max_size > 0 and level.size > 0:
-            filled = max(1, int(round(BAR_WIDTH * (level.size / max_size) ** 0.5)))
+            ratio = math.log10(1 + level.size) / math.log10(1 + max_size)
+            filled = max(1, int(round(BAR_WIDTH * ratio)))
         line = Text()
         line.append(" " * (BAR_WIDTH - filled))
         line.append("#" * filled, style=style)

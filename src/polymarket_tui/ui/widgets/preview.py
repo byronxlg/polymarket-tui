@@ -11,7 +11,7 @@ from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.event_table import EventsTable
 
-PREVIEW_OUTCOMES = 12
+PREVIEW_OUTCOMES = 18
 
 
 class MarketPreview(Static):
@@ -22,9 +22,9 @@ class MarketPreview(Static):
             self.update(Text("", style="dim"))
             return
         out = Text()
-        out.append(market.display_title[:44] + "\n", style="bold")
+        out.append(fmt.trunc(market.display_title, 44) + "\n", style="bold")
         if market.question and market.question != market.display_title:
-            out.append(market.question[:88] + "\n", style="dim")
+            out.append(fmt.trunc(market.question, 88) + "\n", style="dim")
         out.append("\n")
         out.append(f"{'YES':<8}", style="bold green")
         out.append(f"{fmt.cents(market.yes_price):>8}\n", style="bold cyan")
@@ -62,7 +62,7 @@ class EventPreview(Static):
             self.update(Text("", style="dim"))
             return
         out = Text()
-        out.append(event.title.strip() + "\n", style="bold")
+        out.append(fmt.trunc(event.title, 44) + "\n", style="bold")
         meta = []
         if event.end_date:
             meta.append(f"ends {fmt.end_date(event.end_date)}")
@@ -77,7 +77,7 @@ class EventPreview(Static):
         markets = event.active_markets
         for market in markets[:PREVIEW_OUTCOMES]:
             price = market.yes_price
-            out.append(f"{market.display_title[:26]:<27}", style="")
+            out.append(f"{fmt.trunc(market.display_title, 26):<27}", style="")
             out.append(f"{fmt.cents(price):>7}", style="bold cyan")
             change = market.one_day_price_change
             if change:
@@ -90,7 +90,7 @@ class EventPreview(Static):
         if event.description:
             out.append("\n")
             desc = event.description.strip().replace("\n", " ")
-            out.append(desc[:280] + ("..." if len(desc) > 280 else ""), style="dim")
+            out.append(desc[:600] + ("…" if len(desc) > 600 else ""), style="dim")
         self.update(out)
 
 

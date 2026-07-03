@@ -28,6 +28,7 @@ class EventScreen(Screen):
         Binding("i", "toggle_info", "rules"),
         Binding("r", "refresh", "refresh"),
         Binding("c", "toggle_chart", "chart"),
+        Binding("x", "inspect_chart", "inspect"),
     ] + [
         Binding(str(i + 1), f"set_interval_key('{key}')", key, show=False)
         for i, key in enumerate(INTERVALS)
@@ -89,7 +90,7 @@ class EventScreen(Screen):
         table.clear()
         for market in self._event.active_markets:
             table.add_row(
-                market.display_title[:40],
+                fmt.trunc(market.display_title, 40),
                 Text(fmt.cents(market.yes_price), style="bold cyan"),
                 change_text(market.one_day_price_change),
                 Text(fmt.cents(market.best_bid), style="green"),
@@ -168,6 +169,11 @@ class EventScreen(Screen):
     def action_toggle_chart(self) -> None:
         pane = self.query_one("#event-chart-pane", Vertical)
         pane.display = not pane.display
+
+    def action_inspect_chart(self) -> None:
+        pane = self.query_one("#event-chart-pane", Vertical)
+        if pane.display:
+            self.query_one(PriceChartPanel).enter_inspect(return_focus=self.query_one(VimDataTable))
 
     def action_toggle_watch(self) -> None:
         watched = self.app.watchlist.toggle(self._event.slug)

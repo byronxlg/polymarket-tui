@@ -5,6 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 
+def trunc(text: str, width: int) -> str:
+    """Truncate with an ellipsis so cut-offs are visible."""
+    text = text.strip()
+    if len(text) <= width:
+        return text
+    return text[: width - 1].rstrip() + "…"
+
+
 def cents(price: float | None, signed: bool = False) -> str:
     if price is None:
         return "-"

@@ -24,6 +24,7 @@ class MarketScreen(Screen):
         Binding("t", "toggle_outcome", "yes/no"),
         Binding("r", "refresh", "refresh"),
         Binding("W", "toggle_watch", "watch", key_display="W"),
+        Binding("x", "inspect_chart", "inspect"),
     ] + [
         Binding(str(i + 1), f"set_interval_key('{key}')", key, show=i == 0)
         for i, key in enumerate(INTERVALS)
@@ -163,6 +164,9 @@ class MarketScreen(Screen):
     def action_refresh(self) -> None:
         self.load_book()
         self.load_history()
+
+    def action_inspect_chart(self) -> None:
+        self.query_one(PriceChartPanel).enter_inspect()
 
     def action_toggle_watch(self) -> None:
         slug = self._event.slug if self._event else self._market.slug
