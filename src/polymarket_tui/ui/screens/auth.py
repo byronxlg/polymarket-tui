@@ -13,12 +13,13 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label, Select, Static
+from textual.widgets import Footer, Input, Label, Select, Static
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.core import fmt
 from polymarket_tui.core.config import Mode, Settings
 from polymarket_tui.core.credstore import CRED_PATH, clear_credentials, save_credentials
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 SIG_TYPES = [
@@ -96,7 +97,7 @@ class AuthScreen(Screen):
 
     def compose(self) -> ComposeResult:
         settings = self.app.settings
-        yield Header()
+        yield AppHeader("auth")
         with Vertical(id="auth-body"):
             yield Static(id="auth-status")
             yield Static(

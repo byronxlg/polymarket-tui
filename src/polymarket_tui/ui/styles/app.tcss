@@ -3,7 +3,6 @@ Screen {
 }
 
 #tag-bar {
-    dock: top;
     height: 3;
 }
 

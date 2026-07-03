@@ -7,10 +7,11 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static, TabbedContent, TabPane
+from textual.widgets import Footer, Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import OpenOrder
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
@@ -30,7 +31,7 @@ class PortfolioScreen(Screen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("portfolio")
         yield Static("loading balances...", id="balance-line", classes="screen-title")
         with TabbedContent(id="portfolio-tabs"):
             with TabPane("Positions", id="pane-positions"):

@@ -6,9 +6,10 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Static
 
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -25,7 +26,7 @@ class RelatedScreen(Screen):
         self._event = event
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("related")
         yield Static(self._title_line(), classes="screen-title")
         yield EventsBrowser(id="related-browser")
         yield Footer()

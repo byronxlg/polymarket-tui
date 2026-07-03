@@ -10,11 +10,12 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Header, Static, Tab, Tabs
+from textual.widgets import DataTable, Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
@@ -46,7 +47,7 @@ class EventScreen(Screen):
         self._interval = "1D"
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("event")
         yield Static(self._title_line(), classes="screen-title")
         with Vertical(id="event-chart-pane"):
             tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")

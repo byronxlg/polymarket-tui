@@ -8,8 +8,9 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Static
 
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -22,7 +23,7 @@ class WatchlistScreen(Screen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("watchlist")
         yield Static("WATCHLIST", classes="screen-title")
         yield EventsBrowser(id="watchlist-browser")
         yield Static(

@@ -6,10 +6,11 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static, Tab, Tabs
+from textual.widgets import Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
 from polymarket_tui.core import fmt
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -59,7 +60,7 @@ class HomeScreen(Screen):
         self._balances = ""
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield AppHeader("polymarket-tui")
         yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="tag-bar")
         yield Static(self._status_line(), id="status-line", classes="subtle")
         yield EventsBrowser(id="home-browser")

@@ -6,7 +6,9 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Markdown
+from textual.widgets import Footer, Markdown
+
+from polymarket_tui.ui.widgets.app_header import AppHeader
 
 HELP_TEXT = """\
 # polymarket-tui
@@ -67,6 +69,10 @@ Order book auto-refreshes every 3 seconds.
 | tab | cycle positions / open orders / history |
 | x | cancel highlighted open order |
 
+The header clock ticks in milliseconds and is corrected against network time
+(SNTP); "(sys)" after the time means NTP was unreachable and the system clock
+is shown uncorrected.
+
 Data: gamma-api.polymarket.com (metadata), clob.polymarket.com (books, history),
 data-api.polymarket.com (positions, activity).
 """
@@ -80,7 +86,7 @@ class HelpScreen(Screen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("help")
         body = VerticalScroll(Markdown(HELP_TEXT), id="help-body")
         body.can_focus = False
         yield body
@@ -92,3 +98,4 @@ class HelpScreen(Screen):
     def action_scroll_help(self, amount: int) -> None:
         body = self.query_one("#help-body", VerticalScroll)
         body.scroll_relative(y=amount, animate=False)
+

@@ -6,8 +6,9 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input
+from textual.widgets import Footer, Input
 
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -25,7 +26,7 @@ class SearchScreen(Screen):
         self._timer = None
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("search")
         yield Input(placeholder="search markets... (esc to go back)", id="search-input")
         yield EventsBrowser(id="search-browser")
         yield Footer()

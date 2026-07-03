@@ -7,11 +7,12 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static, Tab, Tabs
+from textual.widgets import Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
 
@@ -47,7 +48,7 @@ class MarketScreen(Screen):
         self._book = None
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield AppHeader("market")
         yield Static(self._title_line(), classes="screen-title", id="market-title")
         with Vertical(id="market-body-wrap"):
             with Horizontal(id="market-body"):

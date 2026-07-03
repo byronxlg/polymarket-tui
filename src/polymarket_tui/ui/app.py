@@ -42,6 +42,7 @@ class PolymarketApp(App):
 
     def __init__(self) -> None:
         super().__init__()
+        self.ntp_offset: float | None = None
         self.settings = get_settings()
         self.gamma = GammaClient()
         self.clob = ClobPublicClient()
@@ -55,6 +56,22 @@ class PolymarketApp(App):
 
     def get_default_screen(self) -> HomeScreen:
         return HomeScreen()
+
+    def on_mount(self) -> None:
+        self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
+        self.set_interval(900, self._schedule_ntp_refresh)
+
+    def _schedule_ntp_refresh(self) -> None:
+        self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
+
+    async def _refresh_ntp_offset(self) -> None:
+        import asyncio
+
+        from polymarket_tui.core.ntp import sntp_offset
+
+        offset = await asyncio.to_thread(sntp_offset)
+        if offset is not None:
+            self.ntp_offset = offset
 
     async def on_unmount(self) -> None:
         await self.gamma.aclose()
