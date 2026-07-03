@@ -9,7 +9,6 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
-from polymarket_tui.core import fmt
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -57,7 +56,6 @@ class HomeScreen(Screen):
         self._sort_index = 0
         self._offset = 0
         self._loading = False
-        self._balances = ""
 
     def compose(self) -> ComposeResult:
         yield AppHeader("polymarket-tui")
@@ -66,41 +64,14 @@ class HomeScreen(Screen):
         yield EventsBrowser(id="home-browser")
         yield Footer()
 
-    def _status_line(self, balances: str = "") -> str:
-        line = f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, tab category)"
-        mode = self.app.settings.mode.value
-        line += f"  |  {mode}"
-        if balances:
-            line += f"  |  {balances}"
-        return line
+    def _status_line(self) -> str:
+        return f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, tab category)"
 
     def on_mount(self) -> None:
         self.title = "polymarket-tui"
         self.query_one(Tabs).can_focus = False
         self.table.focus()
         self.load_events()
-        self.load_balances()
-
-    @work(exclusive=True, group="balances")
-    async def load_balances(self) -> None:
-        app = self.app
-        parts = []
-        try:
-            balance = await app.portfolio.usdc_balance()
-            if balance is not None:
-                parts.append(f"cash {fmt.money(balance)}")
-            value = await app.portfolio.portfolio_value()
-            if value is not None:
-                parts.append(f"positions {fmt.money(value)}")
-        except Exception:
-            return
-        self._balances = "  ".join(parts)
-        self.query_one("#status-line", Static).update(self._status_line(self._balances))
-
-    def on_screen_resume(self) -> None:
-        # Credentials may have changed on the auth screen - refresh mode/balances.
-        self.query_one("#status-line", Static).update(self._status_line(self._balances))
-        self.load_balances()
 
     @property
     def table(self) -> EventsTable:
@@ -162,7 +133,7 @@ class HomeScreen(Screen):
 
     def action_cycle_sort(self) -> None:
         self._sort_index = (self._sort_index + 1) % len(SORT_ORDERS)
-        self.query_one("#status-line", Static).update(self._status_line(self._balances))
+        self.query_one("#status-line", Static).update(self._status_line())
         self.load_events()
 
     def action_toggle_watch(self) -> None:

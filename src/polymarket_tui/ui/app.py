@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual.app import App
 from textual.binding import Binding
 
@@ -43,6 +44,8 @@ class PolymarketApp(App):
     def __init__(self) -> None:
         super().__init__()
         self.ntp_offset: float | None = None
+        self.username: str | None = None
+        self.account_status = Text("loading account...", style="dim")
         self.settings = get_settings()
         self.gamma = GammaClient()
         self.clob = ClobPublicClient()
@@ -60,6 +63,8 @@ class PolymarketApp(App):
     def on_mount(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
         self.set_interval(900, self._schedule_ntp_refresh)
+        self.refresh_account_status()
+        self.set_interval(60, self.refresh_account_status)
 
     def _schedule_ntp_refresh(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
@@ -72,6 +77,43 @@ class PolymarketApp(App):
         offset = await asyncio.to_thread(sntp_offset)
         if offset is not None:
             self.ntp_offset = offset
+
+    def refresh_account_status(self) -> None:
+        self.run_worker(self._refresh_account_status(), group="account", exclusive=True)
+
+    async def _refresh_account_status(self) -> None:
+        """Build the header account strip: user, cash, portfolio value, mode."""
+        settings = self.settings
+        mode_style = {"RO": "dim", "OBS": "cyan", "DRY": "yellow", "LIVE": "bold red"}
+        out = Text()
+        if not settings.can_read_portfolio:
+            out.append("not signed in - press A", style="dim")
+            self.account_status = out
+            return
+        if self.username is None:
+            try:
+                self.username = await self.gamma.public_profile_name(settings.polymarket_funder)
+            except Exception:
+                self.username = None
+        funder = settings.polymarket_funder
+        display_name = self.username or f"{funder[:6]}...{funder[-4:]}"
+        out.append(display_name, style="bold")
+        try:
+            if self.authed is not None:
+                cash = await self.portfolio.usdc_balance()
+                if cash is not None:
+                    out.append("  cash ", style="dim")
+                    out.append(f"${cash:,.2f}")
+            value = await self.portfolio.portfolio_value()
+            if value is not None:
+                out.append("  pf ", style="dim")
+                out.append(f"${value:,.2f}")
+        except Exception:
+            out.append("  (balances unavailable)", style="dim")
+        mode = settings.mode.value
+        out.append("  ")
+        out.append(mode, style=mode_style[mode])
+        self.account_status = out
 
     async def on_unmount(self) -> None:
         await self.gamma.aclose()
@@ -108,6 +150,8 @@ class PolymarketApp(App):
         self.authed = AuthedClobClient(settings) if settings.can_auth else None
         self.portfolio = PortfolioService(settings, self.data, self.authed)
         self.orders = OrderService(settings, self.authed)
+        self.username = None
+        self.refresh_account_status()
 
     def action_auth(self) -> None:
         self._push_unless_current(AuthScreen, AuthScreen)

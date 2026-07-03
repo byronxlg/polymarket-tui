@@ -71,6 +71,12 @@ class GammaClient:
             return None
         return Market.model_validate(data[0])
 
+    async def public_profile_name(self, address: str) -> str | None:
+        data = await self._get("/public-profile", {"address": address})
+        if isinstance(data, dict):
+            return data.get("name") or data.get("pseudonym")
+        return None
+
     async def events_by_series(self, series_id: str, limit: int = 30) -> list[Event]:
         """Series siblings, newest end date first (future days, then recent past)."""
         data = await self._get(

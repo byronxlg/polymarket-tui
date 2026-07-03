@@ -37,11 +37,16 @@ class AppHeader(Static):
         clock = now.strftime("%H:%M:%S") + f".{now.microsecond // 1000:03d}"
         if offset is None:
             clock += " (sys)"
+        account: Text = getattr(self.app, "account_status", Text(""))
         width = self.size.width
-        out = Text()
+        out = Text(no_wrap=True, overflow="crop")
         out.append(f" {self._title}", style="bold")
-        pad = width - len(self._title) - len(clock) - 3
+        # title ... account strip · clock
+        right_len = account.cell_len + 3 + len(clock) + 1
+        pad = width - (len(self._title) + 1) - right_len
         if pad > 0:
             out.append(" " * pad)
+        out.append_text(account)
+        out.append("   ")
         out.append(clock + " ", style="bold cyan")
         self.update(out)
