@@ -34,7 +34,7 @@ PALETTE: list[tuple[int, int, int]] = [
     (241, 196, 15),  # yellow
 ]
 
-CROSSHAIR_COLOR = (120, 120, 120)
+CROSSHAIR_COLOR = (230, 230, 230)
 
 
 def _rich_color(rgb: tuple[int, int, int]) -> str:
@@ -98,7 +98,10 @@ class PriceChartPanel(Vertical):
     def show(self, series: list[tuple[str, list[PricePoint]]], interval_key: str) -> None:
         self._series = [(label, pts) for label, pts in series if pts][:MAX_SERIES]
         self._interval = interval_key
-        self._inspect_ts = None
+        if self._inspect_ts is not None or self.has_focus:
+            # New data invalidates the crosshair position - leave inspect cleanly.
+            self.action_exit_inspect()
+            return
         self._redraw()
 
     def _redraw(self) -> None:
@@ -117,7 +120,10 @@ class PriceChartPanel(Vertical):
         self._return_focus = return_focus
         self.can_focus = True
         self.focus()
-        self._inspect_ts = self._lead_times[-1]
+        # Start inside the plot (not at the right edge, where the crosshair
+        # would blend into the frame border).
+        times = self._lead_times
+        self._inspect_ts = times[max(0, int(len(times) * 0.85) - 1)]
         self._redraw()
 
     def action_exit_inspect(self) -> None:
@@ -133,8 +139,11 @@ class PriceChartPanel(Vertical):
         times = self._lead_times
         if not times or self._inspect_ts is None:
             return
+        # Scale steps to the window so each press moves visibly: ~1.5% per
+        # arrow press, ~10% per shift press (delta arrives as +-1 / +-10).
+        unit = max(1, len(times) // 66)
         idx = bisect.bisect_left(times, self._inspect_ts)
-        idx = max(0, min(len(times) - 1, idx + delta))
+        idx = max(0, min(len(times) - 1, idx + delta * unit))
         self._inspect_ts = times[idx]
         self._redraw()
 
@@ -214,7 +223,7 @@ class PriceChartPanel(Vertical):
             plt.vertical_line(self._inspect_ts, color=CROSSHAIR_COLOR)
             for i, (_label, points) in enumerate(self._series):
                 point = self._value_at(points, self._inspect_ts)
-                plt.scatter([point.t], [point.p * 100], marker="dot", color=PALETTE[i])
+                plt.scatter([point.t], [point.p * 100], marker="hd", color=PALETTE[i])
         else:
             # Mark the latest price of the lead series at the right edge.
             lead_pts = self._series[0][1]

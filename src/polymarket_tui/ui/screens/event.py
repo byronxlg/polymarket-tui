@@ -29,6 +29,10 @@ class EventScreen(Screen):
         Binding("r", "refresh", "refresh"),
         Binding("c", "toggle_chart", "chart"),
         Binding("x", "inspect_chart", "inspect"),
+        Binding("tab", "cycle_interval(1)", "interval"),
+        Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
+        Binding("l", "cycle_interval(1)", "next interval", show=False),
+        Binding("h", "cycle_interval(-1)", "prev interval", show=False),
     ] + [
         Binding(str(i + 1), f"set_interval_key('{key}')", key, show=False)
         for i, key in enumerate(INTERVALS)
@@ -50,10 +54,13 @@ class EventScreen(Screen):
             yield PriceChartPanel(id="event-chart")
         with Horizontal(id="event-body"):
             yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
-            pane = VerticalScroll(MarketPreview(id="market-preview"), id="preview-pane")
+            pane = VerticalScroll(
+                MarketPreview(id="market-preview"),
+                Static(id="rules-panel"),
+                id="preview-pane",
+            )
             pane.can_focus = False
             yield pane
-        yield Static(id="event-info", classes="subtle")
         yield Footer()
 
     def _title_line(self) -> str:
@@ -69,8 +76,7 @@ class EventScreen(Screen):
 
     def on_mount(self) -> None:
         self.title = "event"
-        info = self.query_one("#event-info", Static)
-        info.display = False
+        self.query_one("#rules-panel", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         table = self.query_one(DataTable)
         table.add_column("Outcome", width=40, key="outcome")
@@ -159,6 +165,11 @@ class EventScreen(Screen):
         self.query_one("#interval-tabs", Tabs).active = f"iv-{key}"
         self.load_chart()
 
+    def action_cycle_interval(self, delta: int) -> None:
+        keys = list(INTERVALS)
+        idx = (keys.index(self._interval) + delta) % len(keys)
+        self.action_set_interval_key(keys[idx])
+
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         if event.tabs.id == "interval-tabs" and event.tab.id:
             key = event.tab.id.removeprefix("iv-")
@@ -180,12 +191,17 @@ class EventScreen(Screen):
         self.notify("Watching" if watched else "Unwatched", timeout=2)
 
     def action_toggle_info(self) -> None:
-        info = self.query_one("#event-info", Static)
+        """Swap the right pane between the market preview and the event rules."""
+        rules = self.query_one("#rules-panel", Static)
+        preview = self.query_one(MarketPreview)
         self._show_info = not self._show_info
-        info.display = self._show_info
+        rules.display = self._show_info
+        preview.display = not self._show_info
         if self._show_info:
-            desc = self._event.description or "(no description)"
-            info.update(desc[:1200])
+            out = Text()
+            out.append("RULES\n\n", style="bold")
+            out.append(self._event.description.strip() or "(no description)")
+            rules.update(out)
 
     def action_refresh(self) -> None:
         self.refresh_event()

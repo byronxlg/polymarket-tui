@@ -27,6 +27,10 @@ class MarketScreen(Screen):
         Binding("x", "inspect_chart", "inspect"),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
+        Binding("tab", "cycle_interval(1)", "interval"),
+        Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
+        Binding("l", "cycle_interval(1)", "next interval", show=False),
+        Binding("h", "cycle_interval(-1)", "prev interval", show=False),
     ] + [
         Binding(str(i + 1), f"set_interval_key('{key}')", key, show=i == 0)
         for i, key in enumerate(INTERVALS)
@@ -182,6 +186,11 @@ class MarketScreen(Screen):
         tabs = self.query_one("#interval-tabs", Tabs)
         tabs.active = f"iv-{key}"
         self.load_history()
+
+    def action_cycle_interval(self, delta: int) -> None:
+        keys = list(INTERVALS)
+        idx = (keys.index(self._interval) + delta) % len(keys)
+        self.action_set_interval_key(keys[idx])
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         if event.tabs.id == "interval-tabs" and event.tab.id:

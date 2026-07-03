@@ -24,11 +24,12 @@ every session starts DRY. Every placed/cancelled order is appended to
 
 - arrows or `j/k` move; `right`/`>`/`enter` open selected; `left`/`<`/`escape` back
 - `q` quit, `/` search, `w` watchlist, `?` full help
-- Home: `tab`/`shift+tab` switch category (also `h/l`), `o` cycle sort, `W` star
-- Event: multi-outcome chart, `1-6` interval, `c` toggle chart, `i` rules
-- Market: `t` flip YES/NO book, `1-6` chart interval, `x` chart inspect,
-  `b`/`s` buy/sell form
-- Portfolio: `p` from anywhere; `tab` switches positions/orders/history; `x` cancels
+- `tab`/`shift+tab` cycle the screen's main selector: category (home),
+  chart timeframe (event/market), pane (portfolio); `h/l` are aliases
+- Home: `o` cycle sort, `W` star
+- Event: multi-outcome chart, `x` inspect (scrub with arrows), `i` rules pane
+- Market: `t` flip YES/NO book, `x` inspect, `b`/`s` buy/sell form
+- Portfolio: `p` from anywhere; `x` cancels the highlighted order
 - A preview rail on the right follows the highlighted row on every list screen
 
 Order book auto-refreshes every 3 seconds.
