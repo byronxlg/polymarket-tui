@@ -8,10 +8,52 @@ from textual.events import MouseMove
 from textual.widgets import DataTable, Static
 
 from polymarket_tui.core import fmt
-from polymarket_tui.models.market import Event
+from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.event_table import EventsTable
 
 PREVIEW_OUTCOMES = 12
+
+
+class MarketPreview(Static):
+    """Detail rail for one outcome market (used on the event screen)."""
+
+    def show_market(self, market: Market | None) -> None:
+        if market is None:
+            self.update(Text("", style="dim"))
+            return
+        out = Text()
+        out.append(market.display_title[:44] + "\n", style="bold")
+        if market.question and market.question != market.display_title:
+            out.append(market.question[:88] + "\n", style="dim")
+        out.append("\n")
+        out.append(f"{'YES':<8}", style="bold green")
+        out.append(f"{fmt.cents(market.yes_price):>8}\n", style="bold cyan")
+        no_price = None if market.yes_price is None else 1 - market.yes_price
+        out.append(f"{'NO':<8}", style="bold red")
+        out.append(f"{fmt.cents(no_price):>8}\n\n", style="bold cyan")
+
+        rows = [
+            ("bid", fmt.cents(market.best_bid)),
+            ("ask", fmt.cents(market.best_ask)),
+            ("spread", fmt.cents(market.spread)),
+            (
+                "24h",
+                fmt.cents(market.one_day_price_change, signed=True)
+                if market.one_day_price_change is not None
+                else "-",
+            ),
+            ("vol 24h", fmt.money(market.volume_24hr)),
+            ("liquidity", fmt.money(market.liquidity)),
+            ("ends", fmt.end_date(market.end_date)),
+        ]
+        if market.order_price_min_tick_size:
+            rows.append(("tick", f"{market.order_price_min_tick_size}"))
+        if market.order_min_size:
+            rows.append(("min size", f"{market.order_min_size:.0f}"))
+        for label, value in rows:
+            out.append(f"{label:<10}", style="dim")
+            out.append(f"{value}\n")
+        self.update(out)
 
 
 class EventPreview(Static):
@@ -57,8 +99,9 @@ class EventsBrowser(Horizontal):
 
     def compose(self):
         yield EventsTable(id="events-table")
-        with VerticalScroll(id="preview-pane"):
-            yield EventPreview(id="event-preview")
+        pane = VerticalScroll(EventPreview(id="event-preview"), id="preview-pane")
+        pane.can_focus = False
+        yield pane
 
     @property
     def table(self) -> EventsTable:

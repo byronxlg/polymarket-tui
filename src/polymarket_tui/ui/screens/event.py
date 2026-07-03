@@ -8,7 +8,7 @@ from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Static, Tab, Tabs
 from textual_plotext import PlotextPlot
@@ -17,6 +17,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
 from polymarket_tui.ui.widgets.event_table import change_text
+from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, draw_price_chart
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
@@ -43,12 +44,15 @@ class EventScreen(Screen):
         yield Header()
         yield Static(self._title_line(), classes="screen-title")
         with Vertical(id="event-chart-pane"):
-            yield Tabs(
-                *(Tab(k, id=f"iv-{k}") for k in INTERVALS),
-                id="interval-tabs",
-            )
+            tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
+            tabs.can_focus = False
+            yield tabs
             yield PlotextPlot(id="event-chart")
-        yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
+        with Horizontal(id="event-body"):
+            yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
+            pane = VerticalScroll(MarketPreview(id="market-preview"), id="preview-pane")
+            pane.can_focus = False
+            yield pane
         yield Static(id="event-info", classes="subtle")
         yield Footer()
 
@@ -67,9 +71,7 @@ class EventScreen(Screen):
         self.title = "event"
         info = self.query_one("#event-info", Static)
         info.display = False
-        tabs = self.query_one("#interval-tabs", Tabs)
-        tabs.active = f"iv-{self._interval}"
-        tabs.can_focus = False
+        self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         table = self.query_one(DataTable)
         table.add_column("Outcome", width=40, key="outcome")
         table.add_column("Price", width=7, key="price")
@@ -97,6 +99,19 @@ class EventScreen(Screen):
                 fmt.money(market.volume_24hr),
                 key=market.slug,
             )
+        markets = self._event.active_markets
+        self.query_one(MarketPreview).show_market(markets[0] if markets else None)
+
+    def _market_by_slug(self, slug: str | None):
+        if not slug:
+            return None
+        return next((m for m in self._event.active_markets if m.slug == slug), None)
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if event.row_key is not None:
+            market = self._market_by_slug(str(event.row_key.value))
+            if market is not None:
+                self.query_one(MarketPreview).show_market(market)
 
     # -- chart -----------------------------------------------------------------
 

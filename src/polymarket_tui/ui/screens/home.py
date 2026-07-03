@@ -39,6 +39,8 @@ class HomeScreen(Screen):
     BINDINGS = [
         Binding("o", "cycle_sort", "sort"),
         Binding("W", "toggle_watch", "watch", key_display="W"),
+        Binding("tab", "next_tag", "next category"),
+        Binding("shift+tab", "prev_tag", "prev category", show=False),
         Binding("h", "prev_tag", "prev tab", show=False),
         Binding("l", "next_tag", "next tab", show=False),
         Binding("left_square_bracket", "prev_tag", "prev tag", show=False),
@@ -62,7 +64,7 @@ class HomeScreen(Screen):
         yield Footer()
 
     def _status_line(self) -> str:
-        return f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, h/l category)"
+        return f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, tab category)"
 
     def on_mount(self) -> None:
         self.title = "polymarket-tui"

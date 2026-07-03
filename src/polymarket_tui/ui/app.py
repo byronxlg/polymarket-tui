@@ -27,6 +27,8 @@ class PolymarketApp(App):
         Binding("H", "home", "home", show=False, key_display="H"),
         Binding("w", "watchlist", "watchlist"),
         Binding("question_mark", "help", "help", key_display="?"),
+        Binding("left", "nav_back", "back", show=False),
+        Binding("less_than_sign", "nav_back", "back", show=False),
     ]
 
     def __init__(self) -> None:
@@ -71,4 +73,8 @@ class PolymarketApp(App):
 
     def action_home(self) -> None:
         while len(self.screen_stack) > 1:
+            self.pop_screen()
+
+    def action_nav_back(self) -> None:
+        if len(self.screen_stack) > 1:
             self.pop_screen()

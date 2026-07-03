@@ -59,7 +59,12 @@ EventsBrowser EventsTable {
     height: 1fr;
 }
 
+#event-body {
+    height: 1fr;
+}
+
 #markets-table {
+    width: 1fr;
     height: 1fr;
 }
 

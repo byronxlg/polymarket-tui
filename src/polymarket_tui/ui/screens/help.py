@@ -22,14 +22,14 @@ Read-only demo build: browse, books, charts, search, watchlist.
 | w | watchlist |
 | ? | this help |
 | q | quit |
-| escape | back |
+| escape, left, < | back |
 
 ## Tables
 
 | Key | Action |
 |-----|--------|
-| j / k, arrows | move |
-| enter | open |
+| up / down or j / k | move |
+| enter, right, > | open selected |
 | W | toggle watchlist |
 | r | refresh |
 
@@ -37,8 +37,8 @@ Read-only demo build: browse, books, charts, search, watchlist.
 
 | Key | Action |
 |-----|--------|
+| tab / shift+tab | next / prev category (also h / l, [ / ]) |
 | o | cycle sort (24h volume / liquidity / ending soonest / newest) |
-| h / l or [ / ] | prev / next category |
 
 The preview panel follows the highlighted (or mouse-hovered) row.
 
@@ -64,13 +64,22 @@ Data: gamma-api.polymarket.com (metadata), clob.polymarket.com (books, history).
 
 
 class HelpScreen(Screen):
-    BINDINGS = [Binding("escape", "app.pop_screen", "back")]
+    BINDINGS = [
+        Binding("escape", "app.pop_screen", "back"),
+        Binding("j,down", "scroll_help(3)", "down", show=False),
+        Binding("k,up", "scroll_help(-3)", "up", show=False),
+    ]
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with VerticalScroll(id="help-body"):
-            yield Markdown(HELP_TEXT)
+        body = VerticalScroll(Markdown(HELP_TEXT), id="help-body")
+        body.can_focus = False
+        yield body
         yield Footer()
 
     def on_mount(self) -> None:
         self.title = "help"
+
+    def action_scroll_help(self, amount: int) -> None:
+        body = self.query_one("#help-body", VerticalScroll)
+        body.scroll_relative(y=amount, animate=False)
