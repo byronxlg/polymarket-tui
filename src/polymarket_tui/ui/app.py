@@ -6,13 +6,18 @@ from textual.app import App
 from textual.binding import Binding
 
 from polymarket_tui.api.clob import ClobPublicClient
+from polymarket_tui.api.clob_auth import AuthedClobClient
+from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
+from polymarket_tui.core.config import get_settings
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.event import EventScreen
 from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.home import HomeScreen
 from polymarket_tui.ui.screens.market import MarketScreen
+from polymarket_tui.ui.screens.portfolio import PortfolioScreen
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.watchlist import WatchlistScreen
 
@@ -26,6 +31,7 @@ class PolymarketApp(App):
         Binding("slash", "search", "search"),
         Binding("H", "home", "home", show=False, key_display="H"),
         Binding("w", "watchlist", "watchlist"),
+        Binding("p", "portfolio", "portfolio"),
         Binding("question_mark", "help", "help", key_display="?"),
         Binding("left", "nav_back", "back", show=False),
         Binding("less_than_sign", "nav_back", "back", show=False),
@@ -33,8 +39,14 @@ class PolymarketApp(App):
 
     def __init__(self) -> None:
         super().__init__()
+        self.settings = get_settings()
         self.gamma = GammaClient()
         self.clob = ClobPublicClient()
+        self.data = DataApiClient()
+        self.authed: AuthedClobClient | None = (
+            AuthedClobClient(self.settings) if self.settings.can_auth else None
+        )
+        self.portfolio = PortfolioService(self.settings, self.data, self.authed)
         self.watchlist = Watchlist()
 
     def get_default_screen(self) -> HomeScreen:
@@ -43,6 +55,7 @@ class PolymarketApp(App):
     async def on_unmount(self) -> None:
         await self.gamma.aclose()
         await self.clob.aclose()
+        await self.data.aclose()
 
     # -- navigation helpers (screens call these) ---------------------------
 
@@ -67,6 +80,14 @@ class PolymarketApp(App):
 
     def action_watchlist(self) -> None:
         self._push_unless_current(WatchlistScreen, WatchlistScreen)
+
+    def action_portfolio(self) -> None:
+        if not self.settings.can_read_portfolio:
+            self.notify(
+                "Portfolio needs POLYMARKET_FUNDER set (run via doppler)", severity="warning"
+            )
+            return
+        self._push_unless_current(PortfolioScreen, PortfolioScreen)
 
     def action_help(self) -> None:
         self._push_unless_current(HelpScreen, HelpScreen)

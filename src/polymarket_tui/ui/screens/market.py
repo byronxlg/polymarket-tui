@@ -99,7 +99,31 @@ class MarketScreen(Screen):
         self.title = "market"
         self.load_book()
         self.load_history()
+        self.load_position()
         self.set_interval(BOOK_POLL_SECONDS, self.load_book)
+
+    @work(exclusive=True, group="position")
+    async def load_position(self) -> None:
+        """Show the user's position in this market on the info line, if any."""
+        app = self.app
+        if not app.settings.can_read_portfolio:
+            return
+        try:
+            positions = await app.portfolio.positions()
+        except Exception:
+            return
+        tokens = set(self._market.clob_token_ids)
+        mine = [p for p in positions if p.asset in tokens and p.size >= 0.01]
+        if not mine:
+            return
+        bits = []
+        for p in mine:
+            bits.append(
+                f"your position: {p.size:,.0f} {p.outcome} @ {fmt.cents(p.avg_price)}"
+                f" (now {fmt.cents(p.cur_price)}, P&L {p.cash_pnl:+,.2f})"
+            )
+        info = self.query_one("#market-info", Static)
+        info.update("  |  ".join(bits) + "\n" + self._info_line())
 
     @property
     def _token_id(self) -> str | None:

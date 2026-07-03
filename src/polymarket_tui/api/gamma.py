@@ -65,6 +65,12 @@ class GammaClient:
             return None
         return Market.model_validate(data[0])
 
+    async def market_by_condition(self, condition_id: str) -> Market | None:
+        data = await self._get("/markets", {"condition_ids": condition_id})
+        if not data:
+            return None
+        return Market.model_validate(data[0])
+
     async def tags(self) -> list[Tag]:
         data = await self._get("/tags", {"limit": 100, "order": "id"})
         return [Tag.model_validate(t) for t in data]

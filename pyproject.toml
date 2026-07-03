@@ -13,6 +13,8 @@ dependencies = [
     "httpx[http2]>=0.27",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "py-clob-client>=0.34.6",
+    "py-clob-client-v2>=1.0.2",
 ]
 
 [project.scripts]
