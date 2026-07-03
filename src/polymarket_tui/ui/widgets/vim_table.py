@@ -1,12 +1,20 @@
-"""DataTable with vim-style navigation keys."""
+"""DataTable with vim-style navigation keys and spatial arrow escape."""
 
 from __future__ import annotations
 
 from textual.binding import Binding
+from textual.message import Message
 from textual.widgets import DataTable
 
 
 class VimDataTable(DataTable):
+    class TopReached(Message):
+        """Up pressed while already on the first row - focus whatever is above."""
+
+        def __init__(self, table: VimDataTable) -> None:
+            super().__init__()
+            self.table = table
+
     BINDINGS = [
         Binding("j", "cursor_down", "down", show=False),
         Binding("k", "cursor_up", "up", show=False),
@@ -20,3 +28,9 @@ class VimDataTable(DataTable):
         Binding("left", "app.nav_back", "back", show=False),
         Binding("less_than_sign", "app.nav_back", "back", show=False),
     ]
+
+    def action_cursor_up(self) -> None:
+        if self.cursor_row == 0 or self.row_count == 0:
+            self.post_message(self.TopReached(self))
+            return
+        super().action_cursor_up()

@@ -50,6 +50,22 @@ class PriceInput(Input):
         self.post_message(self.Bumped(direction))
 
 
+class SizeInput(Input):
+    """Size field: up/down bump by one share."""
+
+    BINDINGS = [
+        Binding("up", "bump(1)", "size up", show=False),
+        Binding("down", "bump(-1)", "size down", show=False),
+    ]
+
+    def action_bump(self, direction: int) -> None:
+        try:
+            current = int(float(self.value)) if self.value.strip() else 0
+        except ValueError:
+            return
+        self.value = str(max(1, current + direction))
+
+
 class OrderPanel(Vertical):
     BINDINGS = [
         Binding("escape", "close_or_back", "close", show=False),
@@ -116,7 +132,7 @@ class OrderPanel(Vertical):
             # the screen's autofocus and swallow the b/s keys.
             yield PriceInput(placeholder="empty = market", id="op-price", disabled=True)
             yield Label("size")
-            yield Input(placeholder="shares", id="op-size", type="number", disabled=True)
+            yield SizeInput(placeholder="shares", id="op-size", type="number", disabled=True)
         yield Static(id="op-info")
         yield Static(id="op-issues")
         yield Static(id="op-confirm")

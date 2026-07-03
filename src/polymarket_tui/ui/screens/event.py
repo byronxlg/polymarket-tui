@@ -192,6 +192,9 @@ class EventScreen(Screen):
         pane = self.query_one("#event-chart-pane", Vertical)
         pane.display = not pane.display
 
+    def on_vim_data_table_top_reached(self, message) -> None:
+        self.action_inspect_chart()
+
     def action_inspect_chart(self) -> None:
         pane = self.query_one("#event-chart-pane", Vertical)
         if pane.display:

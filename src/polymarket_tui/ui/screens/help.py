@@ -28,14 +28,17 @@ Orders are dry-run (signed, not posted) unless POLYMARKET_EXECUTION_LIVE=1.
 | q | quit |
 | escape, left, < | back |
 
-One scheme everywhere: arrows/j/k move, enter/right/> open, escape/left/< back,
-tab cycles the screen's main selector (category, chart timeframe, or pane),
-h/l work as tab aliases, r refreshes, W stars.
+One scheme everywhere: arrows drive everything. up/down move (and move INTO
+the widget above: category bar on home, chart inspect on event/market, the
+search box on search), right/enter open, left/escape back. tab cycles the
+screen's main selector (category, chart timeframe, or pane), h/l are tab
+aliases, r refreshes, W stars.
 
 ## Home
 
 | Key | Action |
 |-----|--------|
+| up (at top row) | focus category bar; left/right switch, down returns |
 | tab / shift+tab | next / prev category |
 | o | cycle sort (24h volume / liquidity / ending soonest / newest) |
 
@@ -46,7 +49,7 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 | Key | Action |
 |-----|--------|
 | tab or 1-6 | chart timeframe (1H 6H 1D 1W 1M ALL) |
-| x | inspect chart (crosshair; left/right scrub, esc exit) |
+| up (at top row) or x | inspect chart (left/right scrub, down/esc exit) |
 | c | show/hide the multi-outcome chart |
 | i | swap right pane: outcome preview <-> rules |
 | R | related markets (series siblings, e.g. other days of a daily) |
@@ -56,7 +59,7 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 | Key | Action |
 |-----|--------|
 | tab or 1-6 | chart timeframe |
-| x | inspect chart (crosshair; left/right scrub, esc exit) |
+| up or x | inspect chart (left/right scrub, down/esc exit) |
 | t | flip order book YES/NO |
 | b / s | open order entry below the book (BUY / SELL) |
 

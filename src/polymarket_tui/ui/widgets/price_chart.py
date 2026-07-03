@@ -1,4 +1,4 @@
-"""Price chart panel: legend line with live prices + plotext chart.
+"""Price chart panel: legend line with live prices + smooth line chart.
 
 The legend is rendered outside the plot (a Rich line above it) so the plot area
 stays clean; series colors are deterministic so legend and lines always match.
@@ -17,14 +17,14 @@ from textual.binding import Binding
 from textual.containers import Vertical
 from textual.widget import Widget
 from textual.widgets import Static
-from textual_plotext import PlotextPlot
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import PricePoint
+from polymarket_tui.ui.widgets.linechart import render_chart
 
 MAX_SERIES = 6
 
-# One palette, used for both the plotext lines and the Rich legend swatches.
+# One palette, used for both the chart lines and the Rich legend swatches.
 PALETTE: list[tuple[int, int, int]] = [
     (0, 187, 255),  # sky blue
     (255, 155, 66),  # orange
@@ -33,9 +33,6 @@ PALETTE: list[tuple[int, int, int]] = [
     (187, 134, 252),  # purple
     (241, 196, 15),  # yellow
 ]
-
-CROSSHAIR_COLOR = (230, 230, 230)
-
 
 def _rich_color(rgb: tuple[int, int, int]) -> str:
     return f"rgb({rgb[0]},{rgb[1]},{rgb[2]})"
@@ -67,6 +64,7 @@ class PriceChartPanel(Vertical):
         Binding("shift+right", "step(10)", "forward 10", show=False),
         Binding("escape", "exit_inspect", "exit inspect", show=False),
         Binding("x", "exit_inspect", "exit inspect", show=False),
+        Binding("down", "exit_inspect", "exit inspect", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -74,7 +72,7 @@ class PriceChartPanel(Vertical):
         height: 1;
         padding: 0 1;
     }
-    PriceChartPanel > PlotextPlot {
+    PriceChartPanel > #chart-canvas {
         height: 1fr;
     }
     PriceChartPanel:focus-within #chart-legend {
@@ -93,7 +91,10 @@ class PriceChartPanel(Vertical):
 
     def compose(self):
         yield Static(id="chart-legend")
-        yield PlotextPlot(id="chart-plot")
+        yield Static(id="chart-canvas")
+
+    def on_resize(self) -> None:
+        self._draw_plot()
 
     def show(self, series: list[tuple[str, list[PricePoint]]], interval_key: str) -> None:
         self._series = [(label, pts) for label, pts in series if pts][:MAX_SERIES]
@@ -133,7 +134,7 @@ class PriceChartPanel(Vertical):
         if self._return_focus is not None and self._return_focus.is_mounted:
             self._return_focus.focus()
         else:
-            self.screen.focus_next()
+            self.screen.set_focus(None)
 
     def action_step(self, delta: int) -> None:
         times = self._lead_times
@@ -187,46 +188,25 @@ class PriceChartPanel(Vertical):
     # -- plot -------------------------------------------------------------------
 
     def _draw_plot(self) -> None:
-        plot = self.query_one(PlotextPlot)
-        plt = plot.plt
-        plt.clear_figure()
-        plt.theme("pro")
-
+        canvas = self.query_one("#chart-canvas", Static)
         if not self._series:
-            plot.refresh()
+            canvas.update(Text(""))
             return
-
-        all_ts: list[int] = []
-        all_ys: list[float] = []
-        for i, (_label, points) in enumerate(self._series):
-            xs = [p.t for p in points]
-            ys = [p.p * 100 for p in points]
-            all_ts.extend(xs)
-            all_ys.extend(ys)
-            plt.plot(xs, ys, marker="braille", color=PALETTE[i % len(PALETTE)])
-
-        lo_t, hi_t = min(all_ts), max(all_ts)
-        if hi_t > lo_t:
-            n_ticks = 6
-            step = (hi_t - lo_t) / (n_ticks - 1)
-            positions = [lo_t + round(i * step) for i in range(n_ticks)]
-            time_fmt = _time_format(self._interval, hi_t - lo_t)
-            labels = [datetime.fromtimestamp(p).astimezone().strftime(time_fmt) for p in positions]
-            plt.xticks(positions, labels)
-
-        # Auto-scale with padding (min 10c span) so moves are visible; clamp to 0-100.
-        lo_y, hi_y = min(all_ys), max(all_ys)
-        pad = max((hi_y - lo_y) * 0.15, (10 - (hi_y - lo_y)) / 2, 0.5)
-        plt.ylim(max(0.0, lo_y - pad), min(100.0, hi_y + pad))
-
-        if self._inspect_ts is not None:
-            plt.vertical_line(self._inspect_ts, color=CROSSHAIR_COLOR)
-            for i, (_label, points) in enumerate(self._series):
-                point = self._value_at(points, self._inspect_ts)
-                plt.scatter([point.t], [point.p * 100], marker="hd", color=PALETTE[i])
-        else:
-            # Mark the latest price of the lead series at the right edge.
-            lead_pts = self._series[0][1]
-            plt.scatter([lead_pts[-1].t], [lead_pts[-1].p * 100], marker="dot", color=PALETTE[0])
-
-        plot.refresh()
+        size = canvas.size
+        if size.width < 12 or size.height < 5:
+            return
+        span = max(p.t for _, pts in self._series for p in pts[-1:]) - min(
+            pts[0].t for _, pts in self._series
+        )
+        canvas.update(
+            render_chart(
+                [
+                    (points, PALETTE[i % len(PALETTE)])
+                    for i, (_label, points) in enumerate(self._series)
+                ],
+                width=size.width,
+                height=size.height,
+                time_format=_time_format(self._interval, span),
+                inspect_ts=self._inspect_ts,
+            )
+        )

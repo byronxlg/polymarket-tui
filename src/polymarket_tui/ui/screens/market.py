@@ -29,6 +29,7 @@ class MarketScreen(Screen):
         Binding("r", "refresh", "refresh"),
         Binding("W", "toggle_watch", "watch", key_display="W"),
         Binding("x", "inspect_chart", "inspect"),
+        Binding("up", "inspect_chart", "inspect chart", show=False),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("R", "related", "related", show=False, key_display="R"),

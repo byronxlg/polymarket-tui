@@ -9,7 +9,6 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "textual>=1.0",
-    "textual-plotext>=1.0",
     "httpx[http2]>=0.27",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",

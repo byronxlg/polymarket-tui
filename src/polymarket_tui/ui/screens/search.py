@@ -73,6 +73,9 @@ class SearchScreen(Screen):
         watched = self.app.watchlist.toggle(selected.slug)
         table.set_star(selected.slug, watched)
 
+    def on_vim_data_table_top_reached(self, message) -> None:
+        self.query_one(Input).focus()
+
     def action_back_or_pop(self) -> None:
         # esc from the results table goes back to the input; from the input, pops.
         if self.query_one(EventsTable).has_focus:

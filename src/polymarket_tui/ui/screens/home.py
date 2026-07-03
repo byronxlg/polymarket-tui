@@ -48,6 +48,8 @@ class HomeScreen(Screen):
         Binding("right_square_bracket", "next_tag", "next tag", show=False),
         Binding("r", "refresh", "refresh"),
         Binding("enter", "open_event", "open", show=False, priority=False),
+        Binding("down", "leave_tag_bar", "back to list", show=False),
+        Binding("escape", "leave_tag_bar", "back to list", show=False),
     ]
 
     def __init__(self) -> None:
@@ -129,7 +131,23 @@ class HomeScreen(Screen):
             self.app.open_event(event)
 
     def action_open_event(self) -> None:
+        if self.query_one(Tabs).has_focus:
+            self.action_leave_tag_bar()
+            return
         self._open_highlighted()
+
+    # -- spatial navigation: up from the top row enters the category bar --------
+
+    def on_vim_data_table_top_reached(self, message) -> None:
+        tabs = self.query_one(Tabs)
+        tabs.can_focus = True
+        tabs.focus()
+
+    def action_leave_tag_bar(self) -> None:
+        tabs = self.query_one(Tabs)
+        if tabs.has_focus:
+            tabs.can_focus = False
+            self.table.focus()
 
     def action_cycle_sort(self) -> None:
         self._sort_index = (self._sort_index + 1) % len(SORT_ORDERS)
