@@ -14,6 +14,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.book_panel import BookPanel
+from polymarket_tui.ui.widgets.price_chart import draw_price_chart
 
 BOOK_POLL_SECONDS = 3.0
 
@@ -136,30 +137,12 @@ class MarketScreen(Screen):
 
     def _draw_chart(self) -> None:
         plot = self.query_one(PlotextPlot)
-        plt = plot.plt
-        plt.clear_figure()
-        plt.theme("pro")
-        history = self._history
-        if history:
-            ys = [p.p * 100 for p in history]
-            xs = list(range(len(ys)))
-            plt.plot(xs, ys, marker="braille")
-            # A handful of readable time labels instead of a date axis.
-            n_ticks = min(6, len(xs))
-            if n_ticks > 1:
-                step = (len(xs) - 1) / (n_ticks - 1)
-                positions = [round(i * step) for i in range(n_ticks)]
-                time_fmt = "%H:%M" if self._interval in ("1H", "6H", "1D") else "%b %d"
-                labels = [history[p].when.astimezone().strftime(time_fmt) for p in positions]
-                plt.xticks(positions, labels)
-            # Auto-scale with padding (min 10c span) so moves are visible; clamp to 0-100.
-            lo, hi = min(ys), max(ys)
-            pad = max((hi - lo) * 0.15, (10 - (hi - lo)) / 2, 0.5)
-            plt.ylim(max(0.0, lo - pad), min(100.0, hi + pad))
-            plt.ylabel(f"{self._outcome_label()} (cents)")
-        else:
-            plt.title("no price history")
-        plot.refresh()
+        draw_price_chart(
+            plot,
+            [(self._outcome_label(), self._history)],
+            self._interval,
+            ylabel=f"{self._outcome_label()} (cents)",
+        )
 
     # -- actions ----------------------------------------------------------------
 

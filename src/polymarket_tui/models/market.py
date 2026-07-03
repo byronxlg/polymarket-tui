@@ -36,6 +36,7 @@ class Market(BaseModel):
     outcomes: list[str] = Field(default_factory=list)
     outcome_prices: list[str] = Field(default_factory=list, alias="outcomePrices")
     group_item_title: str = Field(default="", alias="groupItemTitle")
+    group_item_threshold: float = Field(default=0.0, alias="groupItemThreshold")
     best_bid: float | None = Field(default=None, alias="bestBid")
     best_ask: float | None = Field(default=None, alias="bestAsk")
     spread: float | None = None
@@ -53,7 +54,7 @@ class Market(BaseModel):
         _decode_json_list
     )
 
-    @field_validator("liquidity", "volume_24hr", mode="before")
+    @field_validator("liquidity", "volume_24hr", "group_item_threshold", mode="before")
     @classmethod
     def _num_str(cls, v: object) -> object:
         return float(v) if isinstance(v, str) and v else v
@@ -91,6 +92,7 @@ class Event(BaseModel):
     end_date: datetime | None = Field(default=None, alias="endDate")
     volume_24hr: float | None = Field(default=None, alias="volume24hr")
     liquidity: float | None = None
+    sort_by: str | None = Field(default=None, alias="sortBy")
     tags: list[Tag] = Field(default_factory=list)
     markets: list[Market] = Field(default_factory=list)
 
@@ -101,13 +103,23 @@ class Event(BaseModel):
 
     @property
     def active_markets(self) -> list[Market]:
+        """Markets in display order.
+
+        Gamma's `sortBy` says how the web UI orders an event's markets:
+        "price" -> highest chance first; anything else -> the market-defined
+        `groupItemThreshold` order (range events like temperature/price bands
+        define it ascending).
+        """
         ms = [m for m in self.markets if m.active and not m.closed]
-        return sorted(ms, key=lambda m: m.yes_price or 0, reverse=True)
+        if self.sort_by == "price":
+            return sorted(ms, key=lambda m: m.yes_price or 0, reverse=True)
+        return sorted(ms, key=lambda m: m.group_item_threshold)
 
     @property
     def top_market(self) -> Market | None:
+        """Highest-priced market regardless of display order (for browse lists)."""
         ms = self.active_markets
-        return ms[0] if ms else None
+        return max(ms, key=lambda m: m.yes_price or 0) if ms else None
 
     @property
     def is_binary(self) -> bool:

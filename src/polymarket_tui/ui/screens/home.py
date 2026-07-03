@@ -1,4 +1,4 @@
-"""Home screen: trending events with category tabs and sort cycling."""
+"""Home screen: trending events with category tabs, sort cycling, and preview."""
 
 from __future__ import annotations
 
@@ -6,10 +6,11 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Tab, Tabs
+from textual.widgets import Footer, Header, Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
 from polymarket_tui.ui.widgets.event_table import EventsTable
+from polymarket_tui.ui.widgets.preview import EventsBrowser
 
 # Curated to match the polymarket.com top nav. id = gamma tag_slug ("trending" = no filter).
 CATEGORIES: list[tuple[str, str]] = [
@@ -38,6 +39,8 @@ class HomeScreen(Screen):
     BINDINGS = [
         Binding("o", "cycle_sort", "sort"),
         Binding("W", "toggle_watch", "watch", key_display="W"),
+        Binding("h", "prev_tag", "prev tab", show=False),
+        Binding("l", "next_tag", "next tab", show=False),
         Binding("left_square_bracket", "prev_tag", "prev tag", show=False),
         Binding("right_square_bracket", "next_tag", "next tag", show=False),
         Binding("r", "refresh", "refresh"),
@@ -54,12 +57,16 @@ class HomeScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="tag-bar")
-        yield EventsTable(id="events-table")
+        yield Static(self._status_line(), id="status-line", classes="subtle")
+        yield EventsBrowser(id="home-browser")
         yield Footer()
+
+    def _status_line(self) -> str:
+        return f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, h/l category)"
 
     def on_mount(self) -> None:
         self.title = "polymarket-tui"
-        self.sub_title = f"sorted by {SORT_LABELS[SORT_ORDERS[self._sort_index]]}"
+        self.query_one(Tabs).can_focus = False
         self.table.focus()
         self.load_events()
 
@@ -89,6 +96,9 @@ class HomeScreen(Screen):
             return
         events = [e for e in events if e.top_market is not None]
         self.table.set_events(events, set(app.watchlist.slugs), clear=not append)
+        if not append:
+            browser = self.query_one(EventsBrowser)
+            browser.preview.show_event(events[0] if events else None)
         self._loading = False
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
@@ -120,7 +130,7 @@ class HomeScreen(Screen):
 
     def action_cycle_sort(self) -> None:
         self._sort_index = (self._sort_index + 1) % len(SORT_ORDERS)
-        self.sub_title = f"sorted by {SORT_LABELS[SORT_ORDERS[self._sort_index]]}"
+        self.query_one("#status-line", Static).update(self._status_line())
         self.load_events()
 
     def action_toggle_watch(self) -> None:

@@ -11,6 +11,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
 from polymarket_tui.ui.widgets.event_table import EventsTable
+from polymarket_tui.ui.widgets.preview import EventsBrowser
 
 
 class WatchlistScreen(Screen):
@@ -23,7 +24,7 @@ class WatchlistScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Static("WATCHLIST", classes="screen-title")
-        yield EventsTable(id="watchlist-table")
+        yield EventsBrowser(id="watchlist-browser")
         yield Static(
             "Nothing watched yet. Press W on any event to add it.",
             classes="empty-note",
@@ -38,10 +39,11 @@ class WatchlistScreen(Screen):
     @work(exclusive=True)
     async def load_watchlist(self) -> None:
         slugs = self.app.watchlist.slugs
+        browser = self.query_one(EventsBrowser)
         table = self.query_one(EventsTable)
         note = self.query_one("#empty-note", Static)
         note.display = not slugs
-        table.display = bool(slugs)
+        browser.display = bool(slugs)
         if not slugs:
             table.clear()
             table.events_by_slug.clear()

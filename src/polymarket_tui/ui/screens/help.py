@@ -38,7 +38,17 @@ Read-only demo build: browse, books, charts, search, watchlist.
 | Key | Action |
 |-----|--------|
 | o | cycle sort (24h volume / liquidity / ending soonest / newest) |
-| [ / ] | prev / next category |
+| h / l or [ / ] | prev / next category |
+
+The preview panel follows the highlighted (or mouse-hovered) row.
+
+## Event
+
+| Key | Action |
+|-----|--------|
+| 1-6 | chart interval (1H 6H 1D 1W 1M ALL) |
+| c | show/hide the multi-outcome chart |
+| i | show/hide rules |
 
 ## Market
 

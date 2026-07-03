@@ -27,6 +27,42 @@ DataTable > .datatable--cursor {
     color: $text-muted;
 }
 
+#status-line {
+    height: 1;
+}
+
+/* Events browser: table + preview */
+EventsBrowser {
+    height: 1fr;
+}
+
+EventsBrowser EventsTable {
+    width: 1fr;
+}
+
+#preview-pane {
+    width: 46;
+    max-width: 40%;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+/* Event screen */
+#event-chart-pane {
+    height: 45%;
+    min-height: 12;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+#event-chart-pane PlotextPlot {
+    height: 1fr;
+}
+
+#markets-table {
+    height: 1fr;
+}
+
 /* Market screen */
 #market-body {
     layout: horizontal;

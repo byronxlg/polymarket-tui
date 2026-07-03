@@ -16,7 +16,9 @@ endpoints (gamma-api, clob).
 
 - `j/k` move, `enter` open, `escape` back, `q` quit
 - `/` search, `w` watchlist, `?` full help
-- Home: `[` `]` switch category, `o` cycle sort, `W` star to watchlist
+- Home: `h/l` switch category, `o` cycle sort, `W` star to watchlist; preview panel
+  follows the highlighted row
+- Event: multi-outcome chart, `1-6` interval, `c` toggle chart, `i` rules
 - Market: `t` flip YES/NO book, `1-6` chart interval (1H 6H 1D 1W 1M ALL)
 
 Order book auto-refreshes every 3 seconds.

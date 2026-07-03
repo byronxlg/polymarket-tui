@@ -9,6 +9,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Input
 
 from polymarket_tui.ui.widgets.event_table import EventsTable
+from polymarket_tui.ui.widgets.preview import EventsBrowser
 
 DEBOUNCE_SECONDS = 0.35
 
@@ -26,7 +27,7 @@ class SearchScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Input(placeholder="search markets... (esc to go back)", id="search-input")
-        yield EventsTable(id="search-results")
+        yield EventsBrowser(id="search-browser")
         yield Footer()
 
     def on_mount(self) -> None:
