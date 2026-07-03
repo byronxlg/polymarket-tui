@@ -243,11 +243,15 @@ class TestHelpers:
         assert map_error("weird thing") == "weird thing"
         assert "rejected" in map_error("")
 
-    def test_parse_price_formats(self):
-        assert parse_price("0.123") == Decimal("0.123")
-        assert parse_price("12.3c") == Decimal("0.123")
+    def test_parse_price_is_cents(self):
+        # Bare numbers are always cents - no unit guessing.
         assert parse_price("12.3") == Decimal("0.123")
+        assert parse_price("12.3c") == Decimal("0.123")
         assert parse_price("1") == Decimal("0.01")
-        assert parse_price("0.5") == Decimal("0.5")
+        assert parse_price("0.1") == Decimal("0.001")
+        assert parse_price("99.9") == Decimal("0.999")
+        # '$' prefix means dollars explicitly.
+        assert parse_price("$0.5") == Decimal("0.5")
+        assert parse_price("$0.123") == Decimal("0.123")
         assert parse_price("") is None
         assert parse_price("abc") is None

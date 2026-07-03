@@ -130,7 +130,7 @@ class OrderPanel(Vertical):
             yield Label("price")
             # Disabled while closed: hidden-but-focusable inputs would steal
             # the screen's autofocus and swallow the b/s keys.
-            yield PriceInput(placeholder="empty = market", id="op-price", disabled=True)
+            yield PriceInput(placeholder="cents; empty = market", id="op-price", disabled=True)
             yield Label("size")
             yield SizeInput(placeholder="shares", id="op-size", type="number", disabled=True)
         yield Static(id="op-info")
@@ -211,7 +211,7 @@ class OrderPanel(Vertical):
         else:
             parsed = parse_price(raw_price)
             if parsed is None:
-                return None, "price? (e.g. 33.4 or empty for market)"
+                return None, "price in cents? (e.g. 33.4, or empty for market)"
             price = parsed
             is_market = False
             tif = self._tif
