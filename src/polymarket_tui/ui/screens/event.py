@@ -29,6 +29,7 @@ class EventScreen(Screen):
         Binding("r", "refresh", "refresh"),
         Binding("c", "toggle_chart", "chart"),
         Binding("x", "inspect_chart", "inspect"),
+        Binding("R", "related", "related", key_display="R"),
         Binding("tab", "cycle_interval(1)", "interval"),
         Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
         Binding("l", "cycle_interval(1)", "next interval", show=False),
@@ -70,9 +71,18 @@ class EventScreen(Screen):
             parts.append(f"vol24h {fmt.money(e.volume_24hr)}")
         if e.end_date:
             parts.append(f"ends {fmt.end_date(e.end_date)}")
-        if e.tags:
+        series = e.primary_series
+        if series is not None:
+            recurrence = f" {series.recurrence}" if series.recurrence else ""
+            parts.append(f"series: {series.title}{recurrence} (R)")
+        elif e.tags:
             parts.append("/".join(t.label for t in e.tags[:3]))
         return "  |  ".join(parts)
+
+    def action_related(self) -> None:
+        from polymarket_tui.ui.screens.related import RelatedScreen
+
+        self.app.push_screen(RelatedScreen(self._event))
 
     def on_mount(self) -> None:
         self.title = "event"

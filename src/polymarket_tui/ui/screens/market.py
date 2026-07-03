@@ -27,6 +27,7 @@ class MarketScreen(Screen):
         Binding("x", "inspect_chart", "inspect"),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
+        Binding("R", "related", "related", show=False, key_display="R"),
         Binding("tab", "cycle_interval(1)", "interval"),
         Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
         Binding("l", "cycle_interval(1)", "next interval", show=False),
@@ -205,6 +206,14 @@ class MarketScreen(Screen):
 
     def action_inspect_chart(self) -> None:
         self.query_one(PriceChartPanel).enter_inspect()
+
+    def action_related(self) -> None:
+        if self._event is None:
+            self.notify("No event context for this market", severity="warning")
+            return
+        from polymarket_tui.ui.screens.related import RelatedScreen
+
+        self.app.push_screen(RelatedScreen(self._event))
 
     def action_order(self, side: str) -> None:
         app = self.app

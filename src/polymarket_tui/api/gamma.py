@@ -71,6 +71,19 @@ class GammaClient:
             return None
         return Market.model_validate(data[0])
 
+    async def events_by_series(self, series_id: str, limit: int = 30) -> list[Event]:
+        """Series siblings, newest end date first (future days, then recent past)."""
+        data = await self._get(
+            "/events",
+            {
+                "series_id": series_id,
+                "limit": limit,
+                "order": "endDate",
+                "ascending": "false",
+            },
+        )
+        return [Event.model_validate(e) for e in data]
+
     async def tags(self) -> list[Tag]:
         data = await self._get("/tags", {"limit": 100, "order": "id"})
         return [Tag.model_validate(t) for t in data]

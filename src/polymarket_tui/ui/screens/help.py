@@ -47,6 +47,7 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 | x | inspect chart (crosshair; left/right scrub, esc exit) |
 | c | show/hide the multi-outcome chart |
 | i | swap right pane: outcome preview <-> rules |
+| R | related markets (series siblings, e.g. other days of a daily) |
 
 ## Market
 

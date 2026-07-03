@@ -25,6 +25,17 @@ class Tag(BaseModel):
     slug: str = ""
 
 
+class Series(BaseModel):
+    """Recurring group an event belongs to (e.g. 'Seoul Daily Weather', daily)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str = ""
+    slug: str = ""
+    title: str = ""
+    recurrence: str = ""  # "daily", "weekly", ...
+
+
 class Market(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -94,7 +105,9 @@ class Event(BaseModel):
     liquidity: float | None = None
     sort_by: str | None = Field(default=None, alias="sortBy")
     tags: list[Tag] = Field(default_factory=list)
+    series: list[Series] = Field(default_factory=list)
     markets: list[Market] = Field(default_factory=list)
+    closed: bool = False
 
     @field_validator("liquidity", "volume_24hr", mode="before")
     @classmethod
@@ -124,6 +137,20 @@ class Event(BaseModel):
     @property
     def is_binary(self) -> bool:
         return len(self.active_markets) == 1
+
+    @property
+    def primary_series(self) -> Series | None:
+        return self.series[0] if self.series else None
+
+    _META_TAGS = frozenset({"hide from new", "recurring", "trending", "all"})
+
+    @property
+    def most_specific_tag(self) -> Tag | None:
+        """Best tag for finding related events; Gamma orders broad -> specific."""
+        for tag in reversed(self.tags):
+            if tag.label.lower() not in self._META_TAGS and tag.slug:
+                return tag
+        return None
 
 
 class BookLevel(BaseModel):
