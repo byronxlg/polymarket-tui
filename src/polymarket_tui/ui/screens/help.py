@@ -21,6 +21,7 @@ Orders are dry-run (signed, not posted) unless POLYMARKET_EXECUTION_LIVE=1.
 | / | search |
 | H | home |
 | w | watchlist |
+| A | auth / credentials |
 | ? | this help |
 | q | quit |
 | escape, left, < | back |

@@ -93,9 +93,13 @@ class HomeScreen(Screen):
                 parts.append(f"positions {fmt.money(value)}")
         except Exception:
             return
-        if parts:
-            self._balances = "  ".join(parts)
-            self.query_one("#status-line", Static).update(self._status_line(self._balances))
+        self._balances = "  ".join(parts)
+        self.query_one("#status-line", Static).update(self._status_line(self._balances))
+
+    def on_screen_resume(self) -> None:
+        # Credentials may have changed on the auth screen - refresh mode/balances.
+        self.query_one("#status-line", Static).update(self._status_line(self._balances))
+        self.load_balances()
 
     @property
     def table(self) -> EventsTable:

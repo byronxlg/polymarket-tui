@@ -12,6 +12,8 @@ doppler run --project polymarket-tui --config dev -- uv run polymarket-tui  # wi
 
 Capability modes by env vars: RO (none), OBS (funder only), DRY (key+funder,
 orders signed but never posted), LIVE (DRY + POLYMARKET_EXECUTION_LIVE=1).
+Press A in the app to view auth status, enter session-only credentials
+(never persisted), or toggle DRY/LIVE.
 Every placed/cancelled order is appended to
 ~/.local/share/polymarket-tui/orders.jsonl.
 

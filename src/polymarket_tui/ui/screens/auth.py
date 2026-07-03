@@ -1,0 +1,288 @@
+"""Auth screen: credential status, session-only credential entry, live toggle.
+
+Credentials entered here live only in process memory - they are never written
+to disk, never logged, and the key input is masked. On quit they are gone;
+for persistent setup use Doppler (see config-and-auth.md).
+"""
+
+from __future__ import annotations
+
+from rich.text import Text
+from textual import work
+from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
+from textual.screen import Screen
+from textual.widgets import Footer, Header, Input, Label, Select, Static
+
+from polymarket_tui.api.clob_auth import AuthedClobClient
+from polymarket_tui.core import fmt
+from polymarket_tui.core.config import Mode, Settings
+from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
+
+SIG_TYPES = [
+    ("1 - Polymarket proxy wallet (default)", "1"),
+    ("0 - direct EOA", "0"),
+    ("2 - Magic / email login", "2"),
+]
+
+MODE_DESCRIPTIONS = {
+    Mode.READ_ONLY: "browse, books, charts, watchlist",
+    Mode.OBSERVER: "+ positions, P&L, activity (funder only)",
+    Mode.TRADER_DRY: "+ balance, open orders; orders signed but never posted",
+    Mode.TRADER_LIVE: "orders and cancels are POSTED FOR REAL",
+}
+
+
+def short_address(address: str) -> str:
+    if len(address) <= 12:
+        return address
+    return f"{address[:6]}...{address[-4:]}"
+
+
+def derive_signer(private_key: str) -> str | None:
+    """EOA address controlled by the key. None if the key is malformed."""
+    try:
+        from eth_account import Account
+
+        key = private_key if private_key.startswith("0x") else "0x" + private_key
+        return Account.from_key(key).address
+    except Exception:
+        return None
+
+
+class AuthScreen(Screen):
+    BINDINGS = [
+        Binding("escape", "app.pop_screen", "back"),
+        Binding("ctrl+s", "apply", "apply & test"),
+        Binding("ctrl+d", "clear_creds", "clear credentials"),
+    ]
+
+    DEFAULT_CSS = """
+    AuthScreen #auth-body {
+        padding: 1 2;
+        width: 90;
+        max-width: 100%;
+    }
+    AuthScreen .field-row {
+        height: 3;
+    }
+    AuthScreen Label {
+        padding: 1 1 0 0;
+        width: 12;
+    }
+    AuthScreen Input {
+        width: 1fr;
+        max-width: 70;
+    }
+    AuthScreen Select {
+        width: 44;
+    }
+    AuthScreen #auth-status {
+        margin-bottom: 1;
+        height: auto;
+    }
+    AuthScreen #auth-result {
+        margin-top: 1;
+        height: auto;
+        min-height: 2;
+    }
+    AuthScreen .section-title {
+        text-style: bold;
+        margin-top: 1;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        settings = self.app.settings
+        yield Header()
+        with Vertical(id="auth-body"):
+            yield Static(id="auth-status")
+            yield Static(
+                "credentials  (session only - never written to disk; use Doppler to persist)",
+                classes="section-title",
+            )
+            with Horizontal(classes="field-row"):
+                yield Label("funder")
+                yield Input(
+                    value=settings.polymarket_funder,
+                    placeholder="proxy wallet address 0x...",
+                    id="funder-input",
+                )
+            with Horizontal(classes="field-row"):
+                yield Label("private key")
+                yield Input(
+                    password=True,
+                    placeholder="unchanged" if settings.polymarket_private_key else "hex key",
+                    id="key-input",
+                )
+            with Horizontal(classes="field-row"):
+                yield Label("sig type")
+                yield Select(
+                    SIG_TYPES,
+                    value=str(settings.polymarket_signature_type),
+                    allow_blank=False,
+                    id="sig-select",
+                )
+            with Horizontal(classes="field-row"):
+                yield Label("execution")
+                yield Select(
+                    [("DRY - sign only, never post", "DRY"), ("LIVE - post real orders", "LIVE")],
+                    value="LIVE" if settings.polymarket_execution_live else "DRY",
+                    allow_blank=False,
+                    id="live-select",
+                )
+            yield Static(id="auth-result")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.title = "auth"
+        self._render_status()
+        self.query_one("#funder-input", Input).focus()
+
+    def _render_status(self, extra: Text | None = None) -> None:
+        settings = self.app.settings
+        mode = settings.mode
+        out = Text()
+        out.append("status\n", style="bold")
+        mode_style = {"RO": "dim", "OBS": "cyan", "DRY": "yellow", "LIVE": "bold red"}[mode.value]
+        out.append(f"  mode          {mode.value}", style=mode_style)
+        out.append(f"  ({MODE_DESCRIPTIONS[mode]})\n", style="dim")
+        funder = settings.polymarket_funder
+        out.append(f"  funder        {short_address(funder) if funder else '(not set)'}\n")
+        key_state = "present (in memory)" if settings.polymarket_private_key else "(not set)"
+        out.append(f"  private key   {key_state}\n")
+        if settings.polymarket_private_key:
+            signer = derive_signer(settings.polymarket_private_key)
+            out.append(f"  signer        {signer or 'INVALID KEY'}")
+            out.append("  (verify this is your wallet address)\n", style="dim")
+        out.append(f"  sig type      {settings.polymarket_signature_type}\n")
+        if self.app.authed is not None and self.app.authed.auth_failed:
+            out.append(f"  L2 creds      failed: {self.app.authed.auth_failed}\n", style="red")
+        if extra is not None:
+            out.append_text(extra)
+        self.query_one("#auth-status", Static).update(out)
+
+    # -- apply -------------------------------------------------------------------
+
+    def _candidate_settings(self) -> Settings:
+        current = self.app.settings
+        funder = self.query_one("#funder-input", Input).value.strip()
+        key_raw = self.query_one("#key-input", Input).value.strip()
+        key = key_raw or current.polymarket_private_key  # blank = keep existing
+        sig_type = int(self.query_one("#sig-select", Select).value)
+        live = self.query_one("#live-select", Select).value == "LIVE"
+        return Settings(
+            polymarket_funder=funder,
+            polymarket_private_key=key,
+            polymarket_signature_type=sig_type,
+            polymarket_execution_live=live,
+            polymarket_host=current.polymarket_host,
+            pmtui_max_notional=current.pmtui_max_notional,
+        )
+
+    def action_apply(self) -> None:
+        candidate = self._candidate_settings()
+        if candidate.mode is Mode.TRADER_LIVE and self.app.settings.mode is not Mode.TRADER_LIVE:
+            body = Text()
+            body.append("Orders and cancels will be posted to the exchange for real.\n")
+            body.append("Dry-run protection is OFF for this session.", style="bold red")
+
+            def _confirmed(ok: bool | None) -> None:
+                if ok:
+                    self.apply_and_test(candidate)
+                else:
+                    self.query_one("#live-select", Select).value = "DRY"
+
+            self.app.push_screen(ConfirmModal("ENABLE LIVE TRADING", body, "go live"), _confirmed)
+            return
+        self.apply_and_test(candidate)
+
+    @work(exclusive=True, group="auth-test")
+    async def apply_and_test(self, candidate: Settings) -> None:
+        result_widget = self.query_one("#auth-result", Static)
+        result_widget.update(Text("testing...", style="dim"))
+
+        report = Text()
+        ok = True
+        if candidate.can_auth:
+            signer = derive_signer(candidate.polymarket_private_key)
+            if signer is None:
+                ok = False
+                report.append("private key is not a valid secp256k1 key\n", style="red")
+            elif (
+                candidate.polymarket_signature_type == 0
+                and signer.lower() != candidate.polymarket_funder.lower()
+            ):
+                # For direct-EOA accounts the signer IS the funder; catch mismatches early.
+                ok = False
+                report.append(
+                    f"sig type 0 but key controls {short_address(signer)}, not the funder\n",
+                    style="red",
+                )
+            if ok:
+                authed = AuthedClobClient(candidate)
+                try:
+                    balance = await authed.usdc_balance()
+                    report.append(f"L2 auth ok - cash {fmt.money(balance)}\n", style="green")
+                    report.append(f"signer {signer}\n")
+                    if balance == 0:
+                        report.append(
+                            "cash $0.00 can mean a wrong key for this funder -"
+                            " check the signer matches your wallet\n",
+                            style="yellow",
+                        )
+                except Exception as exc:
+                    ok = False
+                    report.append(f"auth failed: {exc}\n", style="red")
+            if not ok:
+                report.append("kept previous credentials\n", style="dim")
+        elif candidate.polymarket_funder:
+            try:
+                value = await self.app.data.portfolio_value(candidate.polymarket_funder)
+                report.append(
+                    f"observer ok - portfolio value {fmt.money(value or 0.0)}\n", style="green"
+                )
+            except Exception as exc:
+                ok = False
+                report.append(f"funder lookup failed: {exc}\n", style="red")
+        else:
+            report.append("no credentials - read-only mode\n", style="yellow")
+
+        if ok:
+            self.app.reconfigure(candidate)
+            self.query_one("#key-input", Input).value = ""
+            self.query_one("#key-input", Input).placeholder = (
+                "unchanged" if candidate.polymarket_private_key else "hex key"
+            )
+            report.append(f"applied - mode is now {candidate.mode.value}", style="bold")
+        result_widget.update(report)
+        self._render_status()
+
+    def action_clear_creds(self) -> None:
+        def _confirmed(ok: bool | None) -> None:
+            if ok:
+                cleared = Settings(
+                    polymarket_funder="",
+                    polymarket_private_key="",
+                    polymarket_signature_type=1,
+                    polymarket_execution_live=False,
+                    polymarket_host=self.app.settings.polymarket_host,
+                    pmtui_max_notional=self.app.settings.pmtui_max_notional,
+                )
+                self.app.reconfigure(cleared)
+                self.query_one("#funder-input", Input).value = ""
+                self.query_one("#key-input", Input).value = ""
+                self.query_one("#auth-result", Static).update(
+                    Text("credentials cleared - read-only mode", style="yellow")
+                )
+                self._render_status()
+
+        self.app.push_screen(
+            ConfirmModal(
+                "CLEAR CREDENTIALS",
+                "Drop funder and private key for this session (back to read-only)?",
+                "clear",
+            ),
+            _confirmed,
+        )

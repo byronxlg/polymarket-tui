@@ -9,11 +9,12 @@ from polymarket_tui.api.clob import ClobPublicClient
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
-from polymarket_tui.core.config import get_settings
+from polymarket_tui.core.config import Settings, get_settings
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.services.orders import OrderService
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
+from polymarket_tui.ui.screens.auth import AuthScreen
 from polymarket_tui.ui.screens.event import EventScreen
 from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.home import HomeScreen
@@ -33,6 +34,7 @@ class PolymarketApp(App):
         Binding("H", "home", "home", show=False, key_display="H"),
         Binding("w", "watchlist", "watchlist"),
         Binding("p", "portfolio", "portfolio"),
+        Binding("A", "auth", "auth", show=False, key_display="A"),
         Binding("question_mark", "help", "help", key_display="?"),
         Binding("left", "nav_back", "back", show=False),
         Binding("less_than_sign", "nav_back", "back", show=False),
@@ -83,10 +85,20 @@ class PolymarketApp(App):
     def action_watchlist(self) -> None:
         self._push_unless_current(WatchlistScreen, WatchlistScreen)
 
+    def reconfigure(self, settings: Settings) -> None:
+        """Swap credentials at runtime (auth screen). Rebuilds the authed stack."""
+        self.settings = settings
+        self.authed = AuthedClobClient(settings) if settings.can_auth else None
+        self.portfolio = PortfolioService(settings, self.data, self.authed)
+        self.orders = OrderService(settings, self.authed)
+
+    def action_auth(self) -> None:
+        self._push_unless_current(AuthScreen, AuthScreen)
+
     def action_portfolio(self) -> None:
         if not self.settings.can_read_portfolio:
             self.notify(
-                "Portfolio needs POLYMARKET_FUNDER set (run via doppler)", severity="warning"
+                "Portfolio needs a funder address - press A to authenticate", severity="warning"
             )
             return
         self._push_unless_current(PortfolioScreen, PortfolioScreen)

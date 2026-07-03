@@ -201,7 +201,7 @@ class MarketScreen(Screen):
         app = self.app
         if not app.settings.can_auth:
             app.notify(
-                "Trading needs POLYMARKET_PRIVATE_KEY + POLYMARKET_FUNDER (run via doppler)",
+                "Trading needs a private key + funder - press A to authenticate",
                 severity="warning",
             )
             return
