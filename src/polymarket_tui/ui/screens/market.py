@@ -8,13 +8,12 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static, Tab, Tabs
-from textual_plotext import PlotextPlot
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.book_panel import BookPanel
-from polymarket_tui.ui.widgets.price_chart import draw_price_chart
+from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
 
 BOOK_POLL_SECONDS = 3.0
 
@@ -47,7 +46,7 @@ class MarketScreen(Screen):
                     tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
                     tabs.can_focus = False
                     yield tabs
-                    yield PlotextPlot(id="price-chart")
+                    yield PriceChartPanel(id="price-chart")
                 with Vertical(id="book-pane"):
                     yield Static(self._book_header(), id="book-title")
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
@@ -136,13 +135,8 @@ class MarketScreen(Screen):
     # -- chart ----------------------------------------------------------------
 
     def _draw_chart(self) -> None:
-        plot = self.query_one(PlotextPlot)
-        draw_price_chart(
-            plot,
-            [(self._outcome_label(), self._history)],
-            self._interval,
-            ylabel=f"{self._outcome_label()} (cents)",
-        )
+        panel = self.query_one(PriceChartPanel)
+        panel.show([(self._outcome_label(), self._history)], self._interval)
 
     # -- actions ----------------------------------------------------------------
 

@@ -55,7 +55,7 @@ EventsBrowser EventsTable {
     padding: 0 1;
 }
 
-#event-chart-pane PlotextPlot {
+PriceChartPanel {
     height: 1fr;
 }
 
@@ -89,10 +89,6 @@ EventsBrowser EventsTable {
 
 #interval-tabs {
     height: 3;
-}
-
-PlotextPlot {
-    height: 1fr;
 }
 
 #book-scroll {

@@ -11,14 +11,13 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Static, Tab, Tabs
-from textual_plotext import PlotextPlot
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
-from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, draw_price_chart
+from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
@@ -47,7 +46,7 @@ class EventScreen(Screen):
             tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
             tabs.can_focus = False
             yield tabs
-            yield PlotextPlot(id="event-chart")
+            yield PriceChartPanel(id="event-chart")
         with Horizontal(id="event-body"):
             yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
             pane = VerticalScroll(MarketPreview(id="market-preview"), id="preview-pane")
@@ -123,7 +122,7 @@ class EventScreen(Screen):
     @work(exclusive=True, group="chart")
     async def load_chart(self) -> None:
         markets = self._chart_markets()
-        plot = self.query_one(PlotextPlot)
+        panel = self.query_one(PriceChartPanel)
         results = await asyncio.gather(
             *(self.app.clob.prices_history(m.token_id(0), self._interval) for m in markets),
             return_exceptions=True,
@@ -133,7 +132,7 @@ class EventScreen(Screen):
             for m, pts in zip(markets, results, strict=True)
             if not isinstance(pts, BaseException)
         ]
-        draw_price_chart(plot, series, self._interval, ylabel="Yes (cents)")
+        panel.show(series, self._interval)
 
     @work(exclusive=True)
     async def refresh_event(self) -> None:
