@@ -1,30 +1,26 @@
 # Configuration and auth
 
-## Secrets: Doppler
+## Credentials
 
-Create a dedicated Doppler project (one project per repo convention):
+Primary flow: press `A` in the app, enter funder address + private key, `ctrl+s`
+to apply and test. Applied credentials are persisted to
+`~/.config/polymarket-tui/credentials.toml` (created `0600`, directory `0700`,
+deliberately outside any git working tree) and loaded on the next start.
+`ctrl+d` on the auth screen clears both the session and the file.
 
-```sh
-doppler projects create polymarket-tui
-doppler secrets set --project polymarket-tui --config dev \
-  POLYMARKET_PRIVATE_KEY=... POLYMARKET_FUNDER=0x... POLYMARKET_SIGNATURE_TYPE=1
-```
+The execution-live flag is never persisted - every session starts in dry-run;
+live is enabled per session via the auth screen's execution toggle (confirmed
+in a modal) or the `POLYMARKET_EXECUTION_LIVE` env var.
 
-Seed values from `global/home` (they already exist there: `POLYMARKET_FUNDER`,
-`POLYMARKET_PRIVATE_KEY`, `POLYMARKET_SIGNATURE_TYPE`). The app never reads the global
-config directly.
+`core/credstore.py` owns the file format (three-key TOML). `get_settings()`
+resolution order: env vars win when any `POLYMARKET_*` identity var is set,
+otherwise the credentials file, otherwise read-only mode.
 
-Run:
-
-```sh
-doppler run --project polymarket-tui --config dev -- polymarket-tui
-```
-
-## Environment variables
+## Environment variables (override the credentials file)
 
 | Var | Required | Meaning |
 |---|---|---|
-| `POLYMARKET_PRIVATE_KEY` | for trading + CLOB user state | Polygon EOA key. Never logged, never persisted, never rendered. |
+| `POLYMARKET_PRIVATE_KEY` | for trading + CLOB user state | Polygon EOA key. Never logged, never rendered. |
 | `POLYMARKET_FUNDER` | for portfolio + trading | proxy wallet address (the one the web UI shows) |
 | `POLYMARKET_SIGNATURE_TYPE` | default `1` | 1 = proxy wallet, 0 = EOA, 2 = Magic/email |
 | `POLYMARKET_EXECUTION_LIVE` | default unset | `1` enables real order posting; otherwise dry-run |

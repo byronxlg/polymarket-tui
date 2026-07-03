@@ -1,8 +1,8 @@
-"""Auth screen: credential status, session-only credential entry, live toggle.
+"""Auth screen: credential status, credential entry, live toggle.
 
-Credentials entered here live only in process memory - they are never written
-to disk, never logged, and the key input is masked. On quit they are gone;
-for persistent setup use Doppler (see config-and-auth.md).
+Applied credentials are saved to ~/.config/polymarket-tui/credentials.toml
+(mode 0600, outside any git tree). The key input is masked and never logged.
+The live flag is never persisted - every session starts in dry-run.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from textual.widgets import Footer, Header, Input, Label, Select, Static
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.core import fmt
 from polymarket_tui.core.config import Mode, Settings
+from polymarket_tui.core.credstore import CRED_PATH, clear_credentials, save_credentials
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 SIG_TYPES = [
@@ -99,7 +100,7 @@ class AuthScreen(Screen):
         with Vertical(id="auth-body"):
             yield Static(id="auth-status")
             yield Static(
-                "credentials  (session only - never written to disk; use Doppler to persist)",
+                f"credentials  (saved on apply to {CRED_PATH}, chmod 600)",
                 classes="section-title",
             )
             with Horizontal(classes="field-row"):
@@ -157,6 +158,8 @@ class AuthScreen(Screen):
             out.append(f"  signer        {signer or 'INVALID KEY'}")
             out.append("  (verify this is your wallet address)\n", style="dim")
         out.append(f"  sig type      {settings.polymarket_signature_type}\n")
+        stored = "saved" if CRED_PATH.exists() else "not saved"
+        out.append(f"  storage       {stored} ({CRED_PATH})\n")
         if self.app.authed is not None and self.app.authed.auth_failed:
             out.append(f"  L2 creds      failed: {self.app.authed.auth_failed}\n", style="red")
         if extra is not None:
@@ -255,6 +258,13 @@ class AuthScreen(Screen):
             self.query_one("#key-input", Input).placeholder = (
                 "unchanged" if candidate.polymarket_private_key else "hex key"
             )
+            if candidate.polymarket_funder or candidate.polymarket_private_key:
+                path = save_credentials(
+                    candidate.polymarket_funder,
+                    candidate.polymarket_private_key,
+                    candidate.polymarket_signature_type,
+                )
+                report.append(f"saved to {path} (0600)\n", style="dim")
             report.append(f"applied - mode is now {candidate.mode.value}", style="bold")
         result_widget.update(report)
         self._render_status()
@@ -271,17 +281,19 @@ class AuthScreen(Screen):
                     pmtui_max_notional=self.app.settings.pmtui_max_notional,
                 )
                 self.app.reconfigure(cleared)
+                removed = clear_credentials()
                 self.query_one("#funder-input", Input).value = ""
                 self.query_one("#key-input", Input).value = ""
-                self.query_one("#auth-result", Static).update(
-                    Text("credentials cleared - read-only mode", style="yellow")
-                )
+                message = "credentials cleared - read-only mode"
+                if removed:
+                    message += f" (deleted {CRED_PATH})"
+                self.query_one("#auth-result", Static).update(Text(message, style="yellow"))
                 self._render_status()
 
         self.app.push_screen(
             ConfirmModal(
                 "CLEAR CREDENTIALS",
-                "Drop funder and private key for this session (back to read-only)?",
+                "Drop funder and private key from this session AND delete the saved file?",
                 "clear",
             ),
             _confirmed,

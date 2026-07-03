@@ -6,15 +6,18 @@ watchlist, portfolio, and order placement (dry-run by default).
 ## Run
 
 ```sh
-uv run polymarket-tui                                            # read-only
-doppler run --project polymarket-tui --config dev -- uv run polymarket-tui  # with account
+uv run polymarket-tui
 ```
 
-Capability modes by env vars: RO (none), OBS (funder only), DRY (key+funder,
-orders signed but never posted), LIVE (DRY + POLYMARKET_EXECUTION_LIVE=1).
-Press A in the app to view auth status, enter session-only credentials
-(never persisted), or toggle DRY/LIVE.
-Every placed/cancelled order is appended to
+Press A to authenticate: enter your funder address (and private key for
+trading). Applied credentials are saved to
+~/.config/polymarket-tui/credentials.toml (chmod 600); POLYMARKET_* env vars
+override the file when set.
+
+Capability modes: RO (no creds), OBS (funder only - positions and P&L),
+DRY (key+funder - orders signed but never posted), LIVE (DRY + the in-app
+live toggle or POLYMARKET_EXECUTION_LIVE=1). Live mode is never persisted;
+every session starts DRY. Every placed/cancelled order is appended to
 ~/.local/share/polymarket-tui/orders.jsonl.
 
 ## Keys

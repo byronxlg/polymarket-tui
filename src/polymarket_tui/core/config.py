@@ -51,4 +51,19 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()
+    """Env vars win; otherwise fall back to the saved credentials file."""
+    from polymarket_tui.core.credstore import load_credentials
+
+    settings = Settings()
+    if settings.polymarket_private_key or settings.polymarket_funder:
+        return settings
+    saved = load_credentials()
+    if saved is None:
+        return settings
+    return settings.model_copy(
+        update={
+            "polymarket_funder": saved["funder"],
+            "polymarket_private_key": saved["private_key"],
+            "polymarket_signature_type": saved["signature_type"],
+        }
+    )
