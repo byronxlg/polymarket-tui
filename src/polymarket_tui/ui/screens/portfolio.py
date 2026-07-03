@@ -262,14 +262,11 @@ class PortfolioScreen(Screen):
 
     @work(exclusive=True, group="cancel")
     async def cancel_order_worker(self, order_id: str) -> None:
-        authed = self.app.authed
-        if authed is None:
-            self.notify("not authenticated", severity="error")
-            return
-        try:
-            await authed.cancel_order(order_id)
-        except Exception as exc:
-            self.notify(f"cancel failed: {exc}", severity="error")
-            return
-        self.notify("Order cancelled")
+        result = await self.app.orders.cancel(order_id)
+        if result.ok and result.dry_run:
+            self.notify("DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6)
+        elif result.ok:
+            self.notify("Order cancelled")
+        else:
+            self.notify(f"Cancel failed: {result.error}", severity="error", timeout=8)
         self.load_orders()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -51,7 +53,16 @@ class ConfirmModal(ModalScreen[bool]):
             yield Static(self._body, id="modal-body")
             yield Static(f"enter {self._confirm_label}   esc cancel", id="modal-actions")
 
+    ARM_DELAY_S = 0.35
+
+    def on_mount(self) -> None:
+        # Arm after a short delay so an Enter queued from the previous screen
+        # (e.g. double-Enter on an input) cannot instantly confirm.
+        self._armed_at = time.monotonic() + self.ARM_DELAY_S
+
     def action_confirm(self) -> None:
+        if time.monotonic() < getattr(self, "_armed_at", 0.0):
+            return
         self.dismiss(True)
 
     def action_dismiss_modal(self) -> None:

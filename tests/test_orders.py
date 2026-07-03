@@ -164,6 +164,64 @@ class TestValidation:
         assert issues == []
 
 
+class FakeAuthed:
+    """Records cancel calls and returns a canned CLOB cancel response."""
+
+    def __init__(self, response: dict) -> None:
+        self.response = response
+        self.calls: list[str] = []
+
+    async def cancel_order(self, order_id: str) -> dict:
+        self.calls.append(order_id)
+        return self.response
+
+
+class TestCancel:
+    @pytest.mark.asyncio
+    async def test_dry_mode_never_posts_cancel(self):
+        authed = FakeAuthed({"canceled": ["0xabc"], "not_canceled": {}})
+        service = OrderService(Settings(polymarket_execution_live=False), authed)
+        result = await service.cancel("0xabc")
+        assert result.ok and result.dry_run
+        assert authed.calls == []  # the exchange was never touched
+
+    @pytest.mark.asyncio
+    async def test_live_cancel_success(self):
+        authed = FakeAuthed({"canceled": ["0xabc"], "not_canceled": {}})
+        service = OrderService(
+            Settings(
+                polymarket_execution_live=True,
+                polymarket_private_key="k",
+                polymarket_funder="0xf",
+            ),
+            authed,
+        )
+        result = await service.cancel("0xabc")
+        assert result.ok and not result.dry_run
+        assert authed.calls == ["0xabc"]
+
+    @pytest.mark.asyncio
+    async def test_live_cancel_declined_in_200_response(self):
+        authed = FakeAuthed({"canceled": [], "not_canceled": {"0xabc": "order already matched"}})
+        service = OrderService(
+            Settings(
+                polymarket_execution_live=True,
+                polymarket_private_key="k",
+                polymarket_funder="0xf",
+            ),
+            authed,
+        )
+        result = await service.cancel("0xabc")
+        assert not result.ok
+        assert "matched" in result.error
+
+    @pytest.mark.asyncio
+    async def test_unauthenticated_cancel_fails_cleanly(self):
+        service = OrderService(Settings(), authed=None)
+        result = await service.cancel("0xabc")
+        assert not result.ok
+
+
 class TestHelpers:
     def test_round_to_tick(self):
         market = make_market(orderPriceMinTickSize=0.01)

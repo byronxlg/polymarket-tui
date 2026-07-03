@@ -15,7 +15,14 @@ from textual.widgets import Input, Label, Select, Static
 from polymarket_tui.core import fmt
 from polymarket_tui.core.config import Mode
 from polymarket_tui.models.market import Event, Market, OrderBook
-from polymarket_tui.services.orders import Issue, IssueLevel, OrderDraft, Side, Tif
+from polymarket_tui.services.orders import (
+    Issue,
+    IssueLevel,
+    OrderDraft,
+    Side,
+    Tif,
+    round_to_tick,
+)
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 
@@ -95,16 +102,38 @@ class OrderModal(ModalScreen[None]):
         self._event = event
         self._outcome_index = outcome_index
         self._side = side
-        self._book = book
+        # Books are per outcome token; seed with the one the market screen had
+        # and refetch on mount / outcome change so pricing never uses a stale side.
+        self._books: dict[str, OrderBook] = {}
+        seed_token = market.token_id(outcome_index)
+        if book is not None and seed_token is not None:
+            self._books[seed_token] = book
+
+    @property
+    def _selected_token(self) -> str | None:
+        try:
+            outcome_index = int(self.query_one("#outcome-select", Select).value)
+        except Exception:
+            outcome_index = self._outcome_index
+        return self._market.token_id(outcome_index)
+
+    @property
+    def _book(self) -> OrderBook | None:
+        token = self._selected_token
+        return self._books.get(token) if token else None
 
     # -- compose -------------------------------------------------------------
 
     def compose(self) -> ComposeResult:
         outcomes = self._market.outcomes or ["Yes", "No"]
-        mid = self._book.midpoint if self._book else None
+        seed_token = self._market.token_id(self._outcome_index)
+        seed_book = self._books.get(seed_token) if seed_token else None
+        mid = seed_book.midpoint if seed_book else None
         default_price = ""
         if mid is not None:
-            default_price = f"{mid * 100:.1f}"
+            # Round the suggestion to the market's tick or it can never validate.
+            tick_price = round_to_tick(self._market, Decimal(str(mid)))
+            default_price = f"{tick_price * 100:.1f}"
         with Vertical():
             yield Static(fmt.trunc(self._market.question, 70), id="order-title")
             with Horizontal(classes="field-row"):
@@ -152,6 +181,25 @@ class OrderModal(ModalScreen[None]):
     def on_mount(self) -> None:
         self.query_one("#size-input", Input).focus()
         self._update_summary()
+        self.refresh_book()
+
+    @work(exclusive=True, group="modal-book")
+    async def refresh_book(self, reprice: bool = False) -> None:
+        """Fetch a fresh book for the currently selected outcome token."""
+        token = self._selected_token
+        if token is None:
+            return
+        try:
+            self._books[token] = await self.app.clob.order_book(token)
+        except Exception:
+            return
+        if reprice:
+            # Outcome changed: the old prefill was the other outcome's mid.
+            mid = self._books[token].midpoint
+            if mid is not None:
+                tick_price = round_to_tick(self._market, Decimal(str(mid)))
+                self.query_one("#price-input", Input).value = f"{tick_price * 100:.1f}"
+        self._update_summary()
 
     # -- draft assembly --------------------------------------------------------
 
@@ -171,7 +219,7 @@ class OrderModal(ModalScreen[None]):
         if is_market:
             # Marketable limit at the touch; FAK so the remainder cancels.
             if self._book is None:
-                return None, "no book snapshot for market order"
+                return None, "book still loading - wait a moment for market orders"
             touch = self._book.best_ask if side is Side.BUY else self._book.best_bid
             if touch is None:
                 return None, "book is empty on that side"
@@ -228,6 +276,8 @@ class OrderModal(ModalScreen[None]):
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id == "type-select":
             self.query_one("#price-input", Input).disabled = event.value == "MARKET"
+        if event.select.id == "outcome-select":
+            self.refresh_book(reprice=True)
         self._update_summary()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -292,24 +342,25 @@ class OrderModal(ModalScreen[None]):
 
         def _confirmed(ok: bool | None) -> None:
             if ok:
-                self.place_order(draft)
+                # Run on the App, not this modal: dismissing the modal must not
+                # cancel a post that may already be in flight (the HTTP request
+                # in the thread would complete invisibly - no toast, no audit).
+                app.run_worker(self._place_and_report(draft), group="place-order", exclusive=False)
+                self.dismiss(None)
 
         app.push_screen(ConfirmModal(title, body, "place order"), _confirmed)
 
-    @work(exclusive=True, group="place")
-    async def place_order(self, draft: OrderDraft) -> None:
+    async def _place_and_report(self, draft: OrderDraft) -> None:
         app = self.app
         result = await app.orders.place(draft)
         if result.ok and result.dry_run:
-            self.notify(f"DRY RUN: {draft.summary()} signed, not posted", timeout=6)
+            app.notify(f"DRY RUN: {draft.summary()} signed, not posted", timeout=6)
         elif result.ok:
             app.portfolio.invalidate()
             status = result.status or "submitted"
-            self.notify(f"Order {status}: {draft.summary()}", timeout=6)
+            app.notify(f"Order {status}: {draft.summary()}", timeout=6)
         else:
-            self.notify(result.error, severity="error", timeout=10)
-            return
-        self.dismiss(None)
+            app.notify(result.error, severity="error", timeout=10)
 
     def action_dismiss_modal(self) -> None:
         self.dismiss(None)

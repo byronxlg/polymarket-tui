@@ -56,8 +56,10 @@ class AuthedClobClient:
         return [OpenOrder.model_validate(o) for o in raw]
 
     async def cancel_order(self, order_id: str) -> dict:
+        from py_clob_client_v2 import OrderPayload
+
         client = await self._get_client()
-        return await asyncio.to_thread(client.cancel, order_id)
+        return await asyncio.to_thread(client.cancel_order, OrderPayload(orderID=order_id))
 
     async def create_and_post_order(self, order_args, order_type) -> dict:
         """Sign and post. Caller (OrderService) owns validation and the live gate."""

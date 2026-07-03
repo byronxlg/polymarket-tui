@@ -291,6 +291,70 @@ class OrderService:
         self._audit(draft, result)
         return result
 
+    # -- cancel -----------------------------------------------------------------
+
+    async def cancel(self, order_id: str) -> PlaceResult:
+        """Cancel one order. Gated by the same live switch as placement and audited.
+
+        The CLOB cancel endpoint reports declines inside a 200 response
+        (canceled / not_canceled maps) - a non-exception response is not success.
+        """
+        if self._authed is None:
+            return PlaceResult(ok=False, dry_run=False, error="Not authenticated.")
+
+        live = self._settings.mode is Mode.TRADER_LIVE
+        if not live:
+            result = PlaceResult(
+                ok=True, dry_run=True, order_id=order_id, status="dry-run (cancel not posted)"
+            )
+            self._audit_cancel(order_id, result)
+            return result
+
+        try:
+            resp = await self._authed.cancel_order(order_id)
+        except Exception as exc:
+            result = PlaceResult(
+                ok=False,
+                dry_run=False,
+                order_id=order_id,
+                error=f"Cancel status unknown ({exc}) - check Open Orders.",
+            )
+            self._audit_cancel(order_id, result)
+            return result
+
+        canceled = [str(o) for o in (resp.get("canceled") or [])]
+        not_canceled = resp.get("not_canceled") or {}
+        if order_id in canceled:
+            result = PlaceResult(
+                ok=True, dry_run=False, order_id=order_id, status="canceled", raw=resp
+            )
+        else:
+            reason = str(not_canceled.get(order_id, "exchange declined the cancel"))
+            result = PlaceResult(ok=False, dry_run=False, order_id=order_id, error=reason, raw=resp)
+        self._audit_cancel(order_id, result)
+        return result
+
+    def _audit_cancel(self, order_id: str, result: PlaceResult) -> None:
+        try:
+            AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with AUDIT_PATH.open("a") as f:
+                f.write(
+                    json.dumps(
+                        {
+                            "ts": datetime.now(UTC).isoformat(),
+                            "action": "cancel",
+                            "order_id": order_id,
+                            "dry_run": result.dry_run,
+                            "ok": result.ok,
+                            "status": result.status,
+                            "error": result.error,
+                        }
+                    )
+                    + "\n"
+                )
+        except OSError:
+            pass
+
     # -- audit ---------------------------------------------------------------------
 
     def _audit(self, draft: OrderDraft, result: PlaceResult) -> None:

@@ -171,6 +171,7 @@ class MarketScreen(Screen):
 
     def action_toggle_outcome(self) -> None:
         self._outcome_index = 1 - self._outcome_index
+        self._book = None  # stale: belongs to the other outcome until load_book returns
         self.query_one("#book-title", Static).update(self._book_header())
         self.query_one(BookPanel).update("loading book...")
         self.load_book()
