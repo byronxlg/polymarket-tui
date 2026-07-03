@@ -17,8 +17,8 @@ from polymarket_tui.ui.widgets.preview import EventsBrowser
 class RelatedScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
-        Binding("W", "toggle_watch", "watch", key_display="W"),
-        Binding("r", "refresh", "refresh"),
+        Binding("space", "toggle_watch", "star"),
+        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, event: Event) -> None:

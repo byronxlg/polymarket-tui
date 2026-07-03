@@ -22,20 +22,15 @@ every session starts DRY. Every placed/cancelled order is appended to
 
 ## Keys
 
-- arrows or `j/k` move; `right`/`>`/`enter` open selected; `left`/`<`/`escape` back
-- `q` quit, `/` search, `w` watchlist, `?` full help
-- `tab`/`shift+tab` cycle the screen's main selector: category (home),
-  chart timeframe (event/market), pane (portfolio); `h/l` are aliases
-- Home: `o` cycle sort, `W` star
-- Event: multi-outcome chart, `x` inspect (scrub with arrows), `i` rules pane,
-  `R` related markets (series siblings for dailies, same-tag otherwise)
-- Market: `y`/`n` (or `t`) switch YES/NO book, `x` inspect, `a` live trades,
-  `c` comments, `b`/`s` order entry inline below the live book (price in cents;
-  empty = market order; up/down = tick; enter review, y place)
-- Home screen doubles as a dashboard: account card with balances and top
-  positions next to the trending list
-- Portfolio: `p` from anywhere; `x` cancels the highlighted order
-- A preview rail on the right follows the highlighted row on every list screen
+Core: arrows move (up also enters what is above - category bar, chart,
+search box), right/enter open, left/escape back, tab cycles the screen's
+selector (category / timeframe / pane), space is the contextual toggle
+(star events on lists, flip YES/NO book, show rules). / search, p portfolio,
+w watchlist, H home, A auth, ? full key reference, q quit.
+
+Market extras: b/s inline order entry under the live book (price in cents,
+empty = market order, up/down tick, enter review, y place), y/n jump to a
+book side, a live trades, c comments, R related markets.
 
 Order book auto-refreshes every 3 seconds.
 

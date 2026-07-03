@@ -1,4 +1,9 @@
-"""DataTable with vim-style navigation keys and spatial arrow escape."""
+"""DataTable with arrow-first navigation.
+
+right opens the selected row, left goes back a screen, and up on the first
+row raises TopReached so the screen can move focus to whatever sits above
+(category bar, chart, search box).
+"""
 
 from __future__ import annotations
 
@@ -16,17 +21,8 @@ class VimDataTable(DataTable):
             self.table = table
 
     BINDINGS = [
-        Binding("j", "cursor_down", "down", show=False),
-        Binding("k", "cursor_up", "up", show=False),
-        Binding("g", "scroll_top", "top", show=False),
-        Binding("G", "scroll_bottom", "bottom", show=False),
-        Binding("ctrl+d", "page_down", "half page down", show=False),
-        Binding("ctrl+u", "page_up", "half page up", show=False),
-        # right/> open the selected row; left/< go back a screen
         Binding("right", "select_cursor", "open", show=False),
-        Binding("greater_than_sign", "select_cursor", "open", show=False),
         Binding("left", "app.nav_back", "back", show=False),
-        Binding("less_than_sign", "app.nav_back", "back", show=False),
     ]
 
     def action_cursor_up(self) -> None:

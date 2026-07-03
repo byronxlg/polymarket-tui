@@ -26,22 +26,18 @@ class MarketScreen(Screen):
 
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
-        Binding("t", "toggle_outcome", "yes/no"),
+        Binding("space", "toggle_outcome", "yes/no"),
         Binding("y", "select_outcome(0)", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
-        Binding("r", "refresh", "refresh"),
-        Binding("W", "toggle_watch", "watch", key_display="W"),
-        Binding("x", "inspect_chart", "inspect"),
-        Binding("up", "inspect_chart", "inspect chart", show=False),
+        Binding("up", "inspect_chart", "inspect", show=False),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_activity('trades')", "activity"),
         Binding("c", "toggle_activity('comments')", "comments"),
+        Binding("tab", "cycle_interval(1)", "timeframe"),
+        Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", show=False, key_display="R"),
-        Binding("tab", "cycle_interval(1)", "interval"),
-        Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
-        Binding("l", "cycle_interval(1)", "next interval", show=False),
-        Binding("h", "cycle_interval(-1)", "prev interval", show=False),
+        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, market: Market, event: Event | None = None) -> None:
@@ -94,7 +90,7 @@ class MarketScreen(Screen):
         return "  |  ".join(bits)
 
     def _book_header(self) -> str:
-        return f"ORDER BOOK - {self._outcome_label().upper()}  (t to flip)"
+        return f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)"
 
     def _info_line(self) -> str:
         m = self._market

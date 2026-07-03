@@ -34,7 +34,7 @@ class PolymarketApp(App):
         Binding("slash", "search", "search"),
         Binding("H", "home", "home", show=False, key_display="H"),
         Binding("home", "home", "home", show=False),
-        Binding("w", "watchlist", "watchlist"),
+        Binding("w", "watchlist", "watchlist", show=False),
         Binding("p", "portfolio", "portfolio"),
         Binding("A", "auth", "auth", show=False, key_display="A"),
         Binding("question_mark", "help", "help", key_display="?"),

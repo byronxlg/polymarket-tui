@@ -25,16 +25,11 @@ from polymarket_tui.ui.widgets.vim_table import VimDataTable
 class EventScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
-        Binding("W", "toggle_watch", "watch", key_display="W"),
-        Binding("i", "toggle_info", "rules"),
-        Binding("r", "refresh", "refresh"),
-        Binding("c", "toggle_chart", "chart"),
-        Binding("x", "inspect_chart", "inspect"),
+        Binding("space", "toggle_info", "rules"),
+        Binding("tab", "cycle_interval(1)", "timeframe"),
+        Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", key_display="R"),
-        Binding("tab", "cycle_interval(1)", "interval"),
-        Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
-        Binding("l", "cycle_interval(1)", "next interval", show=False),
-        Binding("h", "cycle_interval(-1)", "prev interval", show=False),
+        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, event: Event) -> None:
@@ -185,10 +180,6 @@ class EventScreen(Screen):
                 self._interval = key
                 self.load_chart()
 
-    def action_toggle_chart(self) -> None:
-        pane = self.query_one("#event-chart-pane", Vertical)
-        pane.display = not pane.display
-
     def on_vim_data_table_top_reached(self, message) -> None:
         self.action_inspect_chart()
 
@@ -196,10 +187,6 @@ class EventScreen(Screen):
         pane = self.query_one("#event-chart-pane", Vertical)
         if pane.display:
             self.query_one(PriceChartPanel).enter_inspect(return_focus=self.query_one(VimDataTable))
-
-    def action_toggle_watch(self) -> None:
-        watched = self.app.watchlist.toggle(self._event.slug)
-        self.notify("Watching" if watched else "Unwatched", timeout=2)
 
     def action_toggle_info(self) -> None:
         """Swap the right pane between the market preview and the event rules."""

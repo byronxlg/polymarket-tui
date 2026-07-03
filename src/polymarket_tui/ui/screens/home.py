@@ -9,7 +9,6 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
-from polymarket_tui.ui.widgets.account_card import AccountCard
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -40,14 +39,10 @@ SORT_LABELS = {
 class HomeScreen(Screen):
     BINDINGS = [
         Binding("o", "cycle_sort", "sort"),
-        Binding("W", "toggle_watch", "watch", key_display="W"),
-        Binding("tab", "next_tag", "next category"),
+        Binding("space", "toggle_watch", "star"),
+        Binding("tab", "next_tag", "category"),
         Binding("shift+tab", "prev_tag", "prev category", show=False),
-        Binding("h", "prev_tag", "prev tab", show=False),
-        Binding("l", "next_tag", "next tab", show=False),
-        Binding("left_square_bracket", "prev_tag", "prev tag", show=False),
-        Binding("right_square_bracket", "next_tag", "next tag", show=False),
-        Binding("r", "refresh", "refresh"),
+        Binding("r", "refresh", "refresh", show=False),
         Binding("enter", "open_event", "open", show=False, priority=False),
         Binding("down", "leave_tag_bar", "back to list", show=False),
         Binding("escape", "leave_tag_bar", "back to list", show=False),
@@ -73,10 +68,6 @@ class HomeScreen(Screen):
     def on_mount(self) -> None:
         self.title = "polymarket-tui"
         self.query_one(Tabs).can_focus = False
-        # Home is a dashboard: account card sits above the hover preview.
-        browser = self.query_one(EventsBrowser)
-        pane = browser.query_one("#preview-pane")
-        pane.mount(AccountCard(id="account-card"), before=browser.preview)
         self.table.focus()
         self.load_events()
 

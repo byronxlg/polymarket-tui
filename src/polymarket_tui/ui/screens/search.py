@@ -18,7 +18,7 @@ DEBOUNCE_SECONDS = 0.35
 class SearchScreen(Screen):
     BINDINGS = [
         Binding("escape", "back_or_pop", "back"),
-        Binding("W", "toggle_watch", "watch", key_display="W"),
+        Binding("space", "toggle_watch", "star", show=False),
     ]
 
     def __init__(self) -> None:

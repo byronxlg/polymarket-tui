@@ -13,87 +13,70 @@ from polymarket_tui.ui.widgets.app_header import AppHeader
 HELP_TEXT = """\
 # polymarket-tui
 
-Browse, books, charts, search, watchlist, portfolio (p), trading.
-Orders are dry-run (signed, not posted) unless POLYMARKET_EXECUTION_LIVE=1.
+Browse, books, charts, search, watchlist, portfolio, trading.
+Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 
-## Global
+## The core keys
+
+| Key | Action |
+|-----|--------|
+| arrows | move; up also enters what is above (category bar, chart, search box) |
+| right or enter | open the selected row |
+| left or escape | back |
+| tab / shift+tab | cycle the screen's selector (category / timeframe / pane) |
+| space | the contextual toggle (see below) |
+
+space by screen: star an event (home, search, watchlist, related),
+flip the YES/NO book (market), show/hide rules (event).
+
+## Going places
 
 | Key | Action |
 |-----|--------|
 | / | search |
-| H or Home key | home |
+| p | portfolio |
 | w | watchlist |
+| H or Home | home screen |
 | A | auth / credentials |
 | ? | this help |
 | q | quit |
-| escape, left, < | back |
 
-One scheme everywhere: arrows drive everything. up/down move (and move INTO
-the widget above: category bar on home, chart inspect on event/market, the
-search box on search), right/enter open, left/escape back. tab cycles the
-screen's main selector (category, chart timeframe, or pane), h/l are tab
-aliases, r refreshes, W stars.
+## Extras where they matter
 
-## Home
+| Key | Where | Action |
+|-----|-------|--------|
+| o | home | cycle sort (24h volume / liquidity / ending / newest) |
+| b / s | market | order entry below the live book (BUY / SELL) |
+| y / n | market | jump straight to the YES / NO book |
+| a / c | market | live trades feed / comments below the chart |
+| R | event, market | related markets (series siblings for dailies) |
+| x | portfolio orders | cancel the highlighted order |
+| r | anywhere | refresh |
 
-| Key | Action |
-|-----|--------|
-| up (at top row) | focus category bar; left/right switch, down returns |
-| tab / shift+tab | next / prev category |
-| o | cycle sort (24h volume / liquidity / ending soonest / newest) |
+## Order entry
 
-The preview panel follows the highlighted (or mouse-hovered) row.
+Price and size only; price is in CENTS ('33.4' = 33.4c). Leave price empty
+for a market order at the touch. up/down bump price by one tick (size by one
+share), tab hops fields, enter reviews, y places, esc steps back. ctrl+g
+cycles TIF (GTC/FOK/FAK). The book stays live above the form.
 
-## Event
+## Chart inspect
 
-| Key | Action |
-|-----|--------|
-| tab | chart timeframe (1H 6H 1D 1W 1M ALL) |
-| up (at top row) or x | inspect chart (left/right scrub, down/esc exit) |
-| c | show/hide the multi-outcome chart |
-| i | swap right pane: outcome preview <-> rules |
-| R | related markets (series siblings, e.g. other days of a daily) |
+up (from the top of a list, or anywhere on a market) enters inspect:
+left/right scrub through time (shift for big steps), legend shows values at
+the crosshair, down or esc exits.
 
-## Market
+The header clock ticks in milliseconds, corrected against network time
+(SNTP); "(sys)" means NTP was unreachable.
 
-| Key | Action |
-|-----|--------|
-| tab | chart timeframe |
-| up or x | inspect chart (left/right scrub, down/esc exit) |
-| y / n or t | show YES / NO book |
-| a | live trades feed (below the chart, 5s refresh) |
-| c | comments |
-| b / s | open order entry below the book (BUY / SELL) |
-
-Order entry: price + size only, price is in CENTS. Empty price = market
-order at the touch.
-up/down bump the price one tick, tab hops between fields, enter reviews,
-y places (esc edits). ctrl+g cycles TIF (GTC/FOK/FAK). The book stays
-live above the form. Orders are dry-run unless LIVE mode is on.
-
-Order book auto-refreshes every 3 seconds.
-
-## Portfolio (p)
-
-| Key | Action |
-|-----|--------|
-| tab | cycle positions / open orders / history |
-| x | cancel highlighted open order |
-
-The header clock ticks in milliseconds and is corrected against network time
-(SNTP); "(sys)" after the time means NTP was unreachable and the system clock
-is shown uncorrected.
-
-Data: gamma-api.polymarket.com (metadata), clob.polymarket.com (books, history),
-data-api.polymarket.com (positions, activity).
+Data: gamma-api.polymarket.com, clob.polymarket.com, data-api.polymarket.com.
 """
-
 
 class HelpScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
-        Binding("j,down", "scroll_help(3)", "down", show=False),
-        Binding("k,up", "scroll_help(-3)", "up", show=False),
+        Binding("down", "scroll_help(3)", "down", show=False),
+        Binding("up", "scroll_help(-3)", "up", show=False),
     ]
 
     def compose(self) -> ComposeResult:

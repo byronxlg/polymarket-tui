@@ -18,8 +18,8 @@ from polymarket_tui.ui.widgets.preview import EventsBrowser
 class WatchlistScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
-        Binding("W", "toggle_watch", "unwatch", key_display="W"),
-        Binding("r", "refresh", "refresh"),
+        Binding("space", "toggle_watch", "unstar"),
+        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def compose(self) -> ComposeResult:

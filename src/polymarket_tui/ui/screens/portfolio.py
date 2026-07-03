@@ -24,9 +24,9 @@ def pnl_text(cash: float, pct: float) -> Text:
 class PortfolioScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
-        Binding("tab", "next_pane", "next tab"),
+        Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "prev_pane", "prev tab", show=False),
-        Binding("r", "refresh", "refresh"),
+        Binding("r", "refresh", "refresh", show=False),
         Binding("x", "cancel_order", "cancel order"),
     ]
 
