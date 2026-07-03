@@ -1,16 +1,19 @@
 # polymarket-tui
 
-Terminal client for Polymarket. Current build is read-only: browse, order books,
-price charts, search, watchlist. Trading is designed (see `docs/`) but not built yet.
+Terminal client for Polymarket: browse, order books, price charts, search,
+watchlist, portfolio, and order placement (dry-run by default).
 
 ## Run
 
 ```sh
-uv run polymarket-tui
+uv run polymarket-tui                                            # read-only
+doppler run --project polymarket-tui --config dev -- uv run polymarket-tui  # with account
 ```
 
-No credentials needed for the current feature set - all data comes from public
-endpoints (gamma-api, clob).
+Capability modes by env vars: RO (none), OBS (funder only), DRY (key+funder,
+orders signed but never posted), LIVE (DRY + POLYMARKET_EXECUTION_LIVE=1).
+Every placed/cancelled order is appended to
+~/.local/share/polymarket-tui/orders.jsonl.
 
 ## Keys
 
@@ -18,7 +21,9 @@ endpoints (gamma-api, clob).
 - `q` quit, `/` search, `w` watchlist, `?` full help
 - Home: `tab`/`shift+tab` switch category (also `h/l`), `o` cycle sort, `W` star
 - Event: multi-outcome chart, `1-6` interval, `c` toggle chart, `i` rules
-- Market: `t` flip YES/NO book, `1-6` chart interval (1H 6H 1D 1W 1M ALL)
+- Market: `t` flip YES/NO book, `1-6` chart interval, `x` chart inspect,
+  `b`/`s` buy/sell form
+- Portfolio: `p` from anywhere; `tab` switches positions/orders/history; `x` cancels
 - A preview rail on the right follows the highlighted row on every list screen
 
 Order book auto-refreshes every 3 seconds.

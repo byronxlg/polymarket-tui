@@ -25,6 +25,8 @@ class MarketScreen(Screen):
         Binding("r", "refresh", "refresh"),
         Binding("W", "toggle_watch", "watch", key_display="W"),
         Binding("x", "inspect_chart", "inspect"),
+        Binding("b", "order('BUY')", "buy"),
+        Binding("s", "order('SELL')", "sell"),
     ] + [
         Binding(str(i + 1), f"set_interval_key('{key}')", key, show=i == 0)
         for i, key in enumerate(INTERVALS)
@@ -37,6 +39,7 @@ class MarketScreen(Screen):
         self._outcome_index = 0  # 0 = YES/first outcome, 1 = NO
         self._interval = "1H"  # matches the initially-active interval tab
         self._history: list = []
+        self._book = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -143,6 +146,7 @@ class MarketScreen(Screen):
         except Exception as exc:
             panel.show_error(f"book unavailable: {exc}")
             return
+        self._book = book
         panel.update_book(book)
 
     @work(exclusive=True, group="history")
@@ -191,6 +195,27 @@ class MarketScreen(Screen):
 
     def action_inspect_chart(self) -> None:
         self.query_one(PriceChartPanel).enter_inspect()
+
+    def action_order(self, side: str) -> None:
+        app = self.app
+        if not app.settings.can_auth:
+            app.notify(
+                "Trading needs POLYMARKET_PRIVATE_KEY + POLYMARKET_FUNDER (run via doppler)",
+                severity="warning",
+            )
+            return
+        from polymarket_tui.services.orders import Side
+        from polymarket_tui.ui.screens.order_modal import OrderModal
+
+        app.push_screen(
+            OrderModal(
+                self._market,
+                self._event,
+                self._outcome_index,
+                Side(side),
+                self._book,
+            )
+        )
 
     def action_toggle_watch(self) -> None:
         slug = self._event.slug if self._event else self._market.slug

@@ -11,6 +11,7 @@ from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
 from polymarket_tui.core.config import get_settings
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.services.orders import OrderService
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.event import EventScreen
@@ -47,6 +48,7 @@ class PolymarketApp(App):
             AuthedClobClient(self.settings) if self.settings.can_auth else None
         )
         self.portfolio = PortfolioService(self.settings, self.data, self.authed)
+        self.orders = OrderService(self.settings, self.authed)
         self.watchlist = Watchlist()
 
     def get_default_screen(self) -> HomeScreen:

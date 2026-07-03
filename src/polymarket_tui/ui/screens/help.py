@@ -11,7 +11,8 @@ from textual.widgets import Footer, Header, Markdown
 HELP_TEXT = """\
 # polymarket-tui
 
-Read-only demo build: browse, books, charts, search, watchlist.
+Browse, books, charts, search, watchlist, portfolio (p), trading.
+Orders are dry-run (signed, not posted) unless POLYMARKET_EXECUTION_LIVE=1.
 
 ## Global
 
@@ -56,10 +57,21 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 |-----|--------|
 | t | flip order book YES/NO |
 | 1-6 | chart interval (1H 6H 1D 1W 1M ALL) |
+| x | chart inspect (crosshair) |
+| b / s | buy / sell order form |
 
 Order book auto-refreshes every 3 seconds.
 
-Data: gamma-api.polymarket.com (metadata), clob.polymarket.com (books, history).
+## Portfolio (p)
+
+| Key | Action |
+|-----|--------|
+| tab | switch positions / open orders / history |
+| x | cancel highlighted open order |
+| r | refresh |
+
+Data: gamma-api.polymarket.com (metadata), clob.polymarket.com (books, history),
+data-api.polymarket.com (positions, activity).
 """
 
 
