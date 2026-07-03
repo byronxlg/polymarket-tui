@@ -250,8 +250,6 @@ class TestHelpers:
         assert parse_price("1") == Decimal("0.01")
         assert parse_price("0.1") == Decimal("0.001")
         assert parse_price("99.9") == Decimal("0.999")
-        # '$' prefix means dollars explicitly.
-        assert parse_price("$0.5") == Decimal("0.5")
-        assert parse_price("$0.123") == Decimal("0.123")
+        assert parse_price("$0.5") is None  # no dollars entry - cents only
         assert parse_price("") is None
         assert parse_price("abc") is None

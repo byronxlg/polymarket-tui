@@ -12,6 +12,7 @@ from textual.widgets import Footer, Static, Tab, Tabs
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
@@ -26,20 +27,21 @@ class MarketScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
         Binding("t", "toggle_outcome", "yes/no"),
+        Binding("y", "select_outcome(0)", "yes", show=False),
+        Binding("n", "select_outcome(1)", "no", show=False),
         Binding("r", "refresh", "refresh"),
         Binding("W", "toggle_watch", "watch", key_display="W"),
         Binding("x", "inspect_chart", "inspect"),
         Binding("up", "inspect_chart", "inspect chart", show=False),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
+        Binding("a", "toggle_activity('trades')", "activity"),
+        Binding("c", "toggle_activity('comments')", "comments"),
         Binding("R", "related", "related", show=False, key_display="R"),
         Binding("tab", "cycle_interval(1)", "interval"),
         Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
         Binding("l", "cycle_interval(1)", "next interval", show=False),
         Binding("h", "cycle_interval(-1)", "prev interval", show=False),
-    ] + [
-        Binding(str(i + 1), f"set_interval_key('{key}')", key, show=i == 0)
-        for i, key in enumerate(INTERVALS)
     ]
 
     def __init__(self, market: Market, event: Event | None = None) -> None:
@@ -61,6 +63,7 @@ class MarketScreen(Screen):
                     tabs.can_focus = False
                     yield tabs
                     yield PriceChartPanel(id="price-chart")
+                    yield ActivityPanel(id="activity-panel")
                 with Vertical(id="book-pane"):
                     yield Static(self._book_header(), id="book-title")
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
@@ -111,6 +114,7 @@ class MarketScreen(Screen):
 
     def on_mount(self) -> None:
         self.title = "market"
+        self.query_one(ActivityPanel).configure(self._market, self._event)
         self.load_book()
         self.load_history()
         self.load_position()
@@ -180,6 +184,10 @@ class MarketScreen(Screen):
 
     # -- actions ----------------------------------------------------------------
 
+    def action_select_outcome(self, index: int) -> None:
+        if index != self._outcome_index:
+            self.action_toggle_outcome()
+
     def action_toggle_outcome(self) -> None:
         self._outcome_index = 1 - self._outcome_index
         self._book = None  # stale: belongs to the other outcome until load_book returns
@@ -213,6 +221,9 @@ class MarketScreen(Screen):
 
     def action_inspect_chart(self) -> None:
         self.query_one(PriceChartPanel).enter_inspect()
+
+    def action_toggle_activity(self, mode: str) -> None:
+        self.query_one(ActivityPanel).toggle(mode)
 
     def action_related(self) -> None:
         if self._event is None:

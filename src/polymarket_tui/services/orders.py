@@ -90,21 +90,17 @@ def tick_size(market: Market) -> Decimal:
 def parse_price(raw: str) -> Decimal | None:
     """Parse a price entry in CENTS: '33.4' = 33.4c, '1' = 1c, '0.1' = 0.1c.
 
-    A '$' prefix switches to dollars ('$0.33' = 33c). No unit guessing -
-    a bare number always means cents, matching every price the UI displays.
-    Returns dollars (0-1 scale) or None if unparseable.
+    Always cents - matching every price the UI displays. Returns dollars
+    (0-1 scale) or None if unparseable.
     """
     raw = raw.strip().lower().rstrip("c").strip()
     if not raw:
         return None
-    dollars = raw.startswith("$")
-    if dollars:
-        raw = raw[1:].strip()
     try:
         value = Decimal(raw)
     except InvalidOperation:
         return None
-    return value if dollars else value / 100
+    return value / 100
 
 
 def round_to_tick(market: Market, price: Decimal) -> Decimal:

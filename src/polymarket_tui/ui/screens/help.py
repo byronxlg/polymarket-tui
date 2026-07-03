@@ -21,7 +21,7 @@ Orders are dry-run (signed, not posted) unless POLYMARKET_EXECUTION_LIVE=1.
 | Key | Action |
 |-----|--------|
 | / | search |
-| H | home |
+| H or Home key | home |
 | w | watchlist |
 | A | auth / credentials |
 | ? | this help |
@@ -48,7 +48,7 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 
 | Key | Action |
 |-----|--------|
-| tab or 1-6 | chart timeframe (1H 6H 1D 1W 1M ALL) |
+| tab | chart timeframe (1H 6H 1D 1W 1M ALL) |
 | up (at top row) or x | inspect chart (left/right scrub, down/esc exit) |
 | c | show/hide the multi-outcome chart |
 | i | swap right pane: outcome preview <-> rules |
@@ -58,12 +58,15 @@ The preview panel follows the highlighted (or mouse-hovered) row.
 
 | Key | Action |
 |-----|--------|
-| tab or 1-6 | chart timeframe |
+| tab | chart timeframe |
 | up or x | inspect chart (left/right scrub, down/esc exit) |
-| t | flip order book YES/NO |
+| y / n or t | show YES / NO book |
+| a | live trades feed (below the chart, 5s refresh) |
+| c | comments |
 | b / s | open order entry below the book (BUY / SELL) |
 
-Order entry: price + size only. Empty price = market order at the touch.
+Order entry: price + size only, price is in CENTS. Empty price = market
+order at the touch.
 up/down bump the price one tick, tab hops between fields, enter reviews,
 y places (esc edits). ctrl+g cycles TIF (GTC/FOK/FAK). The book stays
 live above the form. Orders are dry-run unless LIVE mode is on.

@@ -71,6 +71,20 @@ class GammaClient:
             return None
         return Market.model_validate(data[0])
 
+    async def comments(self, event_id: str, limit: int = 40) -> list[dict]:
+        """Comments on an event, newest first. Returns raw dicts (body/createdAt/profile)."""
+        data = await self._get(
+            "/comments",
+            {
+                "parent_entity_type": "Event",
+                "parent_entity_id": event_id,
+                "limit": limit,
+                "order": "createdAt",
+                "ascending": "false",
+            },
+        )
+        return data if isinstance(data, list) else []
+
     async def public_profile_name(self, address: str) -> str | None:
         data = await self._get("/public-profile", {"address": address})
         if isinstance(data, dict):

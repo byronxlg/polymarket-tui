@@ -9,6 +9,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
+from polymarket_tui.ui.widgets.account_card import AccountCard
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -72,6 +73,10 @@ class HomeScreen(Screen):
     def on_mount(self) -> None:
         self.title = "polymarket-tui"
         self.query_one(Tabs).can_focus = False
+        # Home is a dashboard: account card sits above the hover preview.
+        browser = self.query_one(EventsBrowser)
+        pane = browser.query_one("#preview-pane")
+        pane.mount(AccountCard(id="account-card"), before=browser.preview)
         self.table.focus()
         self.load_events()
 

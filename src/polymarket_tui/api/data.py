@@ -38,6 +38,11 @@ class DataApiClient:
             return float(data[0].get("value", 0.0))
         return None
 
+    async def market_trades(self, condition_id: str, limit: int = 30) -> list[ActivityItem]:
+        """Public recent trades for one market (the web UI's activity tab)."""
+        data = await self._get("/trades", {"market": condition_id, "limit": limit})
+        return [ActivityItem.model_validate(t) for t in data]
+
     async def activity(self, user: str, limit: int = 100) -> list[ActivityItem]:
         data = await self._get("/activity", {"user": user, "limit": limit})
         return [ActivityItem.model_validate(a) for a in data]

@@ -35,9 +35,6 @@ class EventScreen(Screen):
         Binding("shift+tab", "cycle_interval(-1)", "prev interval", show=False),
         Binding("l", "cycle_interval(1)", "next interval", show=False),
         Binding("h", "cycle_interval(-1)", "prev interval", show=False),
-    ] + [
-        Binding(str(i + 1), f"set_interval_key('{key}')", key, show=False)
-        for i, key in enumerate(INTERVALS)
     ]
 
     def __init__(self, event: Event) -> None:

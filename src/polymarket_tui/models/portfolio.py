@@ -44,6 +44,12 @@ class ActivityItem(BaseModel):
     condition_id: str = Field(default="", alias="conditionId")
     asset: str = ""
     timestamp: int = 0
+    name: str = ""
+    pseudonym: str = ""
+
+    @property
+    def trader(self) -> str:
+        return self.name or self.pseudonym or "anon"
 
     @property
     def when(self) -> datetime:
