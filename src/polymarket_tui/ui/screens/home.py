@@ -1,0 +1,148 @@
+"""Home screen: trending events with category tabs and sort cycling."""
+
+from __future__ import annotations
+
+from textual import work
+from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.screen import Screen
+from textual.widgets import Footer, Header, Tab, Tabs
+
+from polymarket_tui.api.gamma import SORT_ORDERS
+from polymarket_tui.ui.widgets.event_table import EventsTable
+
+# Curated to match the polymarket.com top nav. id = gamma tag_slug ("trending" = no filter).
+CATEGORIES: list[tuple[str, str]] = [
+    ("Trending", "trending"),
+    ("Politics", "politics"),
+    ("Sports", "sports"),
+    ("Crypto", "crypto"),
+    ("Economy", "economy"),
+    ("Tech", "tech"),
+    ("Culture", "culture"),
+    ("World", "world"),
+    ("Elections", "elections"),
+]
+
+PAGE_SIZE = 50
+
+SORT_LABELS = {
+    "volume24hr": "24h volume",
+    "liquidity": "liquidity",
+    "endDate": "ending soonest",
+    "startDate": "newest",
+}
+
+
+class HomeScreen(Screen):
+    BINDINGS = [
+        Binding("o", "cycle_sort", "sort"),
+        Binding("W", "toggle_watch", "watch", key_display="W"),
+        Binding("left_square_bracket", "prev_tag", "prev tag", show=False),
+        Binding("right_square_bracket", "next_tag", "next tag", show=False),
+        Binding("r", "refresh", "refresh"),
+        Binding("enter", "open_event", "open", show=False, priority=False),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._tag_slug: str | None = None
+        self._sort_index = 0
+        self._offset = 0
+        self._loading = False
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="tag-bar")
+        yield EventsTable(id="events-table")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.title = "polymarket-tui"
+        self.sub_title = f"sorted by {SORT_LABELS[SORT_ORDERS[self._sort_index]]}"
+        self.table.focus()
+        self.load_events()
+
+    @property
+    def table(self) -> EventsTable:
+        return self.query_one(EventsTable)
+
+    @work(exclusive=True)
+    async def load_events(self, append: bool = False) -> None:
+        app = self.app
+        self._loading = True
+        if not append:
+            self._offset = 0
+        order = SORT_ORDERS[self._sort_index]
+        ascending = order == "endDate"
+        try:
+            events = await app.gamma.events(
+                limit=PAGE_SIZE,
+                offset=self._offset,
+                order=order,
+                ascending=ascending,
+                tag_slug=self._tag_slug,
+            )
+        except Exception as exc:
+            self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
+            self._loading = False
+            return
+        events = [e for e in events if e.top_market is not None]
+        self.table.set_events(events, set(app.watchlist.slugs), clear=not append)
+        self._loading = False
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        slug = event.tab.id
+        self._tag_slug = None if slug == "trending" else slug
+        self.load_events()
+
+    def on_data_table_row_selected(self, event) -> None:
+        self._open_highlighted()
+
+    def on_data_table_row_highlighted(self, event) -> None:
+        # Infinite scroll: fetch the next page when the cursor nears the bottom.
+        if (
+            not self._loading
+            and self.table.row_count >= PAGE_SIZE
+            and event.cursor_row is not None
+            and event.cursor_row >= self.table.row_count - 5
+        ):
+            self._offset += PAGE_SIZE
+            self.load_events(append=True)
+
+    def _open_highlighted(self) -> None:
+        event = self.table.highlighted_event()
+        if event is not None:
+            self.app.open_event(event)
+
+    def action_open_event(self) -> None:
+        self._open_highlighted()
+
+    def action_cycle_sort(self) -> None:
+        self._sort_index = (self._sort_index + 1) % len(SORT_ORDERS)
+        self.sub_title = f"sorted by {SORT_LABELS[SORT_ORDERS[self._sort_index]]}"
+        self.load_events()
+
+    def action_toggle_watch(self) -> None:
+        event = self.table.highlighted_event()
+        if event is None:
+            return
+        watched = self.app.watchlist.toggle(event.slug)
+        self.table.set_star(event.slug, watched)
+        self.notify(("Watching " if watched else "Unwatched ") + event.title[:40], timeout=2)
+
+    def action_refresh(self) -> None:
+        self.load_events()
+
+    def _move_tag(self, delta: int) -> None:
+        tabs = self.query_one(Tabs)
+        if delta > 0:
+            tabs.action_next_tab()
+        else:
+            tabs.action_previous_tab()
+
+    def action_prev_tag(self) -> None:
+        self._move_tag(-1)
+
+    def action_next_tag(self) -> None:
+        self._move_tag(1)

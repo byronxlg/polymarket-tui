@@ -1,0 +1,42 @@
+[project]
+name = "polymarket-tui"
+version = "0.1.0"
+description = "Terminal client for Polymarket"
+readme = "README.md"
+authors = [
+    { name = "Byron Smith", email = "byron.lg.smith@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "textual>=1.0",
+    "textual-plotext>=1.0",
+    "httpx[http2]>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+]
+
+[project.scripts]
+polymarket-tui = "polymarket_tui.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+    "ruff>=0.6",
+    "textual-dev>=1.5",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"

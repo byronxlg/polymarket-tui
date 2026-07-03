@@ -1,0 +1,74 @@
+"""The Textual application: screen stack, shared clients, global bindings."""
+
+from __future__ import annotations
+
+from textual.app import App
+from textual.binding import Binding
+
+from polymarket_tui.api.clob import ClobPublicClient
+from polymarket_tui.api.gamma import GammaClient
+from polymarket_tui.models.market import Event, Market
+from polymarket_tui.state.watchlist import Watchlist
+from polymarket_tui.ui.screens.event import EventScreen
+from polymarket_tui.ui.screens.help import HelpScreen
+from polymarket_tui.ui.screens.home import HomeScreen
+from polymarket_tui.ui.screens.market import MarketScreen
+from polymarket_tui.ui.screens.search import SearchScreen
+from polymarket_tui.ui.screens.watchlist import WatchlistScreen
+
+
+class PolymarketApp(App):
+    TITLE = "polymarket-tui"
+    CSS_PATH = "styles/app.tcss"
+
+    BINDINGS = [
+        Binding("q", "quit", "quit", priority=True),
+        Binding("slash", "search", "search"),
+        Binding("H", "home", "home", show=False, key_display="H"),
+        Binding("w", "watchlist", "watchlist"),
+        Binding("question_mark", "help", "help", key_display="?"),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.gamma = GammaClient()
+        self.clob = ClobPublicClient()
+        self.watchlist = Watchlist()
+
+    def get_default_screen(self) -> HomeScreen:
+        return HomeScreen()
+
+    async def on_unmount(self) -> None:
+        await self.gamma.aclose()
+        await self.clob.aclose()
+
+    # -- navigation helpers (screens call these) ---------------------------
+
+    def open_event(self, event: Event) -> None:
+        """Open an event; binary events go straight to the market screen."""
+        if event.is_binary and event.top_market is not None:
+            self.push_screen(MarketScreen(event.top_market, event))
+        else:
+            self.push_screen(EventScreen(event))
+
+    def open_market(self, market: Market, event: Event | None = None) -> None:
+        self.push_screen(MarketScreen(market, event))
+
+    # -- global actions ------------------------------------------------------
+
+    def _push_unless_current(self, screen_cls: type, factory) -> None:
+        if not isinstance(self.screen, screen_cls):
+            self.push_screen(factory())
+
+    def action_search(self) -> None:
+        self._push_unless_current(SearchScreen, SearchScreen)
+
+    def action_watchlist(self) -> None:
+        self._push_unless_current(WatchlistScreen, WatchlistScreen)
+
+    def action_help(self) -> None:
+        self._push_unless_current(HelpScreen, HelpScreen)
+
+    def action_home(self) -> None:
+        while len(self.screen_stack) > 1:
+            self.pop_screen()

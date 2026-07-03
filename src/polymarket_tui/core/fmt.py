@@ -1,0 +1,52 @@
+"""Display formatters. Prices shown in cents to match the Polymarket web UI."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+
+def cents(price: float | None, signed: bool = False) -> str:
+    if price is None:
+        return "-"
+    c = price * 100
+    if signed:
+        return f"{c:+.1f}c"
+    return f"{c:.1f}c"
+
+
+def money(value: float | None) -> str:
+    if value is None:
+        return "-"
+    a = abs(value)
+    if a >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.1f}B"
+    if a >= 1_000_000:
+        return f"${value / 1_000_000:.1f}M"
+    if a >= 10_000:
+        return f"${value / 1_000:.0f}K"
+    return f"${value:,.2f}"
+
+
+def compact_size(size: float) -> str:
+    if size >= 1_000_000:
+        return f"{size / 1_000_000:.1f}M"
+    if size >= 10_000:
+        return f"{size / 1_000:.0f}K"
+    if size >= 1_000:
+        return f"{size / 1_000:.1f}K"
+    return f"{size:,.0f}"
+
+
+def end_date(dt: datetime | None) -> str:
+    if dt is None:
+        return "-"
+    now = datetime.now(UTC)
+    delta = dt - now
+    if delta.days < 0:
+        return "ended"
+    if delta.days == 0:
+        hours = delta.seconds // 3600
+        return f"{hours}h" if hours else f"{delta.seconds // 60}m"
+    if delta.days < 365:
+        return dt.strftime("%b %d")
+    return dt.strftime("%b %Y")

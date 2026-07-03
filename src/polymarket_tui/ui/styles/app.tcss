@@ -1,0 +1,83 @@
+Screen {
+    background: $surface;
+}
+
+#tag-bar {
+    dock: top;
+    height: 3;
+}
+
+DataTable {
+    height: 1fr;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary 30%;
+}
+
+.screen-title {
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+    color: $text;
+    text-style: bold;
+}
+
+.subtle {
+    color: $text-muted;
+}
+
+/* Market screen */
+#market-body {
+    layout: horizontal;
+    height: 1fr;
+}
+
+#chart-pane {
+    width: 3fr;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+#book-pane {
+    width: 2fr;
+    min-width: 44;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+#interval-tabs {
+    height: 3;
+}
+
+PlotextPlot {
+    height: 1fr;
+}
+
+#book-scroll {
+    height: 1fr;
+}
+
+#market-info {
+    dock: bottom;
+    height: auto;
+    max-height: 6;
+    padding: 0 1;
+    background: $panel;
+}
+
+/* Search */
+#search-input {
+    dock: top;
+    margin: 0 0 1 0;
+}
+
+/* Help */
+#help-body {
+    padding: 1 2;
+}
+
+.empty-note {
+    padding: 2 4;
+    color: $text-muted;
+}
