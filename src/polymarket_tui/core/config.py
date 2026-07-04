@@ -77,5 +77,9 @@ def get_settings() -> Settings:
             "polymarket_funder": saved["funder"],
             "polymarket_private_key": saved["private_key"],
             "polymarket_signature_type": saved["signature_type"],
+            # Persisted execution mode (env still wins via the early return
+            # above when env credentials are set).
+            "polymarket_execution_live": settings.polymarket_execution_live
+            or saved.get("execution_live", False),
         }
     )

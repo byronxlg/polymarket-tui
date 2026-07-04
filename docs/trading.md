@@ -9,10 +9,11 @@ The only part of the app that moves money. Correctness and explicitness beat con
    confirm strip showing exactly what will be signed.
 3. **Decimal everywhere.** Prices and sizes are `decimal.Decimal` from input to
    `OrderArgs`. Floats appear nowhere in order math.
-4. **Live-fire switch.** LIVE mode (auth-screen toggle with confirmation, or
-   `POLYMARKET_EXECUTION_LIVE=1`) is required to actually post. Otherwise
-   dry-run: the full pipeline runs and the order is signed (proving the
-   EIP-712 path) but never posted. LIVE is never persisted across sessions.
+4. **Live-fire switch.** LIVE mode (global `L` toggle or auth-screen select,
+   both confirmed via the arming modal, or `POLYMARKET_EXECUTION_LIVE=1`) is
+   required to actually post. Otherwise dry-run: the full pipeline runs and
+   the order is signed (proving the EIP-712 path) but never posted. The flag
+   persists with the credentials; a session that starts LIVE announces it.
 
 ## Order form
 

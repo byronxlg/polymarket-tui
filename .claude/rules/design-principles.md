@@ -49,8 +49,9 @@ pane must never render clipped columns.
 - The app never blocks an order the exchange would accept. Hard stops only
   mirror exchange rejections (closed market, tick, min size, bounds, funds).
   Advisory conditions are rare yellow warnings.
-- Dry-run is the default; LIVE is a per-session, explicitly confirmed opt-in
-  and is never persisted.
+- Dry-run is the default for new setups; going LIVE is an explicitly
+  confirmed opt-in (global `L`), persisted with the credentials. A session
+  that starts LIVE announces it loudly; dropping back to DRY is instant.
 - Decimal for all order math; every order/cancel appended to the JSONL audit
   log; a timed-out post is NEVER auto-retried (it may have landed).
 - Confirmation is an explicit `y` on a strip that only becomes focusable

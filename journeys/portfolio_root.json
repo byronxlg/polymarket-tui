@@ -1,0 +1,10 @@
+{
+  "size": [200, 50],
+  "boot_wait": 16,
+  "steps": [
+    ["portfolio", ["p"], 6],
+    ["drill_market", ["Enter"], 9],
+    ["back_to_parent", ["Escape"], 2],
+    ["back_to_root", ["Escape"], 2]
+  ]
+}

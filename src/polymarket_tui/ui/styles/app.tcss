@@ -102,9 +102,11 @@ PriceChartPanel {
     max-height: 6;
 }
 
+/* Book in the hero column under the outcome table (actionable prices
+   first); its size bars stretch to the measured width. */
 #book-pane {
-    width: 48;
-    min-width: 44;
+    height: 1fr;
+    margin-top: 1;
     border: solid $panel-lighten-2;
     padding: 0 1;
 }
@@ -125,12 +127,15 @@ PriceChartPanel {
     height: 1;
 }
 
-/* Trades live inline under the position line; 'a' expands them full-width */
+/* Trades rail (live context); 'a' expands it to full width */
 #trades-rail {
-    height: 1fr;
-    margin-top: 1;
+    width: 44;
     border: solid $panel-lighten-2;
     padding: 0 1;
+}
+
+#trades-rail.expanded {
+    width: 1fr;
 }
 
 #rules-rail {
@@ -294,6 +299,12 @@ PriceChartPanel {
 .nav-pane.focused {
     opacity: 100%;
     border-left: solid $primary;
+}
+
+/* Compact portfolio (30% parent slot): the positions list is the context;
+   the profit strip goes. */
+.nav-pane.tier-compact #pnl-pane {
+    display: none;
 }
 
 /* Compact: the pane is context - only the primary list survives.

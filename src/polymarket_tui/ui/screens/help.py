@@ -39,11 +39,11 @@ expanded trades collapse before the screen closes.
 | Key | Action |
 |-----|--------|
 | / | search |
-| p | portfolio |
+| p | portfolio (a top-level root like Home - drilling into a market keeps it as the parent) |
 | w | watchlist |
 | H or Home | home screen |
 | A | auth / credentials |
-| L | toggle DRY/LIVE for this session (going live asks for confirmation) |
+| L | toggle DRY/LIVE (going live asks for confirmation; the mode persists) |
 | ? | this help |
 | q | quit |
 

@@ -23,7 +23,7 @@ from polymarket_tui.ui.screens.event import EventPane
 from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.market import MarketPane
 from polymarket_tui.ui.screens.nav_host import NavHost
-from polymarket_tui.ui.screens.portfolio import PortfolioScreen
+from polymarket_tui.ui.screens.portfolio import PortfolioPane
 from polymarket_tui.ui.screens.related import RelatedPane
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.user import UserPane
@@ -78,6 +78,13 @@ class PolymarketApp(App):
         self.refresh_account_status()
         self.set_interval(60, self.refresh_account_status)
         self.start_user_channel()
+        if self.settings.mode is Mode.TRADER_LIVE:
+            # The persisted flag restored a LIVE session - say so loudly.
+            self.notify(
+                "Started LIVE (restored from last session) - orders post for real. L drops to DRY.",
+                severity="warning",
+                timeout=10,
+            )
 
     def start_user_channel(self) -> None:
         """Connect the authenticated /ws/user socket for live own-order updates."""
@@ -114,9 +121,11 @@ class PolymarketApp(App):
         else:
             return
         self.portfolio.invalidate()
-        # Refresh the open-orders tab live if the portfolio screen is showing.
-        if isinstance(self.screen, PortfolioScreen):
-            self.screen.load_orders()
+        # Refresh the open-orders tab live if a portfolio pane is mounted.
+        host = self._nav_host()
+        if host is not None:
+            for pane in host.query(PortfolioPane):
+                pane.load_orders()
 
     def _schedule_ntp_refresh(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
@@ -256,29 +265,35 @@ class PolymarketApp(App):
         self._push_unless_current(AuthScreen, AuthScreen)
 
     def action_toggle_live(self) -> None:
-        """Session-wide DRY/LIVE flip: going live is confirmed, dropping to
-        DRY is instant. The flag is never persisted (config.py invariant)."""
+        """DRY/LIVE flip: going live is confirmed, dropping to DRY is instant.
+        The choice persists with the saved credentials (Byron, 2026-07-05);
+        a session that starts LIVE announces it on mount."""
         if not self.settings.can_auth:
             self.notify(
                 "Trading needs a private key + funder - press A to authenticate",
                 severity="warning",
             )
             return
+        from polymarket_tui.core.credstore import save_execution_live
+
         if self.settings.mode is Mode.TRADER_LIVE:
             self.reconfigure(
                 self.settings.model_copy(update={"polymarket_execution_live": False})
             )
+            save_execution_live(False)
             self.notify("DRY - orders are signed but never posted", timeout=4)
             return
         body = Text()
         body.append("Orders and cancels will be posted to the exchange for real.\n")
-        body.append("Dry-run protection is OFF for this session.", style="bold red")
+        body.append("Dry-run protection is OFF.", style="bold red")
+        body.append(" This choice is remembered across sessions.")
 
         def _confirmed(ok: bool | None) -> None:
             if ok:
                 self.reconfigure(
                     self.settings.model_copy(update={"polymarket_execution_live": True})
                 )
+                save_execution_live(True)
                 self.notify(
                     "LIVE - orders and cancels post to the exchange (L to drop back to DRY)",
                     severity="warning",
@@ -288,12 +303,21 @@ class PolymarketApp(App):
         self.push_screen(ConfirmModal("ENABLE LIVE TRADING", body, "go live"), _confirmed)
 
     def action_portfolio(self) -> None:
+        """'p': switch the drill root to the portfolio (same top level as Home)."""
         if not self.settings.can_read_portfolio:
             self.notify(
                 "Portfolio needs a funder address - press A to authenticate", severity="warning"
             )
             return
-        self._push_unless_current(PortfolioScreen, PortfolioScreen)
+        host = self._nav_host()
+        if host is None:
+            return
+        while len(self.screen_stack) > 1:
+            self.pop_screen()
+        if isinstance(host.root_pane, PortfolioPane):
+            host.reset_to_root()
+        else:
+            host.set_root(PortfolioPane(), "Portfolio")
 
     def open_reconciliation(self, target: ReconcileTarget) -> None:
         """Jump to Open Orders to check whether a status-unknown post landed."""
@@ -303,10 +327,17 @@ class PolymarketApp(App):
                 "Add a funder address (press A) to check Open Orders", severity="warning"
             )
             return
-        if isinstance(self.screen, PortfolioScreen):
-            self.screen.enter_reconciliation()
+        host = self._nav_host()
+        if host is None:
+            return
+        while len(self.screen_stack) > 1:
+            self.pop_screen()
+        if isinstance(host.root_pane, PortfolioPane):
+            host.reset_to_root()
+            host.root_pane.enter_reconciliation()
         else:
-            self.push_screen(PortfolioScreen())
+            # A fresh pane enters reconciliation from on_mount (reconcile_target set).
+            host.set_root(PortfolioPane(), "Portfolio")
 
     def action_help(self) -> None:
         self._push_unless_current(HelpScreen, HelpScreen)

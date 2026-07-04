@@ -2,7 +2,7 @@
 
 Applied credentials are saved to ~/.config/polymarket-tui/credentials.toml
 (mode 0600, outside any git tree). The key input is masked and never logged.
-The live flag is never persisted - every session starts in dry-run.
+The live flag persists with the credentials; a LIVE start is announced loudly.
 """
 
 from __future__ import annotations
@@ -288,6 +288,7 @@ class AuthScreen(Screen):
                     candidate.polymarket_funder,
                     candidate.polymarket_private_key,
                     candidate.polymarket_signature_type,
+                    execution_live=candidate.polymarket_execution_live,
                 )
                 report.append(f"saved to {path} (0600)\n", style="dim")
             report.append(f"applied - mode is now {candidate.mode.value}", style="bold")
