@@ -8,9 +8,11 @@ to apply and test. Applied credentials are persisted to
 deliberately outside any git working tree) and loaded on the next start.
 `ctrl+d` on the auth screen clears both the session and the file.
 
-The execution-live flag is never persisted - every session starts in dry-run;
-live is enabled per session via the auth screen's execution toggle (confirmed
-in a modal) or the `POLYMARKET_EXECUTION_LIVE` env var.
+The execution-live flag is persisted in credentials.toml: the global `L`
+toggle and the auth screen's execution select both write it (going live is
+confirmed in the arming modal; dropping to DRY is instant). A session that
+starts LIVE announces it with a warning toast. The
+`POLYMARKET_EXECUTION_LIVE` env var also enables it.
 
 `core/credstore.py` owns the file format (three-key TOML). `get_settings()`
 resolution order: env vars win when any `POLYMARKET_*` identity var is set,

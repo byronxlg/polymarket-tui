@@ -128,7 +128,7 @@ OrderPanel (b/s) -> enter
 
 Watchlist (events + traders) persists to `~/.local/share/polymarket-tui/`.
 Credentials persist via `core/credstore.py`; env vars override the file;
-the LIVE flag is never persisted.
+the LIVE flag persists alongside them (a LIVE start is announced).
 
 ## Error handling
 

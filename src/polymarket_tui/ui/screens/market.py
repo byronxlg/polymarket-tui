@@ -118,19 +118,21 @@ class MarketPane(TierAware, Vertical):
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title", id="market-title")
         with Horizontal(id="market-body"):
+            # Book in the hero column (actionable prices first), trades in the
+            # rail (live context) - swapped 2026-07-05 on Byron's request.
             with Vertical(id="market-left"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
                 yield Static(id="orders-note")
-                with Vertical(id="trades-rail"):
-                    yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
-                    yield TradesTable(compact=False, id="trades-table")
-            with Vertical(id="book-pane"):
-                yield Static(self._book_header(), id="book-title")
-                scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
-                scroll.can_focus = False
-                yield scroll
-                yield OrderPanel(id="order-panel")
+                with Vertical(id="book-pane"):
+                    yield Static(self._book_header(), id="book-title")
+                    scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
+                    scroll.can_focus = False
+                    yield scroll
+                    yield OrderPanel(id="order-panel")
+            with Vertical(id="trades-rail"):
+                yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
+                yield TradesTable(compact=True, id="trades-table")
             with Vertical(id="rules-rail"):
                 yield Static(" RULES", classes="screen-title")
                 rules = VerticalScroll(
@@ -231,8 +233,7 @@ class MarketPane(TierAware, Vertical):
             return  # not composed yet (early resize)
         compact = self.tier == "compact"
         expanded = self._trades_expanded and not compact
-        self.query_one("#outcomes-table").display = not expanded
-        self.query_one("#position-line").display = not expanded
+        self.query_one("#market-left").display = not expanded
         self.query_one("#book-pane").display = not compact and not expanded
         self.query_one("#market-overview-pane").display = expanded
         self.query_one("#rules-rail").display = (

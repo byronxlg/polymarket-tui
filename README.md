@@ -49,9 +49,10 @@ Press `A` in the app:
   `~/.config/polymarket-tui/credentials.toml` (chmod 600, plaintext - treat
   the file like the key itself). `POLYMARKET_*` env vars override the file.
 
-**Orders are dry-run by default**: fully validated and signed but never
-posted. Live posting requires the explicit LIVE toggle on the auth screen
-(confirmed per session, never persisted) or `POLYMARKET_EXECUTION_LIVE=1`.
+**Orders are dry-run until you go live**: fully validated and signed but
+never posted. Live posting requires the `L` toggle (confirmed) or
+`POLYMARKET_EXECUTION_LIVE=1`; the choice persists across sessions and a
+LIVE start is announced.
 Every placed/cancelled order is appended to
 `~/.local/share/polymarket-tui/orders.jsonl`.
 

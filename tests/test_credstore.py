@@ -1,4 +1,4 @@
-"""Credstore round-trip, Keychain backend, and migration (issue #5)."""
+"""Credstore round-trip and the legacy Keychain -> file migration."""
 
 from __future__ import annotations
 
@@ -59,36 +59,49 @@ def test_round_trip(tmp_credstore):
         "funder": "0xFunder",
         "private_key": "deadbeef" * 8,
         "signature_type": 1,
+        "execution_live": False,
     }
 
 
-def test_key_in_keychain_not_toml(tmp_credstore):
+def test_execution_live_round_trip(tmp_credstore):
+    tmp_credstore.save_credentials("0xFunder", "deadbeef" * 8, 1, execution_live=True)
+    assert tmp_credstore.load_credentials()["execution_live"] is True
+    # save_execution_live flips just the flag, keeping the credentials.
+    tmp_credstore.save_execution_live(False)
+    loaded = tmp_credstore.load_credentials()
+    assert loaded["execution_live"] is False
+    assert loaded["funder"] == "0xFunder"
+    assert loaded["private_key"] == "deadbeef" * 8
+
+
+def test_key_stays_in_file_not_keychain(tmp_credstore):
+    """Keychain retired: saving never writes the Keychain, key lives in the TOML."""
     tmp_credstore.save_credentials("0xFunder", "deadbeef" * 8, 1)
     text = tmp_credstore.CRED_PATH.read_text()
-    assert "deadbeef" not in text  # key is in the Keychain, not the file
-    assert "0xFunder" in text
-    assert tmp_credstore._fake.store[keychain.ACCOUNT] == "deadbeef" * 8
+    assert 'private_key = "' + "deadbeef" * 8 + '"' in text
+    assert keychain.ACCOUNT not in tmp_credstore._fake.store
 
 
-def test_file_fallback_when_keychain_unavailable(tmp_credstore):
-    tmp_credstore._fake.enabled = False
-    tmp_credstore.save_credentials("0xFunder", "abc123", 2)
-    text = tmp_credstore.CRED_PATH.read_text()
-    assert 'private_key = "abc123"' in text  # falls back to the TOML
-    assert tmp_credstore.load_credentials()["private_key"] == "abc123"
+def test_legacy_keychain_key_migrates_into_file(tmp_credstore):
+    """A key left in the Keychain by an older build moves into the TOML once."""
+    tmp_credstore._fake.store[keychain.ACCOUNT] = "cafe" * 16
+    tmp_credstore._write_toml("0xFunder", 1)  # legacy file without a key
+    loaded = tmp_credstore.load_credentials()
+    assert loaded["private_key"] == "cafe" * 16
+    assert keychain.ACCOUNT not in tmp_credstore._fake.store  # entry deleted
+    assert 'private_key = "' + "cafe" * 16 + '"' in tmp_credstore.CRED_PATH.read_text()
 
 
-def test_migration_moves_key_out_of_toml(tmp_credstore):
-    # Simulate a legacy TOML that still holds the key.
+def test_key_in_toml_stays_in_toml(tmp_credstore):
+    # A TOML that holds the key is the steady state - no Keychain writes.
     tmp_credstore.CONFIG_DIR.mkdir(parents=True)
     tmp_credstore.CRED_PATH.write_text(
-        'funder = "0xF"\nprivate_key = "legacykey"\nsignature_type = 1\n'
+        'funder = "0xF"\nprivate_key = "filekey"\nsignature_type = 1\n'
     )
     loaded = tmp_credstore.load_credentials()
-    assert loaded["private_key"] == "legacykey"
-    # After migration the file no longer holds the key; the Keychain does.
-    assert "legacykey" not in tmp_credstore.CRED_PATH.read_text()
-    assert tmp_credstore._fake.store[keychain.ACCOUNT] == "legacykey"
+    assert loaded["private_key"] == "filekey"
+    assert "filekey" in tmp_credstore.CRED_PATH.read_text()
+    assert keychain.ACCOUNT not in tmp_credstore._fake.store
 
 
 def test_load_missing_returns_none(tmp_credstore):
@@ -97,7 +110,8 @@ def test_load_missing_returns_none(tmp_credstore):
 
 def test_clear_removes_file_and_keychain(tmp_credstore):
     tmp_credstore.save_credentials("0xF", "k", 2)
-    assert tmp_credstore._fake.store  # key present
+    # A stale legacy Keychain entry is cleared too.
+    tmp_credstore._fake.store[keychain.ACCOUNT] = "stale"
     assert tmp_credstore.clear_credentials() is True
     assert tmp_credstore.load_credentials() is None
     assert tmp_credstore._fake.store == {}

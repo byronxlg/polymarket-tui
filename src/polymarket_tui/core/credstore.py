@@ -1,10 +1,12 @@
 """Credential persistence: TOML at ~/.config/polymarket-tui/, mode 0600.
 
-The private key is stored in the macOS Keychain when available (issue #5); the
-funder and signature type always stay in the plaintext TOML. On non-macOS, or
-when the Keychain is unavailable, the key falls back to the TOML. Deliberately
-outside any git working tree. The execution-live flag is never persisted -
-every session starts in dry-run.
+Everything lives in the plaintext TOML (0600, outside any git working tree).
+The macOS Keychain backend (issue #5) was retired 2026-07-05: reading the key
+triggered a per-run "allow" popup because each venv python counts as a new
+binary, so the key moved back to the file; a legacy Keychain entry is migrated
+into the TOML (and deleted) on first load. The execution-live flag is
+persisted here too: a session starts in the mode you left it in, and the app
+announces a LIVE start loudly.
 """
 
 from __future__ import annotations
@@ -20,25 +22,23 @@ CRED_PATH = CONFIG_DIR / "credentials.toml"
 
 
 def key_backend() -> str:
-    """Where the private key is (or would be) stored: 'keychain' or 'file'."""
-    return "keychain" if keychain.available() else "file"
+    """The private key lives in the TOML (Keychain retired - per-run popups)."""
+    return "file"
 
 
-def _write_toml(funder: str, signature_type: int, private_key: str = "") -> Path:
+def _write_toml(
+    funder: str, signature_type: int, private_key: str = "", execution_live: bool = False
+) -> Path:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CONFIG_DIR.chmod(0o700)
     lines = [
         "# polymarket-tui credentials - plaintext, keep permissions 0600.",
-        "# execution mode (dry/live) is intentionally not stored here.",
     ]
-    if private_key:
-        lines.append("# private key stored here (Keychain unavailable).")
-    else:
-        lines.append("# private key stored in the macOS Keychain, not this file.")
     lines.append(f'funder = "{funder}"')
     if private_key:
         lines.append(f'private_key = "{private_key}"')
     lines.append(f"signature_type = {signature_type}")
+    lines.append(f"execution_live = {str(execution_live).lower()}")
     body = "\n".join(lines) + "\n"
     # Create with restrictive permissions before writing any secret.
     fd = os.open(CRED_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -65,28 +65,48 @@ def load_credentials() -> dict | None:
     signature_type = int(data.get("signature_type", 1))
     file_key = str(data.get("private_key", ""))
 
-    # Transparent migration: a key still in the TOML moves to the Keychain and
-    # the TOML is rewritten without it.
-    if file_key and keychain.available() and keychain.set_key(file_key):
-        _write_toml(funder, signature_type)
-        file_key = ""
-
+    # Reverse migration: a key still in the legacy Keychain entry moves back
+    # into the TOML (one last "allow" popup) and the entry is deleted, so
+    # later runs never touch the Keychain.
     private_key = file_key
     if not private_key and keychain.available():
-        private_key = keychain.get_key() or ""
+        legacy = keychain.get_key() or ""
+        if legacy:
+            _write_toml(
+                funder,
+                signature_type,
+                private_key=legacy,
+                execution_live=bool(data.get("execution_live", False)),
+            )
+            keychain.delete_key()
+            private_key = legacy
 
     return {
         "funder": funder,
         "private_key": private_key,
         "signature_type": signature_type,
+        "execution_live": bool(data.get("execution_live", False)),
     }
 
 
-def save_credentials(funder: str, private_key: str, signature_type: int) -> Path:
-    """Persist credentials. The key goes to the Keychain when available; the TOML
-    keeps only funder + signature type in that case."""
-    in_keychain = bool(private_key) and keychain.available() and keychain.set_key(private_key)
-    return _write_toml(funder, signature_type, private_key="" if in_keychain else private_key)
+def save_credentials(
+    funder: str, private_key: str, signature_type: int, execution_live: bool = False
+) -> Path:
+    """Persist credentials to the TOML (0600)."""
+    return _write_toml(
+        funder, signature_type, private_key=private_key, execution_live=execution_live
+    )
+
+
+def save_execution_live(live: bool) -> Path | None:
+    """Persist just the execution mode, keeping the stored credentials as-is.
+    No-op (returns None) when no credentials file exists yet."""
+    saved = load_credentials()
+    if saved is None:
+        return None
+    return save_credentials(
+        saved["funder"], saved["private_key"], saved["signature_type"], execution_live=live
+    )
 
 
 def clear_credentials() -> bool:

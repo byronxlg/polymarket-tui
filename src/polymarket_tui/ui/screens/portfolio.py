@@ -1,4 +1,9 @@
-"""Portfolio: positions with live P&L, open orders, activity history."""
+"""Portfolio: positions with live P&L, open orders, activity history.
+
+A NavHost root pane (like Home and Watched, Byron's request 2026-07-05):
+'p' switches the drill root here, so opening a market from a position keeps
+the portfolio as the 30% parent and left/esc steps back into it.
+"""
 
 from __future__ import annotations
 
@@ -8,15 +13,17 @@ from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Static, TabbedContent, TabPane
+from textual.containers import Vertical
+from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
 from polymarket_tui.models.portfolio import OpenOrder, Position
-from polymarket_tui.ui.widgets.app_header import AppHeader
+from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
+    ACTIVITY_TIER_COLUMNS,
+    POSITIONS_TIER_COLUMNS,
     activity_row,
     position_row,
     setup_activity_columns,
@@ -24,32 +31,84 @@ from polymarket_tui.ui.widgets.tables import (
 )
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
+ORDERS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("market", "Market", 44),
+        ("side", "Side", 5),
+        ("outcome", "Outcome", 10),
+        ("price", "Price", 7),
+        ("size", "Size", 8),
+        ("filled", "Filled", 8),
+        ("placed", "Placed", 12),
+    ),
+    "medium": (
+        ("market", "Market", 36),
+        ("side", "Side", 5),
+        ("outcome", "Outcome", 10),
+        ("price", "Price", 7),
+        ("size", "Size", 8),
+    ),
+    "compact": (
+        ("market", "Market", 24),
+        ("side", "Side", 5),
+        ("price", "Price", 7),
+    ),
+}
+
+
+def _pane_of(widget) -> PortfolioPane | None:
+    return next((a for a in widget.ancestors if isinstance(a, PortfolioPane)), None)
+
 
 class OrdersTable(VimDataTable):
     """Open-orders table: the cancel binding lives here so the footer only
     advertises it while this table is focused."""
 
-    BINDINGS = [Binding("x", "screen.cancel_order", "cancel order")]
+    BINDINGS = [Binding("x", "cancel_order", "cancel order")]
+
+    def action_cancel_order(self) -> None:
+        pane = _pane_of(self)
+        if pane is not None:
+            pane.action_cancel_order()
 
 
 class PositionsTable(VimDataTable):
     """Positions table: the open-on-web binding lives here so the footer only
     advertises it while this table is focused (won positions redeem on the web)."""
 
-    BINDINGS = [Binding("o", "screen.open_on_web", "open on web")]
+    BINDINGS = [Binding("o", "open_on_web", "open on web")]
+
+    def action_open_on_web(self) -> None:
+        pane = _pane_of(self)
+        if pane is not None:
+            pane.action_open_on_web()
 
 
-class PortfolioScreen(Screen):
+class PortfolioPane(TierAware, Vertical):
+    header_title = "portfolio"
+
     BINDINGS = [
-        Binding("escape", "back", "back"),
+        Binding("escape", "app.nav_back", "back"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "prev_pane", "prev tab", show=False),
         Binding("y", "confirm_cancel", "confirm cancel", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._orders: list[OpenOrder] = []
+        self._positions: list[Position] = []
+        self._history_items: list = []
+        self._order_titles_cache: dict[str, str] = {}
+        self._pending_cancel: OpenOrder | None = None
+        self._cancel_armed_at = 0.0
+        self._pos_spec: list[ColumnSpec] = list(POSITIONS_TIER_COLUMNS["full"])
+        self._pos_tier: Tier = "full"
+        self._ord_spec: list[ColumnSpec] = list(ORDERS_TIER_COLUMNS["full"])
+        self._act_spec: list[ColumnSpec] = list(ACTIVITY_TIER_COLUMNS["full"])
+
     def compose(self) -> ComposeResult:
-        yield AppHeader("portfolio")
         yield Static("loading balances...", id="balance-line", classes="screen-title")
         yield Static(id="reconcile-banner")
         yield Static(id="cancel-strip")
@@ -61,42 +120,91 @@ class PortfolioScreen(Screen):
             with TabPane("History", id="pane-history"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="history-table")
         yield PnlStrip(id="pnl-pane")
-        yield Footer()
+
+    def focus_inner(self) -> None:
+        table_id = {
+            "pane-positions": "#positions-table",
+            "pane-orders": "#orders-table",
+            "pane-history": "#history-table",
+        }.get(self._active_pane())
+        if table_id:
+            self.query_one(table_id, VimDataTable).focus()
+
+    def handle_back(self) -> bool:
+        """left/esc clears an armed cancel strip before leaving the pane."""
+        if self._pending_cancel is not None:
+            self._clear_pending_cancel()
+            return True
+        return False
 
     def on_mount(self) -> None:
-        self.title = "portfolio"
-        self._orders: list[OpenOrder] = []
-        self._positions: list[Position] = []
-        self._pending_cancel: OpenOrder | None = None
-        self._cancel_armed_at = 0.0
         self.query_one("#cancel-strip", Static).display = False
-
-        positions = self.query_one("#positions-table", PositionsTable)
-        setup_positions_columns(positions, flag_column=True)
-
-        orders = self.query_one("#orders-table", OrdersTable)
-        orders.add_column("Market", width=44, key="market")
-        orders.add_column("Side", width=5, key="side")
-        orders.add_column("Outcome", width=10, key="outcome")
-        orders.add_column("Price", width=7, key="price")
-        orders.add_column("Size", width=8, key="size")
-        orders.add_column("Filled", width=8, key="filled")
-        orders.add_column("Placed", width=12, key="placed")
-
-        history = self.query_one("#history-table", VimDataTable)
-        setup_activity_columns(history, market_width=42, size_width=8)
-
+        self._pos_spec = list(POSITIONS_TIER_COLUMNS[self.tier])
+        self._pos_tier = self.tier
+        self._ord_spec = list(ORDERS_TIER_COLUMNS[self.tier])
+        self._act_spec = list(ACTIVITY_TIER_COLUMNS[self.tier])
+        self._build_columns()
         # Tab strip inside TabbedContent should not trap focus/arrow keys.
         for tabs in self.query("Tabs"):
             tabs.can_focus = False
-        positions.focus()
+        self.query_one("#positions-table", PositionsTable).focus()
         self.load_all()
+        self.tier_ready()
+        self._schedule_refit()
         if self.app.reconcile_target is not None:
             self.enter_reconciliation()
 
     def on_unmount(self) -> None:
         # Reconciliation is resolved once the user has looked; don't persist it.
         self.app.reconcile_target = None
+
+    # -- width tiers -----------------------------------------------------------
+
+    def _build_columns(self) -> None:
+        positions = self.query_one("#positions-table", PositionsTable)
+        positions.clear(columns=True)
+        setup_positions_columns(
+            positions, flag_column=self._pos_tier == "full", columns=self._pos_spec
+        )
+        orders = self.query_one("#orders-table", OrdersTable)
+        orders.clear(columns=True)
+        for key, label, width in self._ord_spec:
+            orders.add_column(label, width=width, key=key)
+        history = self.query_one("#history-table", VimDataTable)
+        history.clear(columns=True)
+        setup_activity_columns(history, columns=self._act_spec)
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self._schedule_refit()
+
+    def on_resize(self) -> None:
+        if self._tier_ready:
+            self._schedule_refit()
+
+    def _schedule_refit(self) -> None:
+        # The tables live in tabs (the hidden ones measure 0 wide), so fit
+        # all three against the pane's own width after layout settles.
+        self.call_after_refresh(self._refit)
+
+    def _refit(self) -> None:
+        width = self.size.width - 2  # border + slack
+        if width <= 0:
+            return
+        pos_tier = effective_tier(self.tier, width, POSITIONS_TIER_COLUMNS)
+        ord_tier = effective_tier(self.tier, width, ORDERS_TIER_COLUMNS)
+        act_tier = effective_tier(self.tier, width, ACTIVITY_TIER_COLUMNS)
+        pos_flex = max((len(p.title) for p in self._positions), default=0) or None
+        pos_spec = fit_columns(POSITIONS_TIER_COLUMNS[pos_tier], width, "market", pos_flex)
+        ord_spec = fit_columns(ORDERS_TIER_COLUMNS[ord_tier], width, "market")
+        act_spec = fit_columns(ACTIVITY_TIER_COLUMNS[act_tier], width, "market")
+        if (pos_spec, ord_spec, act_spec) == (self._pos_spec, self._ord_spec, self._act_spec):
+            return
+        self._pos_spec, self._ord_spec, self._act_spec = pos_spec, ord_spec, act_spec
+        self._pos_tier = pos_tier
+        self._build_columns()
+        self._render_positions()
+        self._render_orders()
+        self._render_history()
 
     # -- loaders -------------------------------------------------------------
 
@@ -133,22 +241,25 @@ class PortfolioScreen(Screen):
 
     @work(exclusive=True, group="positions")
     async def load_positions(self) -> None:
-        table = self.query_one("#positions-table", VimDataTable)
         try:
             positions = await self.app.portfolio.positions(force=True)
         except Exception as exc:
             self.notify(f"positions unavailable: {exc}", severity="error")
             return
         self._positions = positions
+        self._render_positions()
+
+    def _render_positions(self) -> None:
+        table = self.query_one("#positions-table", VimDataTable)
         table.clear()
-        for pos in sorted(positions, key=lambda p: p.current_value, reverse=True):
+        full = self._pos_tier == "full"
+        for pos in sorted(self._positions, key=lambda p: p.current_value, reverse=True):
             if pos.size < 0.01:
                 continue
-            table.add_row(
-                *position_row(pos),
-                self._resolution_flag(pos),
-                key=f"{pos.slug}|{pos.asset}",
-            )
+            row = position_row(pos, columns=self._pos_spec)
+            if full:
+                row.append(self._resolution_flag(pos))
+            table.add_row(*row, key=f"{pos.slug}|{pos.asset}")
 
     @staticmethod
     def _resolution_flag(pos) -> Text | str:
@@ -162,7 +273,6 @@ class PortfolioScreen(Screen):
 
     @work(exclusive=True, group="orders")
     async def load_orders(self) -> None:
-        table = self.query_one("#orders-table", VimDataTable)
         try:
             self._orders = await self.app.portfolio.open_orders(force=True)
         except Exception as exc:
@@ -180,23 +290,31 @@ class PortfolioScreen(Screen):
                     )
                 )
             return
+        self._order_titles_cache = await self._order_titles(self._orders)
+        self._render_orders()
+        self._update_reconcile_banner()
+
+    def _render_orders(self) -> None:
+        table = self.query_one("#orders-table", VimDataTable)
         table.clear()
-        titles = await self._order_titles(self._orders)
+        titles = self._order_titles_cache
         target = self.app.reconcile_target
+        widths = {key: width for key, _, width in self._ord_spec}
         for order in self._orders:
             match = target is not None and target.matches(order)
-            market_cell = fmt.trunc(titles.get(order.market, order.market[:20] + "…"), 44)
-            table.add_row(
-                Text("► " + market_cell, style="bold cyan") if match else market_cell,
-                Text(order.side, style="green" if order.side == "BUY" else "red"),
-                order.outcome or "-",
-                fmt.cents(order.price),
-                f"{order.original_size:,.0f}",
-                f"{order.size_matched:,.0f}",
-                order.when.astimezone().strftime("%b %d %H:%M") if order.when else "-",
-                key=order.id,
+            title = fmt.trunc(
+                titles.get(order.market, order.market[:20] + "…"), widths["market"]
             )
-        self._update_reconcile_banner()
+            cells = {
+                "market": Text("► " + title, style="bold cyan") if match else title,
+                "side": Text(order.side, style="green" if order.side == "BUY" else "red"),
+                "outcome": order.outcome or "-",
+                "price": fmt.cents(order.price),
+                "size": f"{order.original_size:,.0f}",
+                "filled": f"{order.size_matched:,.0f}",
+                "placed": order.when.astimezone().strftime("%b %d %H:%M") if order.when else "-",
+            }
+            table.add_row(*(cells[key] for key, _, _ in self._ord_spec), key=order.id)
 
     async def _order_titles(self, orders: list[OpenOrder]) -> dict[str, str]:
         """Resolve condition ids to market questions via positions, then Gamma."""
@@ -262,16 +380,20 @@ class PortfolioScreen(Screen):
 
     @work(exclusive=True, group="history")
     async def load_history(self) -> None:
-        table = self.query_one("#history-table", VimDataTable)
         try:
             items = await self.app.portfolio.activity()
         except Exception as exc:
             self.notify(f"history unavailable: {exc}", severity="warning")
             return
+        self._history_items = items
+        self._render_history()
+
+    def _render_history(self) -> None:
+        table = self.query_one("#history-table", VimDataTable)
         table.clear()
-        for i, item in enumerate(items):
+        for i, item in enumerate(self._history_items):
             table.add_row(
-                *activity_row(item, market_width=42, compact_size=False),
+                *activity_row(item, compact_size=False, columns=self._act_spec),
                 key=f"{i}|{item.slug}",
             )
 
@@ -371,8 +493,9 @@ class PortfolioScreen(Screen):
         strip = self.query_one("#cancel-strip", Static)
         text = Text()
         text.append(" CANCEL ", style="bold reverse red")
-        text.append(f" {order.side} {order.remaining:,.0f} {order.outcome}"
-                    f" @ {fmt.cents(order.price)}   ")
+        text.append(
+            f" {order.side} {order.remaining:,.0f} {order.outcome} @ {fmt.cents(order.price)}   "
+        )
         text.append("y", style="bold")
         text.append(" cancel order   ", style="dim")
         text.append("esc", style="bold")
@@ -381,32 +504,26 @@ class PortfolioScreen(Screen):
         strip.display = True
 
     def _clear_pending_cancel(self) -> None:
-        if getattr(self, "_pending_cancel", None) is not None:
+        if self._pending_cancel is not None:
             self._pending_cancel = None
             self.query_one("#cancel-strip", Static).display = False
 
     def action_confirm_cancel(self) -> None:
-        order = getattr(self, "_pending_cancel", None)
+        order = self._pending_cancel
         if order is None or time.monotonic() < self._cancel_armed_at:
             return
         self._clear_pending_cancel()
         self._start_cancel(order.id)
-
-    def action_back(self) -> None:
-        if getattr(self, "_pending_cancel", None) is not None:
-            self._clear_pending_cancel()
-            return
-        self.app.pop_screen()
 
     def on_data_table_row_highlighted(self, event) -> None:
         # Moving the cursor retargets the row - a stale confirm must not linger.
         self._clear_pending_cancel()
 
     def _start_cancel(self, order_id: str) -> None:
-        # App-lifetime worker: navigating off the screen must not drop an in-flight
+        # App-lifetime worker: navigating off the pane must not drop an in-flight
         # cancel's result (mirrors the placement path in order_panel).
         app = self.app
-        screen = self
+        pane = self
 
         async def _cancel_and_report() -> None:
             result = await app.orders.cancel(order_id)
@@ -418,7 +535,7 @@ class PortfolioScreen(Screen):
                 app.notify("Order cancelled")
             else:
                 app.notify(f"Cancel failed: {result.error}", severity="error", timeout=8)
-            if screen.is_mounted:
-                screen.load_orders()
+            if pane.is_mounted:
+                pane.load_orders()
 
         app.run_worker(_cancel_and_report(), group="cancel-order", exclusive=False)

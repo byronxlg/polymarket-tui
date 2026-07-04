@@ -32,11 +32,11 @@ On this machine the source of truth for the key material is Doppler
 POLYMARKET_SIGNATURE_TYPE) - run the snippet above under
 `doppler run --project global --config home --`.
 
-`POLYMARKET_*` env vars override the file when set. The file never stores
-the live-trading flag: every session starts in DRY mode (orders are signed
-but not posted). LIVE requires the in-app auth-screen toggle or
-`POLYMARKET_EXECUTION_LIVE=1` per session. Never enable LIVE or place/cancel
-real orders unless the user explicitly asks.
+`POLYMARKET_*` env vars override the file when set. The live-trading flag
+persists in the file (user request 2026-07-05): switching with the global
+`L` toggle (confirmed) or the auth screen is remembered, and a LIVE start
+is announced loudly. `POLYMARKET_EXECUTION_LIVE=1` also enables it. Never
+enable LIVE or place/cancel real orders unless the user explicitly asks.
 
 ## Verifying changes
 
