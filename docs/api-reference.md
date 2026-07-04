@@ -187,24 +187,36 @@ Backs the activity screen. Param `type=TRADE` filters.
 
 ## 4. CLOB WebSocket
 
-Host: `wss://ws-subscriptions-clob.polymarket.com/ws/`. Two channels. All message shapes
-below are from prior knowledge - **capture real frames early in M2 and pin fixtures.**
+Host: `wss://ws-subscriptions-clob.polymarket.com/ws/`. Two channels. Market-channel
+shapes below are **verified from real captured frames** (see tests/fixtures/ws_market_*.json,
+captured 2026-07-04); the user-channel shapes are still from prior knowledge.
+
+Frames arrive **batched as a JSON array** (`[{...}, {...}]`), even for a single message.
+Each element carries `event_type`. Timestamps are epoch-ms strings.
 
 ### /ws/market  (no auth)
 
 Subscribe: `{"type": "market", "assets_ids": ["<token_id>", ...]}`.
-Also supports incremental subscribe/unsubscribe on the open socket (verify at impl).
+Keepalive: send the text frame `PING` if idle (~10s); the server closes idle sockets.
 
 Messages (each has `event_type`):
 
-- `book` - full snapshot: `{event_type, asset_id, market, bids: [{price, size}...], asks: [...], timestamp, hash}`
-- `price_change` - deltas: `{asset_id, changes: [{price, side, size}...], timestamp}`
-  (size is the new absolute level size; 0 removes the level)
-- `tick_size_change` - market's tick changed (price nearing 0/1)
-- `last_trade_price` - trade prints: `{asset_id, price, side, size, timestamp}`
+- `book` - full snapshot: `{event_type, asset_id, market, bids: [{price, size}...],
+  asks: [...], timestamp, hash, tick_size, last_trade_price}`. bids/asks are strings;
+  best bid = max bid price, best ask = min ask price.
+- `price_change` - deltas. **Real shape differs from earlier docs**: it is
+  `{event_type, market, timestamp, price_changes: [{asset_id, price, size, side,
+  hash, best_bid, best_ask}, ...]}`. One frame can carry changes for several assets
+  in the market, so filter entries by `asset_id`. `side` BUY -> bid level, SELL -> ask.
+  `size` is the new absolute level size; "0" removes the level.
+- `tick_size_change` - market's tick changed (price nearing 0/1). Not acted on yet.
+- `last_trade_price` - trade prints: `{event_type, asset_id, price, side, size,
+  timestamp, fee_rate_bps, transaction_hash}`.
 
-Book maintenance: apply snapshot on `book`, patch levels on `price_change`, discard frames
-older than the last applied timestamp.
+Book maintenance (see models/ws.py `LiveBook`): apply snapshot on `book`, patch levels
+on each `price_change` entry for the asset, discard frames strictly older than the last
+applied timestamp. The UI degrades to REST polling with a stale badge when the socket
+is down or no frames arrive for STALE_AFTER_S.
 
 ### /ws/user  (auth)
 
