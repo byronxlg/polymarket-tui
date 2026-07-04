@@ -205,6 +205,13 @@ PriceChartPanel {
 }
 
 /* Miller columns (experimental sliding two-pane navigation) */
+#miller-crumbs {
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+    color: $text;
+}
+
 #miller-viewport {
     height: 1fr;
 }

@@ -20,12 +20,13 @@ touch the existing push/pop screen stack used by Home/Event/Market.
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer
+from textual.widgets import DataTable, Footer, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.screens.home import CATEGORIES
@@ -54,9 +55,14 @@ class ColumnsScreen(Screen):
         self._focus = 0  # focused column
         self._left = 0  # column shown in the left viewport slot
         self._open = 0  # deepest column currently opened in the drill path
+        # Selection made at each drill step, for the breadcrumb trail. _sel[c]
+        # names the row picked in column c-1 that opened column c (index 0
+        # unused - column 0 is the root category picker).
+        self._sel = ["", "", "", ""]
 
     def compose(self) -> ComposeResult:
         yield AppHeader("columns")
+        yield Static(id="miller-crumbs")
         self._cat = CategoryTable(id="miller-cat")
         self._events = EventsColumn(id="miller-events")
         self._outcomes = OutcomesTable(id="miller-outcomes")
@@ -122,23 +128,29 @@ class ColumnsScreen(Screen):
         """
         if parent == 0:
             label, slug = CATEGORIES[self._cat.cursor_row or 0]
+            self._sel[1] = label
             self._wrap[1].set_title(label)
             self._load_events(None if slug == "trending" else slug)
+            self._update_crumbs()
             return True
         if parent == 1:
             event = self._events.highlighted_event()
             if event is None:
                 return False
             markets = event.active_markets
+            self._sel[2] = event.title
             self._wrap[2].set_title(fmt.trunc(event.title, 40))
             self._outcomes.set_markets(markets)
+            self._update_crumbs()
             return bool(markets)
         if parent == 2:
             market = self._outcomes.highlighted_market()
             if market is None:
                 return False
+            self._sel[3] = market.display_title
             self._wrap[3].set_title(fmt.trunc(market.display_title, 40))
             self._detail.show(market)
+            self._update_crumbs()
             return True
         return False
 
@@ -168,7 +180,20 @@ class ColumnsScreen(Screen):
         for i, wrap in enumerate(self._wrap):
             wrap.display = i in (self._left, self._left + 1) and i <= self._open
             wrap.set_class(i == self._focus, "focused")
+        self._update_crumbs()
         self.call_after_refresh(self._wrap[self._focus].focus_inner)
+
+    def _update_crumbs(self) -> None:
+        """Breadcrumb trail to the deepest visible pane - keeps the full path
+        in view even after ancestor panes have slid off the left edge."""
+        rightmost = min(self._left + 1, self._open)
+        crumb = Text()
+        crumb.append(" Browse", style="bold" if self._focus == 0 else "dim")
+        for level in range(1, rightmost + 1):
+            crumb.append("  ›  ", style="dim")
+            style = "bold" if level == self._focus else "dim"
+            crumb.append(fmt.trunc(self._sel[level] or "…", 34), style=style)
+        self.query_one("#miller-crumbs", Static).update(crumb)
 
     def action_refresh(self) -> None:
         if self._open >= 1:
