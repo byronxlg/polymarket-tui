@@ -10,8 +10,11 @@ from polymarket_tui.api.clob import ClobPublicClient
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
+from polymarket_tui.api.ws import UserChannel
+from polymarket_tui.core.auth import derive_l2_creds
 from polymarket_tui.core.config import Settings, get_settings
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.models.ws import UserOrderMessage, UserTradeMessage
 from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
@@ -59,6 +62,8 @@ class PolymarketApp(App):
         self.watchlist = Watchlist()
         # A status-unknown live post to reconcile against Open Orders (issue #3).
         self.reconcile_target: ReconcileTarget | None = None
+        # Live own-order/fill updates over the /ws/user socket (issue #1).
+        self.user_channel: UserChannel | None = None
 
     def get_default_screen(self) -> HomeScreen:
         return HomeScreen()
@@ -68,6 +73,46 @@ class PolymarketApp(App):
         self.set_interval(900, self._schedule_ntp_refresh)
         self.refresh_account_status()
         self.set_interval(60, self.refresh_account_status)
+        self.start_user_channel()
+
+    def start_user_channel(self) -> None:
+        """Connect the authenticated /ws/user socket for live own-order updates."""
+        if not self.settings.can_auth:
+            return
+        self.run_worker(self._start_user_channel(), group="user-ws", exclusive=True)
+
+    async def _start_user_channel(self) -> None:
+        if self.user_channel is not None:
+            await self.user_channel.stop()
+            self.user_channel = None
+        creds = await derive_l2_creds(self.settings)
+        if not creds:
+            return
+        self.user_channel = UserChannel(creds, self._on_user_event)
+        self.user_channel.start()
+
+    def _on_user_event(self, kind: str, msg: object) -> None:
+        """Own order/fill arrived over the socket: toast it and refresh open orders."""
+        if kind == "order" and isinstance(msg, UserOrderMessage):
+            verb = {"LIVE": "resting", "CANCELED": "canceled", "MATCHED": "filled"}.get(
+                msg.status, msg.status.lower()
+            )
+            self.notify(
+                f"Order {verb}: {msg.side} {msg.original_size} {msg.outcome} @ "
+                f"{float(msg.price) * 100:.1f}c",
+                timeout=6,
+            )
+        elif kind == "trade" and isinstance(msg, UserTradeMessage):
+            self.notify(
+                f"Fill: {msg.side} {msg.size} {msg.outcome} @ {float(msg.price) * 100:.1f}c",
+                timeout=6,
+            )
+        else:
+            return
+        self.portfolio.invalidate()
+        # Refresh the open-orders tab live if the portfolio screen is showing.
+        if isinstance(self.screen, PortfolioScreen):
+            self.screen.load_orders()
 
     def _schedule_ntp_refresh(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
@@ -119,6 +164,8 @@ class PolymarketApp(App):
         self.account_status = out
 
     async def on_unmount(self) -> None:
+        if self.user_channel is not None:
+            await self.user_channel.stop()
         await self.gamma.aclose()
         await self.clob.aclose()
         await self.data.aclose()
@@ -157,6 +204,7 @@ class PolymarketApp(App):
         self.orders = OrderService(settings, self.authed)
         self.username = None
         self.refresh_account_status()
+        self.start_user_channel()  # reconnect /ws/user with the new creds
 
     def action_auth(self) -> None:
         self._push_unless_current(AuthScreen, AuthScreen)

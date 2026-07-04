@@ -50,6 +50,36 @@ def _bootstrap_sync(settings: Settings):
     return client
 
 
+def _l2_creds_sync(settings: Settings) -> dict:
+    from py_clob_client.client import ClobClient as V1Client
+
+    v1 = V1Client(
+        host=settings.polymarket_host,
+        key=settings.polymarket_private_key,
+        chain_id=POLYGON_CHAIN_ID,
+        signature_type=settings.polymarket_signature_type,
+        funder=settings.polymarket_funder,
+    )
+    creds = v1.create_or_derive_api_creds()
+    return {
+        "apiKey": creds.api_key,
+        "secret": creds.api_secret,
+        "passphrase": creds.api_passphrase,
+    }
+
+
+async def derive_l2_creds(settings: Settings) -> dict | None:
+    """L2 creds (apiKey/secret/passphrase) for the authenticated /ws/user socket.
+    Deterministic from the wallet signature. None if auth is not configured."""
+    if not settings.can_auth:
+        return None
+    try:
+        return await asyncio.to_thread(_l2_creds_sync, settings)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("L2 cred derivation failed: %s", exc)
+        return None
+
+
 async def bootstrap_authed_client(settings: Settings):
     """Return an authenticated py-clob-client-v2 ClobClient, or raise AuthError."""
     if not settings.can_auth:

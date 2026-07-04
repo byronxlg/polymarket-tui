@@ -78,6 +78,63 @@ def parse_market_message(raw: dict) -> BookMessage | PriceChangeMessage | LastTr
     return model.model_validate(raw) if model else None
 
 
+# -- user channel (/ws/user) --------------------------------------------------
+# Shapes verified from real captured frames (see tests/fixtures/ws_user_*).
+
+
+class UserOrderMessage(BaseModel):
+    """`order` - own order lifecycle. type is PLACEMENT/UPDATE/CANCELLATION;
+    status is LIVE/MATCHED/CANCELED. size_matched grows as the order fills."""
+
+    model_config = ConfigDict(extra="ignore")
+    event_type: str = "order"
+    id: str = ""
+    market: str = ""  # condition id
+    asset_id: str = ""
+    side: str = ""
+    outcome: str = ""
+    price: str = ""
+    original_size: str = ""
+    size_matched: str = "0"
+    type: str = ""  # PLACEMENT | UPDATE | CANCELLATION
+    status: str = ""  # LIVE | MATCHED | CANCELED
+    timestamp: int = 0
+
+    @property
+    def resting(self) -> bool:
+        """Still (partly) on the book: a LIVE order not fully matched."""
+        return self.status == "LIVE"
+
+    @property
+    def gone(self) -> bool:
+        """No longer on the book (cancelled or fully matched)."""
+        return self.status in ("CANCELED", "MATCHED")
+
+
+class UserTradeMessage(BaseModel):
+    """`trade` - own fill. status walks MATCHED -> MINED -> CONFIRMED."""
+
+    model_config = ConfigDict(extra="ignore")
+    event_type: str = "trade"
+    id: str = ""
+    market: str = ""
+    asset_id: str = ""
+    side: str = ""
+    outcome: str = ""
+    price: str = ""
+    size: str = ""
+    status: str = ""
+    timestamp: int = 0
+
+
+_USER_TYPES = {"order": UserOrderMessage, "trade": UserTradeMessage}
+
+
+def parse_user_message(raw: dict) -> UserOrderMessage | UserTradeMessage | None:
+    model = _USER_TYPES.get(raw.get("event_type", ""))
+    return model.model_validate(raw) if model else None
+
+
 class LiveBook:
     """One asset's book, maintained from a `book` snapshot plus `price_change`
     deltas. Frames strictly older than the last applied timestamp are discarded.
