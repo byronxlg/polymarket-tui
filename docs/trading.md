@@ -60,13 +60,20 @@ signed = client.create_order(OrderArgs(token_id, price, size, side))   # to_thre
 resp   = client.post_order(signed, order_type)                          # to_thread
 ```
 
-If `POLYMARKET_BUILDER_CODE` (or the `builder_code` in credentials.toml) is set to a
-valid `0x`-prefixed bytes32, `OrderService.place` adds `builder_code=` to `OrderArgs`
-so matched fills are attributed to us on-chain (Polymarket Builders Program, issue #12).
-Absence, the all-zero code, or a malformed value is a no-op: the order signs and posts
-exactly as before, attributed to nobody. Builder fees stay at the profile default of 0
-bps - the user pays no builder cost. Setting a non-zero fee would be a user-visible cost
-and must be disclosed in the order panel first (design principle: money is never careless).
+`OrderService.place` adds `builder_code=` to `OrderArgs` so matched fills are attributed
+on-chain (Polymarket Builders Program, issue #12). Attribution is stamped at signing
+time by whichever instance signs the order, so the code ships as `DEFAULT_BUILDER_CODE`
+in `core/config.py`: **every install attributes by default**, which is the only way to
+get attribution from other people running the TUI (a purely-local override would attribute
+nobody but the operator). The code is public (an on-chain identifier), not a secret.
+
+Resolution (see `Settings.builder_code`): no override -> the shipped default; a valid
+`POLYMARKET_BUILDER_CODE` / `credentials.toml` code -> self-attribution; `off`/`none`/`0`
+-> disabled; malformed -> disabled + a one-time warning. Being open source, a user can
+always override or strip the default - client-side codes can't be enforced without
+server-side signing. Builder fees stay at the profile default of 0 bps - the user pays no
+builder cost. A non-zero fee would be a user-visible cost and must be disclosed in the
+order panel first (design principle: money is never careless).
 
 Map response to UX:
 

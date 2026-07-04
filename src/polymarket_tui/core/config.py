@@ -22,6 +22,19 @@ class Mode(StrEnum):
     TRADER_LIVE = "LIVE"
 
 
+# The builder code shipped with the app (Polymarket Builders Program, issue #12).
+# Public, not a secret - it is an on-chain identifier, so hardcoding it here is
+# safe and deliberate: every install attributes its fills to us BY DEFAULT, which
+# is the only way to get attribution from other people running the TUI (the code
+# must be present in whatever instance signs the order). Users keep full control:
+# POLYMARKET_BUILDER_CODE (or credentials.toml) overrides this to self-attribute,
+# and an explicit "off" value (see _BUILDER_CODE_OFF) disables attribution.
+DEFAULT_BUILDER_CODE = "0x97fe407b11c95484a98264376f8bbd2152c7375d69eff687b914c3d1eff38ede"
+
+# Override values a user can set to opt out of attribution entirely.
+_BUILDER_CODE_OFF = frozenset({"0", "off", "none", "false", "0x0", "0x" + "0" * 64})
+
+
 def normalize_builder_code(raw: str) -> str | None:
     """Canonicalize a Builders-Program builder code, or None if unusable.
 
@@ -57,8 +70,24 @@ class Settings(BaseSettings):
 
     @property
     def builder_code(self) -> str | None:
-        """Validated builder code to attribute orders with, or None if unset/bad."""
-        return normalize_builder_code(self.polymarket_builder_code)
+        """Builder code to attribute orders with, or None for no attribution.
+
+        Resolution: no override -> the shipped DEFAULT_BUILDER_CODE (so every
+        install attributes by default); an explicit off value -> None; anything
+        else -> the validated override, or None if malformed.
+        """
+        raw = self.polymarket_builder_code.strip().lower()
+        if not raw:
+            return DEFAULT_BUILDER_CODE
+        if raw in _BUILDER_CODE_OFF:
+            return None
+        return normalize_builder_code(raw)
+
+    @property
+    def builder_code_is_misconfigured(self) -> bool:
+        """True when a non-empty override is neither valid nor a known 'off' value."""
+        raw = self.polymarket_builder_code.strip().lower()
+        return bool(raw) and raw not in _BUILDER_CODE_OFF and normalize_builder_code(raw) is None
 
     @property
     def mode(self) -> Mode:

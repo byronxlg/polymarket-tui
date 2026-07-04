@@ -177,8 +177,9 @@ class OrderService:
         self._authed = authed
         self._recent: list[tuple[float, str]] = []  # (monotonic, fingerprint)
         # A configured-but-malformed builder code attributes to nobody; warn once
-        # instead of silently dropping it (a bad code never blocks the order).
-        if settings.polymarket_builder_code and settings.builder_code is None:
+        # instead of silently dropping it (a bad code never blocks the order). An
+        # explicit "off" override is intentional and stays silent.
+        if settings.builder_code_is_misconfigured:
             log.warning(
                 "Ignoring malformed POLYMARKET_BUILDER_CODE %r - orders will not be attributed"
                 " (expected a 0x-prefixed 32-byte hex code).",

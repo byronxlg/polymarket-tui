@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 
-from polymarket_tui.core.config import Settings, normalize_builder_code
+from polymarket_tui.core.config import DEFAULT_BUILDER_CODE, Settings, normalize_builder_code
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.services.orders import (
     IssueLevel,
@@ -348,23 +348,44 @@ class TestBuilderCode:
         assert normalize_builder_code("0x" + "zz" * 32) is None  # non-hex
         assert normalize_builder_code("0x" + "ab" * 33) is None  # too long
 
-    def test_settings_builder_code_property(self):
+    def test_settings_defaults_to_shipped_code(self):
+        # No override => every install attributes to the shipped default.
+        assert Settings().builder_code == DEFAULT_BUILDER_CODE
+        assert normalize_builder_code(DEFAULT_BUILDER_CODE) == DEFAULT_BUILDER_CODE
+
+    def test_settings_override_self_attributes(self):
         assert Settings(polymarket_builder_code=VALID_CODE).builder_code == VALID_CODE
-        assert Settings(polymarket_builder_code="garbage").builder_code is None
-        assert Settings().builder_code is None
+
+    def test_settings_explicit_off_disables_attribution(self):
+        for off in ("off", "none", "0", ZERO_CODE):
+            s = Settings(polymarket_builder_code=off)
+            assert s.builder_code is None
+            assert not s.builder_code_is_misconfigured  # intentional, not a mistake
+
+    def test_settings_malformed_override_is_flagged(self):
+        s = Settings(polymarket_builder_code="garbage")
+        assert s.builder_code is None
+        assert s.builder_code_is_misconfigured
 
     @pytest.mark.asyncio
-    async def test_place_attaches_configured_code(self):
+    async def test_place_attaches_shipped_default_when_no_override(self):
         authed = CapturingAuthed()
-        result = await dry_service(authed, VALID_CODE).place(make_draft())
+        result = await dry_service(authed).place(make_draft())
         assert result.ok and result.dry_run
+        # This is what attributes *other* users' orders to us out of the box.
+        assert authed.order_args.builder_code == DEFAULT_BUILDER_CODE
+
+    @pytest.mark.asyncio
+    async def test_place_attaches_override_code(self):
+        authed = CapturingAuthed()
+        await dry_service(authed, VALID_CODE).place(make_draft())
         assert authed.order_args.builder_code == VALID_CODE
 
     @pytest.mark.asyncio
-    async def test_place_without_code_uses_client_default(self):
+    async def test_place_explicit_off_uses_client_default(self):
         authed = CapturingAuthed()
-        await dry_service(authed).place(make_draft())
-        # No code configured => OrderArgs keeps the client's zero/no-attribution default.
+        await dry_service(authed, "off").place(make_draft())
+        # Opt-out => no attribution: OrderArgs keeps the client's zero default.
         assert authed.order_args.builder_code == ZERO_CODE
 
     @pytest.mark.asyncio
