@@ -50,15 +50,17 @@ flip the YES/NO book (market), show/hide rules (event).
 | y / n | market | jump straight to the YES / NO book |
 | a / c | market | live trades feed / comments below the chart |
 | R | event, market | related markets (series siblings for dailies) |
-| x | portfolio orders | cancel the highlighted order |
+| x | portfolio open-orders tab | cancel the highlighted order |
 | r | anywhere | refresh |
 
 ## Order entry
 
-Price and size only; price is in CENTS ('33.4' = 33.4c). Leave price empty
-for a market order at the touch. up/down bump price by one tick (size by one
-share), tab hops fields, enter reviews, y places, esc steps back. ctrl+g
-cycles TIF (GTC/FOK/FAK). The book stays live above the form.
+Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
+price empty for a market order at the touch. up/down bump by one tick or
+share, shift+up/down by ten. Selling: enter a percentage ('50%') to sell
+that fraction of your position - the held amount is shown in the panel.
+tab hops fields, enter reviews, y places, esc steps back. ctrl+g cycles
+TIF (GTC/FOK/FAK). The book stays live above the form.
 
 ## Chart inspect
 

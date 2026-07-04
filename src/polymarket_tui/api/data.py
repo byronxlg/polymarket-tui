@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 
+from polymarket_tui.models.market import PricePoint
 from polymarket_tui.models.portfolio import ActivityItem, Position
 
 BASE_URL = "https://data-api.polymarket.com"
@@ -42,6 +43,16 @@ class DataApiClient:
         """Public recent trades for one market (the web UI's activity tab)."""
         data = await self._get("/trades", {"market": condition_id, "limit": limit})
         return [ActivityItem.model_validate(t) for t in data]
+
+    async def user_pnl(self, user: str, interval: str = "1m") -> list[PricePoint]:
+        """Cumulative profit history from the pnl service (absolute URL, other host)."""
+        resp = await self._http.get(
+            "https://user-pnl-api.polymarket.com/user-pnl",
+            params={"user_address": user, "interval": interval, "fidelity": "1d"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return [PricePoint.model_validate(p) for p in data if isinstance(p, dict)]
 
     async def activity(self, user: str, limit: int = 100) -> list[ActivityItem]:
         data = await self._get("/activity", {"user": user, "limit": limit})

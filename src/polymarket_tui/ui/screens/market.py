@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -52,6 +53,7 @@ class MarketScreen(Screen):
     def compose(self) -> ComposeResult:
         yield AppHeader("market")
         yield Static(self._title_line(), classes="screen-title", id="market-title")
+        yield Static(id="outcome-strip")
         with Vertical(id="market-body-wrap"):
             with Horizontal(id="market-body"):
                 with Vertical(id="book-pane"):
@@ -81,13 +83,40 @@ class MarketScreen(Screen):
     def _title_line(self) -> str:
         m = self._market
         bits = [m.question.strip()]
-        if m.yes_price is not None:
-            bits.append(f"YES {fmt.cents(m.yes_price)}")
         if m.end_date:
             bits.append(f"ends {fmt.end_date(m.end_date)}")
         if self._event and self._event.title.strip() != m.question.strip():
             bits.append(self._event.title.strip()[:30])
         return "  |  ".join(bits)
+
+    def _render_outcome_strip(self) -> None:
+        """Both outcomes at a glance, like the multi-outcome event table."""
+        m = self._market
+        out = Text()
+        yes = m.yes_price
+        change = m.one_day_price_change
+        for idx, label in enumerate((m.outcomes or ["Yes", "No"])[:2]):
+            price = yes if idx == 0 else (None if yes is None else 1 - yes)
+            bid = m.best_bid if idx == 0 else (None if m.best_ask is None else 1 - m.best_ask)
+            ask = m.best_ask if idx == 0 else (None if m.best_bid is None else 1 - m.best_bid)
+            delta = change if idx == 0 else (None if change is None else -change)
+            active = idx == self._outcome_index
+            style = "bold green" if idx == 0 else "bold red"
+            out.append(" > " if active else "   ", style="bold" if active else "dim")
+            out.append(f"{label:<4}", style=style if active else "dim " + style)
+            out.append(f" {fmt.cents(price):>6}", style="bold cyan" if active else "dim")
+            if delta is not None and abs(delta) > 0.0005:
+                out.append(
+                    f" {fmt.cents(delta, signed=True):>7}",
+                    style=("green" if delta > 0 else "red") if active else "dim",
+                )
+            else:
+                out.append(" " * 8)
+            detail = f"  bid {fmt.cents(bid)}  ask {fmt.cents(ask)}"
+            out.append(detail, style="" if active else "dim")
+            if idx == 0:
+                out.append("      ")
+        self.query_one("#outcome-strip", Static).update(out)
 
     def _book_header(self) -> str:
         return f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)"
@@ -110,6 +139,7 @@ class MarketScreen(Screen):
 
     def on_mount(self) -> None:
         self.title = "market"
+        self._render_outcome_strip()
         self.query_one(ActivityPanel).configure(self._market, self._event)
         self.load_book()
         self.load_history()
@@ -186,6 +216,7 @@ class MarketScreen(Screen):
 
     def action_toggle_outcome(self) -> None:
         self._outcome_index = 1 - self._outcome_index
+        self._render_outcome_strip()
         self._book = None  # stale: belongs to the other outcome until load_book returns
         self.query_one(OrderPanel).set_outcome(self._outcome_index)
         self.query_one("#book-title", Static).update(self._book_header())

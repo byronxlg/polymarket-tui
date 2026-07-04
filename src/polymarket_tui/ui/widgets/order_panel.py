@@ -39,6 +39,8 @@ class PriceInput(Input):
     BINDINGS = [
         Binding("up", "bump(1)", "tick up", show=False),
         Binding("down", "bump(-1)", "tick down", show=False),
+        Binding("shift+up", "bump(10)", "10 ticks up", show=False),
+        Binding("shift+down", "bump(-10)", "10 ticks down", show=False),
     ]
 
     class Bumped(Message):
@@ -51,16 +53,21 @@ class PriceInput(Input):
 
 
 class SizeInput(Input):
-    """Size field: up/down bump by one share."""
+    """Size field: up/down bump by one share, shift for ten."""
 
     BINDINGS = [
         Binding("up", "bump(1)", "size up", show=False),
         Binding("down", "bump(-1)", "size down", show=False),
+        Binding("shift+up", "bump(10)", "size up 10", show=False),
+        Binding("shift+down", "bump(-10)", "size down 10", show=False),
     ]
 
     def action_bump(self, direction: int) -> None:
+        raw = self.value.strip()
+        if raw.endswith("%"):
+            return  # percentages are typed, not bumped
         try:
-            current = int(float(self.value)) if self.value.strip() else 0
+            current = int(float(raw)) if raw else 0
         except ValueError:
             return
         self.value = str(max(1, current + direction))
@@ -123,6 +130,7 @@ class OrderPanel(Vertical):
         self._outcome_index = 0
         self._tif: Tif = Tif.GTC
         self._confirming: OrderDraft | None = None
+        self._position_size: float | None = None  # shares held of the selected token
 
     def compose(self):
         yield Static(id="op-summary")
@@ -132,7 +140,7 @@ class OrderPanel(Vertical):
             # the screen's autofocus and swallow the b/s keys.
             yield PriceInput(placeholder="cents; empty = market", id="op-price", disabled=True)
             yield Label("size")
-            yield SizeInput(placeholder="shares", id="op-size", type="number", disabled=True)
+            yield SizeInput(placeholder="shares or %", id="op-size", disabled=True)
         yield Static(id="op-info")
         yield Static(id="op-issues")
         yield Static(id="op-confirm")
@@ -155,7 +163,9 @@ class OrderPanel(Vertical):
         if book is not None and book.midpoint is not None and not price_input.value:
             price_input.value = f"{round_to_tick(market, Decimal(str(book.midpoint))) * 100:.1f}"
         self.query_one("#op-issues", Static).update("")
-        self.query_one("#op-size", Input).focus()
+        # Price first: confirm or adjust what you pay before how much.
+        self.query_one("#op-price", PriceInput).focus()
+        self._load_position_size()
         self._refresh_summary()
 
     def close(self) -> None:
@@ -179,7 +189,26 @@ class OrderPanel(Vertical):
             self._set_confirming(None)
             # Old price belonged to the other outcome's book.
             self.query_one("#op-price", PriceInput).value = ""
+            self._load_position_size()
             self._refresh_summary()
+
+    @work(exclusive=True, group="op-position")
+    async def _load_position_size(self) -> None:
+        """Cache shares held of the selected token so '50%' sells can resolve."""
+        self._position_size = None
+        market = self._market
+        if market is None or not self.app.settings.can_read_portfolio:
+            return
+        token = market.token_id(self._outcome_index)
+        if token is None:
+            return
+        try:
+            await self.app.portfolio.positions()
+        except Exception:
+            return
+        pos = self.app.portfolio.position_for(token)
+        self._position_size = pos.size if pos else 0.0
+        self._refresh_summary()
 
     # -- draft ------------------------------------------------------------------
 
@@ -217,10 +246,19 @@ class OrderPanel(Vertical):
             tif = self._tif
 
         raw_size = self.query_one("#op-size", Input).value.strip()
-        try:
-            size = Decimal(raw_size)
-        except InvalidOperation:
-            return None, "size?"
+        if raw_size.endswith("%"):
+            if self._position_size is None:
+                return None, "position unknown - cannot size by %"
+            try:
+                pct = Decimal(raw_size[:-1])
+            except InvalidOperation:
+                return None, "size %?"
+            size = Decimal(int(Decimal(str(self._position_size)) * pct / 100))
+        else:
+            try:
+                size = Decimal(raw_size)
+            except InvalidOperation:
+                return None, "size?"
 
         return (
             OrderDraft(
@@ -250,9 +288,12 @@ class OrderPanel(Vertical):
             out.append(f"{outcomes[self._outcome_index]}  ", style="bold")
             out.append(error, style="dim")
             summary.update(out)
-            info.update(
-                Text("enter: next/review  esc: close  up/down: tick  ctrl+g: tif", style="dim")
-            )
+            hint = Text("enter: next/review  esc: close  up/down step (shift x10)", style="dim")
+            if self._side is Side.SELL and self._position_size:
+                hint.append(
+                    f"   held {self._position_size:,.0f} - size 50% sells half", style="yellow"
+                )
+            info.update(hint)
             return
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
         out.append(f"{draft.size:,.0f} {draft.outcome_label.upper()} ", style="bold")

@@ -73,6 +73,11 @@ PriceChartPanel {
     height: 1fr;
 }
 
+#outcome-strip {
+    height: 1;
+    padding: 0 1;
+}
+
 /* Market screen: book + order entry lead on the left, chart is context */
 #book-pane {
     width: 44%;
@@ -101,6 +106,25 @@ PriceChartPanel {
     max-height: 6;
     padding: 0 1;
     background: $panel;
+}
+
+/* Portfolio profit strip */
+#portfolio-tabs {
+    height: 1fr;
+}
+#pnl-pane {
+    height: 30%;
+    min-height: 8;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+#pnl-title {
+    height: 1;
+}
+
+#pnl-chart {
+    height: 1fr;
 }
 
 /* Search */

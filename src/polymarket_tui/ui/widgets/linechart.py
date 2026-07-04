@@ -41,6 +41,7 @@ def render_chart(
     height: int,
     time_format: str,
     inspect_ts: int | None = None,
+    clamp: tuple[float, float] | None = (0.0, 100.0),
 ) -> Text:
     plot_w = width - GUTTER
     rows = height - 1  # bottom row is the time axis
@@ -56,7 +57,9 @@ def render_chart(
         return Text("")
     lo_y, hi_y = min(all_values), max(all_values)
     pad = max((hi_y - lo_y) * 0.10, (10 - (hi_y - lo_y)) / 2, 0.5)
-    lo_y, hi_y = max(0.0, lo_y - pad), min(100.0, hi_y + pad)
+    lo_y, hi_y = lo_y - pad, hi_y + pad
+    if clamp is not None:
+        lo_y, hi_y = max(clamp[0], lo_y), min(clamp[1], hi_y)
     span = hi_y - lo_y or 1.0
 
     def to_row(value: float) -> int:
