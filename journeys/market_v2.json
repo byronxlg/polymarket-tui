@@ -1,0 +1,13 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["market", ["Down", "Down", "Down", "Down", "Down", "Enter", "Down", "Down", "Enter"], 8],
+    ["rules_on", ["i"], 2],
+    ["rules_off", ["i"], 1],
+    ["trades_expanded", ["a"], 3],
+    ["trades_back", ["Escape"], 2],
+    ["order_flow", ["b", "Up", "Up", "Tab", "1", "5", "Enter"], 3],
+    ["order_closed", ["Escape", "Escape"], 1]
+  ]
+}
