@@ -24,6 +24,7 @@ from polymarket_tui.core.credstore import (
     key_backend,
     save_credentials,
 )
+from polymarket_tui.core.proxy import check_pairing
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
@@ -167,6 +168,16 @@ class AuthScreen(Screen):
             signer = derive_signer(settings.polymarket_private_key)
             out.append(f"  signer        {signer or 'INVALID KEY'}")
             out.append("  (verify this is your wallet address)\n", style="dim")
+            if signer and funder:
+                state, detail = check_pairing(
+                    signer, funder, settings.polymarket_signature_type
+                )
+                pair_style = {"proven": "green", "mismatch": "bold red", "unproven": "yellow"}[
+                    state
+                ]
+                label = {"proven": "PROVEN", "mismatch": "MISMATCH", "unproven": "unproven"}[state]
+                out.append(f"  key<->funder  {label}", style=pair_style)
+                out.append(f"  ({detail})\n", style="dim")
         out.append(f"  sig type      {settings.polymarket_signature_type}\n")
         stored = "saved" if CRED_PATH.exists() else "not saved"
         out.append(f"  storage       {stored} ({CRED_PATH})\n")
@@ -220,26 +231,30 @@ class AuthScreen(Screen):
         ok = True
         if candidate.can_auth:
             signer = derive_signer(candidate.polymarket_private_key)
+            state, detail = "unproven", ""
             if signer is None:
                 ok = False
                 report.append("private key is not a valid secp256k1 key\n", style="red")
-            elif (
-                candidate.polymarket_signature_type == 0
-                and signer.lower() != candidate.polymarket_funder.lower()
-            ):
-                # For direct-EOA accounts the signer IS the funder; catch mismatches early.
-                ok = False
-                report.append(
-                    f"sig type 0 but key controls {short_address(signer)}, not the funder\n",
-                    style="red",
+            else:
+                # Authoritative offline check: does this key control the funder?
+                # Types 0/1 are proven or refuted here; type 2 stays unproven.
+                state, detail = check_pairing(
+                    signer, candidate.polymarket_funder, candidate.polymarket_signature_type
                 )
+                if state == "mismatch":
+                    ok = False
+                    report.append(f"key/funder mismatch: {detail}\n", style="red")
             if ok:
                 authed = AuthedClobClient(candidate)
                 try:
                     balance = await authed.usdc_balance()
                     report.append(f"L2 auth ok - cash {fmt.money(balance)}\n", style="green")
                     report.append(f"signer {signer}\n")
-                    if balance == 0:
+                    if state == "proven":
+                        report.append(f"pairing proven: {detail}\n", style="green")
+                    elif state == "unproven":
+                        report.append(f"pairing unproven: {detail}\n", style="yellow")
+                    if balance == 0 and state != "proven":
                         report.append(
                             "cash $0.00 can mean a wrong key for this funder -"
                             " check the signer matches your wallet\n",
