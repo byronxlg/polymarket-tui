@@ -22,7 +22,7 @@ def change_text(change: float | None) -> Text:
 # lowest-value column (Ends) and narrows the text columns.
 TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     "full": (
-        ("star", " ", 1),
+        ("star", " ", 2),
         ("event", "Event", 46),
         ("outcome", "Top outcome", 24),
         ("price", "Price", 7),
@@ -31,7 +31,7 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
         ("ends", "Ends", 8),
     ),
     "medium": (
-        ("star", " ", 1),
+        ("star", " ", 2),
         ("event", "Event", 38),
         ("outcome", "Top outcome", 18),
         ("price", "Price", 7),
@@ -39,7 +39,7 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
         ("vol", "Vol 24h", 9),
     ),
     "compact": (
-        ("star", " ", 1),
+        ("star", " ", 2),
         ("event", "Event", 26),
         ("price", "Price", 7),
         ("change", "24h", 7),
@@ -63,6 +63,7 @@ class EventsTable(VimDataTable):
         self._columns_spec: list[ColumnSpec] = list(TIER_COLUMNS["full"])
         self._events: list[Event] = []
         self._watched: set[str] = set()
+        self._ordered: set[str] = set()  # slugs where the user has a resting order
 
     def on_mount(self) -> None:
         self._build_columns()
@@ -96,12 +97,20 @@ class EventsTable(VimDataTable):
         for key, label, width in self._columns_spec:
             self.add_column(label, width=width, key=key)
 
-    def set_events(self, events: list[Event], watched: set[str], clear: bool = True) -> None:
+    def set_events(
+        self,
+        events: list[Event],
+        watched: set[str],
+        clear: bool = True,
+        ordered: set[str] | None = None,
+    ) -> None:
         if clear:
             self.clear()
             self.events_by_slug.clear()
             self._events = []
         self._watched = set(watched)
+        if ordered is not None:
+            self._ordered = set(ordered)
         fresh = [e for e in events if e.slug not in self.events_by_slug]
         for event in fresh:
             self.events_by_slug[event.slug] = event
@@ -124,7 +133,7 @@ class EventsTable(VimDataTable):
             price = Text(fmt.cents(top.yes_price), style="bold cyan")
         ends = fmt.end_date(event.end_date)
         return {
-            "star": Text("*", style="yellow") if event.slug in self._watched else " ",
+            "star": self._flag_cell(event.slug),
             "event": fmt.trunc(event.title, widths["event"]),
             "outcome": fmt.trunc(outcome, widths.get("outcome", 24)),
             "price": price,
@@ -132,6 +141,13 @@ class EventsTable(VimDataTable):
             "vol": fmt.vol(event.volume_24hr),
             "ends": Text(ends, style="dim red") if ends == "ended" else ends,
         }
+
+    def _flag_cell(self, slug: str) -> Text:
+        """Two-char flag: * watched, o resting order."""
+        out = Text()
+        out.append("*" if slug in self._watched else " ", style="yellow")
+        out.append("o" if slug in self._ordered else " ", style="bold cyan")
+        return out
 
     def highlighted_event(self) -> Event | None:
         if self.cursor_row is None or self.row_count == 0:
@@ -143,4 +159,4 @@ class EventsTable(VimDataTable):
         # Track in _watched too so a tier rebuild re-renders the star.
         (self._watched.add if watched else self._watched.discard)(slug)
         if slug in self.events_by_slug:
-            self.update_cell(slug, "star", Text("*", style="yellow") if watched else " ")
+            self.update_cell(slug, "star", self._flag_cell(slug))

@@ -121,6 +121,10 @@ PriceChartPanel {
     margin-top: 1;
 }
 
+#orders-note {
+    height: 1;
+}
+
 /* Trades live inline under the position line; 'a' expands them full-width */
 #trades-rail {
     height: 1fr;
