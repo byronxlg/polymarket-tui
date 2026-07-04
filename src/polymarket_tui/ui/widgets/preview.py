@@ -97,7 +97,10 @@ class EventPreview(Static):
             return
         w = max(20, self.size.width or 44)
         # Outcome rows: name fills what the bar + price + change columns leave.
-        name_w = max(12, w - 16 - BAR_W - 1)
+        # Narrow rails (medium-tier 38-col preview) drop the bar rather than
+        # wrap every row onto two lines.
+        bar_w = BAR_W if w >= 38 else 0
+        name_w = max(12, w - 16 - (bar_w + 1 if bar_w else 0))
         out = Text()
         out.append(fmt.trunc(event.title, w) + "\n", style="bold")
         meta = []
@@ -115,7 +118,8 @@ class EventPreview(Static):
         for market in markets[:PREVIEW_OUTCOMES]:
             price = market.yes_price
             out.append(f"{fmt.trunc(market.display_title, name_w):<{name_w + 1}}", style="")
-            out.append_text(prob_bar(price))
+            if bar_w:
+                out.append_text(prob_bar(price, bar_w))
             out.append(f"{fmt.cents(price):>7}", style="bold cyan")
             change = market.one_day_price_change
             if change:
