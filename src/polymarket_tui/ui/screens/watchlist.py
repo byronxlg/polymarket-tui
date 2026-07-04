@@ -51,6 +51,8 @@ class WatchlistPane(TierAware, Vertical):
         Binding("space", "toggle_watch", "unstar"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "next_pane", "prev pane", show=False),
+        Binding("b", "order('BUY')", "buy", show=False),
+        Binding("s", "order('SELL')", "sell", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
@@ -137,6 +139,13 @@ class WatchlistPane(TierAware, Vertical):
     @property
     def table(self) -> EventsTable:
         return self.query_one(EventsTable)
+
+    def action_order(self, side: str) -> None:
+        if not self.table.has_focus:
+            return  # traders pane active
+        event = self.table.highlighted_event()
+        if event is not None:
+            self.app.quick_order(event, side)
 
     @work(exclusive=True, group="events")
     async def load_watchlist(self) -> None:

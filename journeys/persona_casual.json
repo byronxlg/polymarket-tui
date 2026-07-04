@@ -1,0 +1,14 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["browse", ["Down", "Down"], 1],
+    ["event", ["Enter"], 6],
+    ["outcome", ["Down"], 1],
+    ["market", ["Enter"], 7],
+    ["buy_panel", ["Enter"], 2],
+    ["size_typed", ["5"], 1],
+    ["review", ["Enter"], 2],
+    ["out", ["Escape", "Escape"], 1]
+  ]
+}

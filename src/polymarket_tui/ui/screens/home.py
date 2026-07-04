@@ -50,12 +50,14 @@ class HomePane(TierAware, Vertical):
     header_title = "polymarket-tui"
 
     BINDINGS = [
-        Binding("o", "cycle_sort", "sort"),
+        Binding("o", "cycle_sort", "sort", show=False),
         Binding("space", "toggle_watch", "star"),
         Binding("tab", "next_tag", "category"),
         Binding("shift+tab", "prev_tag", "prev category", show=False),
+        Binding("b", "order('BUY')", "buy"),
+        Binding("s", "order('SELL')", "sell"),
         Binding("r", "refresh", "refresh", show=False),
-        Binding("enter", "open_event", "open", show=False, priority=False),
+        Binding("enter", "open_event", "open", priority=False),
         Binding("down", "leave_tag_bar", "back to list", show=False),
         Binding("escape", "leave_tag_bar", "back to list", show=False),
     ]
@@ -116,6 +118,11 @@ class HomePane(TierAware, Vertical):
         if not cond:
             return set()
         return {e.slug for e in events if any(m.condition_id in cond for m in e.markets)}
+
+    def action_order(self, side: str) -> None:
+        event = self.table.highlighted_event()
+        if event is not None:
+            self.app.quick_order(event, side)
 
     def on_tier_changed(self, tier: Tier) -> None:
         self.table.apply_tier(tier)

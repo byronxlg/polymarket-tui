@@ -1,0 +1,9 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["home_b", ["Down", "b"], 8],
+    ["size", ["1", "0", "Enter"], 2],
+    ["out", ["Escape", "Escape"], 1]
+  ]
+}

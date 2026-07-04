@@ -52,7 +52,8 @@ expanded trades collapse before the screen closes.
 | Key | Where | Action |
 |-----|-------|--------|
 | o | home | cycle sort (24h volume / liquidity / ending / newest) |
-| b / s | market, event | order entry below the live book (BUY / SELL) |
+| b / s | lists, event, market | order entry; on a home/watchlist row it
+jumps straight into the market with the panel open |
 | y / n | market | jump straight to the YES / NO book |
 | a | market | expand the inline trades to full width (right opens the trader) |
 | i | market | show/hide the rules rail (auto-shown on wide terminals) |

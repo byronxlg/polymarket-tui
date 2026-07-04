@@ -1,0 +1,9 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["search", ["/", "world cup winner"], 4],
+    ["results", ["Down"], 1],
+    ["armed", ["b"], 8]
+  ]
+}
