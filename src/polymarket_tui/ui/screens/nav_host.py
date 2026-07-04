@@ -61,12 +61,17 @@ class NavHost(Screen):
 
     # -- drill / back ---------------------------------------------------------
 
-    def drill(self, pane: Widget, crumb: str, reuse: bool = True) -> None:
+    def drill(self, pane: Widget, crumb: str, reuse: bool = True, solo: bool = False) -> None:
         """Open `pane` as the 70% child of the currently focused pane.
 
         If the focused pane's child is already the same destination
         (matching drill_key), focus it instead of tearing it down and
         remounting - re-selecting an open row must not cause a redraw.
+
+        solo=True shows the new pane alone at full width instead of next
+        to its parent - used for opens whose origin (watchlist, search)
+        is not the pane to its left; left/esc still steps out to the
+        parent split.
         """
         key = getattr(pane, "drill_key", None)
         if reuse and key is not None and self._focus + 1 < len(self._panes):
@@ -86,7 +91,7 @@ class NavHost(Screen):
         self._panes.append(pane)
         self._crumbs.append(crumb)
         self._focus = len(self._panes) - 1
-        self._left = self._focus - 1
+        self._left = self._focus if solo else self._focus - 1
         self._reflow()
 
     def handle_back(self) -> bool:

@@ -183,8 +183,8 @@ class PolymarketApp(App):
 
         Opens that originate from an overlay screen (watchlist, search,
         portfolio) are unrelated to whatever drill trail was open before -
-        reset to the root first so the parent pane and breadcrumb don't show
-        a stale, unrelated context next to the new pane.
+        reset to the root and show the new pane alone at full width; the
+        home list only appears as the parent after stepping out (left/esc).
         """
         host = self._nav_host()
         if host is None:
@@ -194,7 +194,7 @@ class PolymarketApp(App):
             self.pop_screen()
         if from_overlay:
             host.reset_to_root()
-        host.drill(pane, crumb, reuse=reuse)
+        host.drill(pane, crumb, reuse=reuse, solo=from_overlay)
 
     def open_event(self, event: Event) -> None:
         """Open an event; binary events go straight to the market pane."""
