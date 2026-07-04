@@ -16,6 +16,22 @@ Every screen follows one shape: header (identity/balances/clock) ->
 context line -> body -> footer. Detail rails sit on the right and follow
 the cursor.
 
+### Width tiers (drill panes)
+
+Every drill pane has three variants and NavHost switches between them on
+each reflow (ui/tiers.py): compact (30% parent slot - the pane is context,
+only its primary list with star/title/price/24h), medium (70% child - the
+main content; drop the lowest-value columns first - Ends, Spread, Avg - and
+slim the rails), full (alone - the complete layout). tier-<name> classes
+drive show/hide and rail sizes in app.tcss; tables rebuild their column
+sets in code because DataTable columns cannot respond to CSS.
+
+The slot tier is a cap, not the answer: a 70% pane of a small terminal is
+narrower than a 30% pane of a wide one, so tables refit after layout -
+effective_tier() picks the widest column set that fits the measured width
+and fit_columns() shrinks the primary text column for small deficits. A
+pane must never render clipped columns.
+
 ## Keys: a small core, one meaning each
 
 - Arrows do everything first: up/down move and flow into adjacent panels

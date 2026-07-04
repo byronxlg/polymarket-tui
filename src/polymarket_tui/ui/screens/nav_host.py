@@ -11,6 +11,11 @@ through app.nav_back -> NavHost.handle_back: from the child it focuses the
 parent (child stays open), from the parent it slides the viewport out a level.
 The focused pane's own handle_back (e.g. MarketPane closing an armed order
 panel) runs first, preserving the money-path step-out order.
+
+Every reflow assigns each visible pane a width tier (see ui.tiers): compact
+for the 30% parent slot, medium for the 70% child, full when alone. The
+tier-<name> class drives CSS show/hide; set_tier() lets panes rebuild their
+table columns.
 """
 
 from __future__ import annotations
@@ -24,6 +29,7 @@ from textual.widgets import Footer, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.screens.home import HomePane
+from polymarket_tui.ui.tiers import TIERS, Tier
 from polymarket_tui.ui.widgets.app_header import AppHeader
 
 
@@ -55,8 +61,26 @@ class NavHost(Screen):
 
     # -- drill / back ---------------------------------------------------------
 
-    def drill(self, pane: Widget, crumb: str) -> None:
-        """Open `pane` as the 70% child of the currently focused pane."""
+    def drill(self, pane: Widget, crumb: str, reuse: bool = True, solo: bool = False) -> None:
+        """Open `pane` as the 70% child of the currently focused pane.
+
+        If the focused pane's child is already the same destination
+        (matching drill_key), focus it instead of tearing it down and
+        remounting - re-selecting an open row must not cause a redraw.
+
+        solo=True shows the new pane alone at full width instead of next
+        to its parent - used for opens whose origin (watchlist, search)
+        is not the pane to its left; left/esc still steps out to the
+        parent split.
+        """
+        key = getattr(pane, "drill_key", None)
+        if reuse and key is not None and self._focus + 1 < len(self._panes):
+            existing = self._panes[self._focus + 1]
+            if getattr(existing, "drill_key", None) == key:
+                self._focus += 1
+                self._left = self._focus - 1
+                self._reflow()
+                return
         # Drop any stale deeper panes left over from a previous drill.
         for stale in self._panes[self._focus + 1 :]:
             stale.remove()
@@ -67,7 +91,7 @@ class NavHost(Screen):
         self._panes.append(pane)
         self._crumbs.append(crumb)
         self._focus = len(self._panes) - 1
-        self._left = self._focus - 1
+        self._left = self._focus if solo else self._focus - 1
         self._reflow()
 
     def handle_back(self) -> bool:
@@ -95,10 +119,36 @@ class NavHost(Screen):
             # At the root with a child open: collapse back to full-width root.
             self.reset_to_root()
             return True
+        if not isinstance(self._panes[0], HomePane):
+            # An alternate root (watchlist) steps out to the home root.
+            self.go_home()
+            return True
         return True  # truly at the root
 
+    @property
+    def root_pane(self) -> Widget:
+        return self._panes[0]
+
+    def set_root(self, pane: Widget, crumb: str) -> None:
+        """Replace the whole drill stack with a new root pane ('w', 'H')."""
+        for stale in self._panes:
+            stale.remove()
+        pane.add_class("nav-pane")
+        self.query_one("#nav-viewport").mount(pane)
+        self._panes = [pane]
+        self._crumbs = [crumb]
+        self._focus = self._left = 0
+        self._reflow()
+
+    def go_home(self) -> None:
+        """'H': collapse to the home root, restoring it if another root is up."""
+        if isinstance(self._panes[0], HomePane):
+            self.reset_to_root()
+        else:
+            self.set_root(HomePane(), "Home")
+
     def reset_to_root(self) -> None:
-        """Collapse the drill stack back to the root pane (used by 'home')."""
+        """Collapse the drill stack back to the root pane."""
         for stale in self._panes[1:]:
             stale.remove()
         del self._panes[1:]
@@ -115,8 +165,14 @@ class NavHost(Screen):
             visible = i in (self._left, self._left + 1)
             pane.display = visible
             pane.set_class(i == self._focus, "focused")
-            pane.set_class(visible and child_open and i == self._left, "col-parent")
-            pane.set_class(visible and i == self._left + 1, "col-child")
+            if not visible:
+                continue
+            tier: Tier = "full"
+            if child_open:
+                tier = "compact" if i == self._left else "medium"
+            for t in TIERS:
+                pane.set_class(t == tier, f"tier-{t}")
+            pane.set_tier(tier)
         header = self.query_one(AppHeader)
         header.set_title(getattr(self._panes[self._focus], "header_title", "polymarket-tui"))
         self._update_crumbs()

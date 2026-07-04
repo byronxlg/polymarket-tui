@@ -17,14 +17,25 @@ PREVIEW_OUTCOMES = 18
 class MarketPreview(Static):
     """Detail rail for one outcome market (used on the event screen)."""
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._market: Market | None = None
+
+    def on_resize(self) -> None:
+        # Truncation widths follow the rendered width - re-render on change.
+        self.show_market(self._market)
+
     def show_market(self, market: Market | None) -> None:
+        self._market = market
         if market is None:
             self.update(Text("", style="dim"))
             return
+        w = max(20, self.size.width or 44)
         out = Text()
-        out.append(fmt.trunc(market.display_title, 44) + "\n", style="bold")
+        out.append(fmt.trunc(market.display_title, w) + "\n", style="bold")
         if market.question and market.question != market.display_title:
-            out.append(fmt.trunc(market.question, 88) + "\n", style="dim")
+            # Full question - the panel wraps and scrolls, no need to cut it.
+            out.append(market.question.strip() + "\n", style="dim")
         out.append("\n")
         out.append(f"{'YES':<8}", style="bold green")
         out.append(f"{fmt.cents(market.yes_price):>8}\n", style="bold cyan")
@@ -57,12 +68,24 @@ class MarketPreview(Static):
 
 
 class EventPreview(Static):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._event: Event | None = None
+
+    def on_resize(self) -> None:
+        # Truncation widths follow the rendered width - re-render on change.
+        self.show_event(self._event)
+
     def show_event(self, event: Event | None) -> None:
+        self._event = event
         if event is None:
             self.update(Text("", style="dim"))
             return
+        w = max(20, self.size.width or 44)
+        # Outcome rows: the name column fills what price (7) + change (8) leave.
+        name_w = max(12, w - 16)
         out = Text()
-        out.append(fmt.trunc(event.title, 44) + "\n", style="bold")
+        out.append(fmt.trunc(event.title, w) + "\n", style="bold")
         meta = []
         if event.end_date:
             meta.append(f"ends {fmt.end_date(event.end_date)}")
@@ -77,7 +100,7 @@ class EventPreview(Static):
         markets = event.active_markets
         for market in markets[:PREVIEW_OUTCOMES]:
             price = market.yes_price
-            out.append(f"{fmt.trunc(market.display_title, 26):<27}", style="")
+            out.append(f"{fmt.trunc(market.display_title, name_w):<{name_w + 1}}", style="")
             out.append(f"{fmt.cents(price):>7}", style="bold cyan")
             change = market.one_day_price_change
             if change:
@@ -88,9 +111,9 @@ class EventPreview(Static):
             out.append(f"... {len(markets) - PREVIEW_OUTCOMES} more\n", style="dim")
 
         if event.description:
+            # Full description - the panel wraps and scrolls, no need to cut it.
             out.append("\n")
-            desc = event.description.strip().replace("\n", " ")
-            out.append(desc[:600] + ("…" if len(desc) > 600 else ""), style="dim")
+            out.append(event.description.strip().replace("\n", " "), style="dim")
         self.update(out)
 
 

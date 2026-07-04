@@ -12,11 +12,12 @@ from textual.containers import Vertical
 from textual.widgets import Static
 
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
 
-class RelatedPane(Vertical):
+class RelatedPane(TierAware, Vertical):
     """Series-sibling / same-tag events - a drill pane."""
 
     header_title = "related"
@@ -30,6 +31,7 @@ class RelatedPane(Vertical):
     def __init__(self, event: Event, **kwargs) -> None:
         super().__init__(**kwargs)
         self._event = event
+        self.drill_key = ("related", event.slug)
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title")
@@ -49,8 +51,13 @@ class RelatedPane(Vertical):
         return "RELATED"
 
     def on_mount(self) -> None:
-        self.query_one(EventsTable).focus()
+        self.table.apply_tier(self.tier)
+        self.table.focus()
         self.load_related()
+        self.tier_ready()
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self.table.apply_tier(tier)
 
     @property
     def table(self) -> EventsTable:

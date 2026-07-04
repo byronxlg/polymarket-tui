@@ -1,4 +1,10 @@
-"""Watchlist: starred events and followed traders."""
+"""Watchlist: starred events and followed traders.
+
+Logic lives in WatchlistPane so NavHost can host it as an alternate ROOT of
+the drill navigation ('w') - the same top level as Home. Opening a starred
+event drills it as the 70% child with the watchlist kept as the 30% parent;
+left/esc from the watchlist root returns to Home.
+"""
 
 from __future__ import annotations
 
@@ -7,27 +13,57 @@ import asyncio
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Static, TabbedContent, TabPane
+from textual.containers import Vertical
+from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
-from polymarket_tui.ui.widgets.app_header import AppHeader
+from polymarket_tui.ui.tiers import Tier, TierAware, effective_tier
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
+# (key, label, width) per width tier for the followed-traders table.
+USERS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("name", "Trader", 30),
+        ("address", "Address", 16),
+        ("value", "Positions value", 16),
+    ),
+    "medium": (
+        ("name", "Trader", 30),
+        ("address", "Address", 16),
+        ("value", "Positions value", 16),
+    ),
+    "compact": (
+        ("name", "Trader", 26),
+        ("value", "Value", 12),
+    ),
+}
 
-class WatchlistScreen(Screen):
+
+class WatchlistPane(TierAware, Vertical):
+    """Starred events + followed traders - an alternate root drill pane."""
+
+    header_title = "watchlist"
+
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "app.nav_back", "back", show=False),
         Binding("space", "toggle_watch", "unstar"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "next_pane", "prev pane", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        # Rendered rows kept for tier re-renders; loaded sets for staleness
+        # checks when focus returns from a drill child.
+        self._users_rows: list[tuple[str, str, str]] = []  # (name, address, value)
+        self._users_tier: Tier = "full"
+        self._loaded_slugs: set[str] = set()
+        self._loaded_users: set[str] = set()
+
     def compose(self) -> ComposeResult:
-        yield AppHeader("watchlist")
         with TabbedContent(id="watchlist-tabs"):
             with TabPane("Events", id="pane-watch-events"):
                 yield EventsBrowser(id="watchlist-browser")
@@ -43,18 +79,58 @@ class WatchlistScreen(Screen):
                     classes="empty-note",
                     id="empty-users",
                 )
-        yield Footer()
 
     def on_mount(self) -> None:
-        self.title = "watchlist"
-        users = self.query_one("#users-table", VimDataTable)
-        users.add_column("Trader", width=30, key="name")
-        users.add_column("Address", width=16, key="address")
-        users.add_column("Positions value", width=16, key="value")
+        self._users_tier = self.tier
+        self._build_users_columns()
         for tabs in self.query("Tabs"):
             tabs.can_focus = False
+        self.table.apply_tier(self.tier)
         self.load_watchlist()
         self.load_users()
+        self.tier_ready()
+        self._schedule_refit()
+
+    def focus_inner(self) -> None:
+        if self._active_pane() == "pane-watch-users":
+            self.query_one("#users-table", VimDataTable).focus()
+        else:
+            self.table.focus()
+        # Stars/follows may have changed while a drill child had focus.
+        if set(self.app.watchlist.slugs) != self._loaded_slugs:
+            self.load_watchlist()
+        if {u["address"] for u in self.app.watchlist.users} != self._loaded_users:
+            self.load_users()
+
+    # -- width tiers ----------------------------------------------------------
+
+    def _build_users_columns(self) -> None:
+        table = self.query_one("#users-table", VimDataTable)
+        table.clear(columns=True)
+        for key, label, width in USERS_TIER_COLUMNS[self._users_tier]:
+            table.add_column(label, width=width, key=key)
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self.table.apply_tier(tier)
+        self._schedule_refit()
+
+    def on_resize(self) -> None:
+        if self._tier_ready:
+            self._schedule_refit()
+
+    def _schedule_refit(self) -> None:
+        self.call_after_refresh(self._refit_users)
+
+    def _refit_users(self) -> None:
+        width = self.size.width - 2
+        if width <= 0:
+            return
+        tier = effective_tier(self.tier, width, USERS_TIER_COLUMNS)
+        if tier == self._users_tier:
+            return
+        self._users_tier = tier
+        self._build_users_columns()
+        self._render_users()
 
     # -- events pane ----------------------------------------------------------
 
@@ -65,6 +141,7 @@ class WatchlistScreen(Screen):
     @work(exclusive=True, group="events")
     async def load_watchlist(self) -> None:
         slugs = self.app.watchlist.slugs
+        self._loaded_slugs = set(slugs)
         browser = self.query_one(EventsBrowser)
         note = self.query_one("#empty-events", Static)
         note.display = not slugs
@@ -79,7 +156,6 @@ class WatchlistScreen(Screen):
         events = [e for e in results if e is not None and not isinstance(e, BaseException)]
         failed = len(slugs) - len(events)
         self.table.set_events(events, set(slugs))
-        self.table.focus()
         browser.preview.show_event(events[0] if events else None)
         if failed:
             self.notify(f"{failed} watched event(s) could not be loaded", severity="warning")
@@ -89,12 +165,14 @@ class WatchlistScreen(Screen):
     @work(exclusive=True, group="users")
     async def load_users(self) -> None:
         watched = self.app.watchlist.users
+        self._loaded_users = {u["address"] for u in watched}
         table = self.query_one("#users-table", VimDataTable)
         note = self.query_one("#empty-users", Static)
         note.display = not watched
         table.display = bool(watched)
-        table.clear()
+        self._users_rows = []
         if not watched:
+            table.clear()
             return
         values = await asyncio.gather(
             *(self.app.data.portfolio_value(u["address"]) for u in watched),
@@ -102,12 +180,21 @@ class WatchlistScreen(Screen):
         )
         for user, value in zip(watched, values, strict=True):
             shown = "-" if isinstance(value, BaseException) or value is None else fmt.money(value)
-            table.add_row(
-                fmt.trunc(user.get("name") or user["address"], 30),
-                f"{user['address'][:6]}...{user['address'][-4:]}",
-                shown,
-                key=user["address"],
-            )
+            self._users_rows.append((user.get("name") or user["address"], user["address"], shown))
+        self._render_users()
+
+    def _render_users(self) -> None:
+        table = self.query_one("#users-table", VimDataTable)
+        table.clear()
+        columns = USERS_TIER_COLUMNS[self._users_tier]
+        name_w = dict((k, w) for k, _, w in columns)["name"]
+        for name, address, value in self._users_rows:
+            cells = {
+                "name": fmt.trunc(name, name_w),
+                "address": f"{address[:6]}...{address[-4:]}",
+                "value": value,
+            }
+            table.add_row(*(cells[key] for key, _, _ in columns), key=address)
 
     # -- actions ---------------------------------------------------------------------
 

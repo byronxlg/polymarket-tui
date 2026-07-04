@@ -21,6 +21,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
+from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
@@ -32,8 +33,36 @@ from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 BOOK_POLL_SECONDS = 3.0
 
+# (key, label, width) per width tier. Compact (30% parent slot) keeps only
+# outcome + price + 24h; the book, chart, and rails are hidden by CSS there.
+OUTCOMES_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("outcome", "Outcome", 24),
+        ("price", "Price", 7),
+        ("change", "24h", 7),
+        ("bid", "Bid", 7),
+        ("ask", "Ask", 7),
+        ("spread", "Spread", 7),
+        ("vol", "Vol 24h", 9),
+    ),
+    "medium": (
+        ("outcome", "Outcome", 24),
+        ("price", "Price", 7),
+        ("change", "24h", 7),
+        ("bid", "Bid", 7),
+        ("ask", "Ask", 7),
+        ("spread", "Spread", 7),
+        ("vol", "Vol 24h", 9),
+    ),
+    "compact": (
+        ("outcome", "Outcome", 14),
+        ("price", "Price", 7),
+        ("change", "24h", 7),
+    ),
+}
 
-class MarketPane(Vertical):
+
+class MarketPane(TierAware, Vertical):
     """Market detail body - hosted as a drill pane by NavHost.
 
     Owns the live order book in `_book`; OrderPanel finds this pane via the
@@ -55,6 +84,7 @@ class MarketPane(Vertical):
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", show=False, key_display="R"),
+        Binding("O", "open_web", "web", key_display="O"),
         Binding("e", "open_event", "event", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
@@ -76,6 +106,12 @@ class MarketPane(Vertical):
         self._trades_expanded = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
+        self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
+        self.drill_key = ("market", market.slug)
+        # True while a tier rebuild is restoring the cursor; row-highlight
+        # events are ignored until the cursor lands on _outcome_index so the
+        # rebuild can't flip the selected outcome (and reload book/history).
+        self._syncing_cursor = False
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title", id="market-title")
@@ -127,32 +163,83 @@ class MarketPane(Vertical):
         if m.end_date:
             bits.append(f"ends {fmt.end_date(m.end_date)}")
         if self._event and self._event.title.strip() != m.question.strip():
-            bits.append(self._event.title.strip()[:30])
+            bits.append(self._event.title.strip())  # one-line Static crops at the edge
         return "  |  ".join(bits)
+
+    def _build_outcome_columns(self) -> None:
+        table = self.query_one("#outcomes-table", VimDataTable)
+        table.clear(columns=True)
+        for key, label, width in self._columns_spec:
+            table.add_column(label, width=width, key=key)
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self._apply_visibility()
+        self._schedule_refit()
+
+    def _schedule_refit(self) -> None:
+        # Measure after layout settles: the slot tier is a cap, the column
+        # set follows the outcome table's real width.
+        self.call_after_refresh(self._refit)
+
+    def _refit(self) -> None:
+        table = self.query_one("#outcomes-table", VimDataTable)
+        width = table.size.width
+        if width <= 0 or not table.columns:
+            return
+        tier = effective_tier(self.tier, width, OUTCOMES_TIER_COLUMNS)
+        spec = fit_columns(OUTCOMES_TIER_COLUMNS[tier], width, "outcome")
+        if spec == self._columns_spec:
+            return
+        self._columns_spec = spec
+        self._syncing_cursor = True
+        self._build_outcome_columns()
+        self._fill_outcomes()
+        table.move_cursor(row=self._outcome_index)
+
+    def _apply_visibility(self) -> None:
+        """Panel visibility as one function of tier + trades state.
+
+        Inline display flags override stylesheet rules, so tier CSS can't be
+        trusted for panels this pane also toggles - own them all here.
+        Compact suspends the expanded-trades view (outcomes only) without
+        dropping _trades_expanded; it comes back at medium/full.
+        """
+        if not self.query("#market-left"):
+            return  # not composed yet (early resize)
+        compact = self.tier == "compact"
+        expanded = self._trades_expanded and not compact
+        self.query_one("#market-left").display = not expanded
+        self.query_one("#book-pane").display = not compact and not expanded
+        self.query_one("#market-overview-pane").display = expanded
+        rail = self.query_one("#trades-rail")
+        rail.set_class(expanded, "expanded")
+        rail.display = expanded or (not compact and self.size.width >= 170)
+        self.query_one("#market-chart-strip").display = not compact
+        self.query_one("#market-info").display = not compact
 
     def _fill_outcomes(self) -> None:
         """Outcome rows exactly like the event page; the cursor is the selector."""
         m = self._market
         table = self.query_one("#outcomes-table", VimDataTable)
         table.clear()
+        columns = self._columns_spec
         yes = m.yes_price
         change = m.one_day_price_change
-        spread = m.spread
         for idx, label in enumerate((m.outcomes or ["Yes", "No"])[:2]):
             price = yes if idx == 0 else (None if yes is None else 1 - yes)
             bid = m.best_bid if idx == 0 else (None if m.best_ask is None else 1 - m.best_ask)
             ask = m.best_ask if idx == 0 else (None if m.best_bid is None else 1 - m.best_bid)
             delta = change if idx == 0 else (None if change is None else -change)
-            table.add_row(
-                Text(label, style="bold green" if idx == 0 else "bold red"),
-                Text(fmt.cents(price), style="bold cyan"),
-                change_text(delta),
-                Text(fmt.cents(bid), style="green"),
-                Text(fmt.cents(ask), style="red"),
-                fmt.cents(spread),
-                fmt.money(m.volume_24hr),
-                key=str(idx),
-            )
+            cells = {
+                "outcome": Text(label, style="bold green" if idx == 0 else "bold red"),
+                "price": Text(fmt.cents(price), style="bold cyan"),
+                "change": change_text(delta),
+                "bid": Text(fmt.cents(bid), style="green"),
+                "ask": Text(fmt.cents(ask), style="red"),
+                "spread": fmt.cents(m.spread),
+                "vol": fmt.money(m.volume_24hr),
+            }
+            table.add_row(*(cells[key] for key, _, _ in columns), key=str(idx))
 
     def on_data_table_row_highlighted(self, event) -> None:
         if event.data_table.id == "trades-table":
@@ -160,6 +247,10 @@ class MarketPane(Vertical):
                 self._refresh_trade_overview()
             return
         if event.data_table.id != "outcomes-table" or event.cursor_row is None:
+            return
+        if self._syncing_cursor:
+            if event.cursor_row == self._outcome_index:
+                self._syncing_cursor = False
             return
         self._apply_outcome(event.cursor_row)
 
@@ -224,20 +315,19 @@ class MarketPane(Vertical):
     # -- lifecycle ----------------------------------------------------------
 
     def on_resize(self) -> None:
-        if not self._trades_expanded:
-            self.query_one("#trades-rail").display = self.size.width >= 170
+        self._apply_visibility()
+        if self._tier_ready:
+            self._schedule_refit()
 
     def on_mount(self) -> None:
         table = self.query_one("#outcomes-table", VimDataTable)
-        table.add_column("Outcome", width=24, key="outcome")
-        table.add_column("Price", width=7, key="price")
-        table.add_column("24h", width=7, key="change")
-        table.add_column("Bid", width=7, key="bid")
-        table.add_column("Ask", width=7, key="ask")
-        table.add_column("Spread", width=7, key="spread")
-        table.add_column("Vol 24h", width=9, key="vol")
+        self._columns_spec = list(OUTCOMES_TIER_COLUMNS[self.tier])
+        self._build_outcome_columns()
         self._fill_outcomes()
+        self._apply_visibility()
         table.focus()
+        self.tier_ready()
+        self._schedule_refit()
         self.query_one(ActivityPanel).configure(self._market, self._event)
         self.load_trades()
         self.set_interval(5.0, self.load_trades)
@@ -426,11 +516,7 @@ class MarketPane(Vertical):
 
     def _set_trades_expanded(self, expanded: bool) -> None:
         self._trades_expanded = expanded
-        self.query_one("#market-left").display = not expanded
-        self.query_one("#book-pane").display = not expanded
-        self.query_one("#market-overview-pane").display = expanded
-        rail = self.query_one("#trades-rail")
-        rail.set_class(expanded, "expanded")
+        self._apply_visibility()
         table = self.query_one(TradesTable)
         table.compact = not expanded
         table.build_columns()
@@ -458,7 +544,9 @@ class MarketPane(Vertical):
         if panel.is_open:
             panel.close()
             return True
-        if self._trades_expanded:
+        # At compact the trades view is suspended (not visible), so esc
+        # should step out of the pane, not invisibly collapse it.
+        if self._trades_expanded and self.tier != "compact":
             self._set_trades_expanded(False)
             return True
         return False
@@ -505,6 +593,18 @@ class MarketPane(Vertical):
             self.notify("No event context for this market", severity="warning")
             return
         self.app.open_related(self._event)
+
+    def action_open_web(self) -> None:
+        import webbrowser
+
+        event_slug = self._market.event_slug or (self._event.slug if self._event else None)
+        if event_slug:
+            url = f"https://polymarket.com/event/{event_slug}/{self._market.slug}"
+        else:
+            # polymarket.com redirects /market/<slug> to the event page.
+            url = f"https://polymarket.com/market/{self._market.slug}"
+        webbrowser.open(url)
+        self.notify(f"Opened {url}", timeout=3)
 
     def action_order(self, side: str) -> None:
         app = self.app

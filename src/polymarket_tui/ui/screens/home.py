@@ -13,6 +13,7 @@ from textual.containers import Vertical
 from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
+from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -39,7 +40,7 @@ SORT_LABELS = {
 }
 
 
-class HomePane(Vertical):
+class HomePane(TierAware, Vertical):
     """Trending events browser - the root pane of the drill navigation."""
 
     header_title = "polymarket-tui"
@@ -72,8 +73,13 @@ class HomePane(Vertical):
 
     def on_mount(self) -> None:
         self.query_one(Tabs).can_focus = False
+        self.table.apply_tier(self.tier)
         self.table.focus()
         self.load_events()
+        self.tier_ready()
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self.table.apply_tier(tier)
 
     def focus_inner(self) -> None:
         self.table.focus()
