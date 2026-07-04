@@ -51,6 +51,7 @@ class PortfolioScreen(Screen):
     def compose(self) -> ComposeResult:
         yield AppHeader("portfolio")
         yield Static("loading balances...", id="balance-line", classes="screen-title")
+        yield Static(id="reconcile-banner")
         with TabbedContent(id="portfolio-tabs"):
             with TabPane("Positions", id="pane-positions"):
                 yield PositionsTable(cursor_type="row", zebra_stripes=True, id="positions-table")
@@ -88,6 +89,12 @@ class PortfolioScreen(Screen):
             tabs.can_focus = False
         positions.focus()
         self.load_all()
+        if self.app.reconcile_target is not None:
+            self.enter_reconciliation()
+
+    def on_unmount(self) -> None:
+        # Reconciliation is resolved once the user has looked; don't persist it.
+        self.app.reconcile_target = None
 
     # -- loaders -------------------------------------------------------------
 
@@ -203,9 +210,12 @@ class PortfolioScreen(Screen):
             return
         table.clear()
         titles = await self._order_titles(self._orders)
+        target = self.app.reconcile_target
         for order in self._orders:
+            match = target is not None and target.matches(order)
+            market_cell = fmt.trunc(titles.get(order.market, order.market[:20] + "…"), 44)
             table.add_row(
-                fmt.trunc(titles.get(order.market, order.market[:20] + "…"), 44),
+                Text("► " + market_cell, style="bold cyan") if match else market_cell,
                 Text(order.side, style="green" if order.side == "BUY" else "red"),
                 order.outcome or "-",
                 fmt.cents(order.price),
@@ -214,6 +224,7 @@ class PortfolioScreen(Screen):
                 order.when.astimezone().strftime("%b %d %H:%M") if order.when else "-",
                 key=order.id,
             )
+        self._update_reconcile_banner()
 
     async def _order_titles(self, orders: list[OpenOrder]) -> dict[str, str]:
         """Resolve condition ids to market questions via positions, then Gamma."""
@@ -232,6 +243,50 @@ class PortfolioScreen(Screen):
             except Exception:
                 continue
         return titles
+
+    # -- reconciliation (issue #3) -------------------------------------------
+
+    def enter_reconciliation(self) -> None:
+        """Focus Open Orders for a status-unknown post and re-fetch to check it."""
+        if self.app.reconcile_target is None:
+            return
+        self.query_one(TabbedContent).active = "pane-orders"
+        banner = self.query_one("#reconcile-banner", Static)
+        banner.add_class("active")
+        banner.update(
+            Text(
+                f"Checking Open Orders for: {self.app.reconcile_target.summary} ...",
+                style="dim",
+            )
+        )
+        self.query_one("#orders-table", OrdersTable).focus()
+        self.load_orders()
+
+    def _update_reconcile_banner(self) -> None:
+        target = self.app.reconcile_target
+        banner = self.query_one("#reconcile-banner", Static)
+        if target is None:
+            banner.remove_class("active")
+            return
+        banner.add_class("active")
+        matches = [o for o in self._orders if target.matches(o)]
+        if matches:
+            resting = sum(o.remaining for o in matches)
+            banner.update(
+                Text(
+                    f"LANDED - order is resting ({resting:,.0f} shares). {target.summary}. "
+                    "Do NOT re-place; cancel with x if unintended.",
+                    style="bold green",
+                )
+            )
+        else:
+            banner.update(
+                Text(
+                    f"NOT FOUND - no resting order matches {target.summary}. The post did not "
+                    "land; it is safe to re-place. (A very recent fill can also explain this.)",
+                    style="bold yellow",
+                )
+            )
 
     @work(exclusive=True, group="history")
     async def load_history(self) -> None:

@@ -12,7 +12,7 @@ from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
 from polymarket_tui.core.config import Settings, get_settings
 from polymarket_tui.models.market import Event, Market
-from polymarket_tui.services.orders import OrderService
+from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
@@ -57,6 +57,8 @@ class PolymarketApp(App):
         self.portfolio = PortfolioService(self.settings, self.data, self.authed)
         self.orders = OrderService(self.settings, self.authed)
         self.watchlist = Watchlist()
+        # A status-unknown live post to reconcile against Open Orders (issue #3).
+        self.reconcile_target: ReconcileTarget | None = None
 
     def get_default_screen(self) -> HomeScreen:
         return HomeScreen()
@@ -166,6 +168,19 @@ class PolymarketApp(App):
             )
             return
         self._push_unless_current(PortfolioScreen, PortfolioScreen)
+
+    def open_reconciliation(self, target: ReconcileTarget) -> None:
+        """Jump to Open Orders to check whether a status-unknown post landed."""
+        self.reconcile_target = target
+        if not self.settings.can_read_portfolio:
+            self.notify(
+                "Add a funder address (press A) to check Open Orders", severity="warning"
+            )
+            return
+        if isinstance(self.screen, PortfolioScreen):
+            self.screen.enter_reconciliation()
+        else:
+            self.push_screen(PortfolioScreen())
 
     def action_help(self) -> None:
         self._push_unless_current(HelpScreen, HelpScreen)

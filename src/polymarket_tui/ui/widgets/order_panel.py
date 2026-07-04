@@ -23,12 +23,14 @@ from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.services.orders import (
     IssueLevel,
     OrderDraft,
+    ReconcileTarget,
     Side,
     Tif,
     parse_price,
     round_to_tick,
     tick_size,
 )
+from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
 
@@ -497,6 +499,24 @@ class OrderPanel(Vertical):
                 app.portfolio.invalidate()
                 app.refresh_account_status()
                 app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
+            elif result.status_unknown:
+                # The post may have landed; never auto-retry. Offer to reconcile.
+                target = ReconcileTarget.from_draft(draft)
+                body = Text()
+                body.append(result.error + "\n\n", style="yellow")
+                body.append(f"{draft.summary()}\n\n")
+                body.append(
+                    "The order may have been placed. Check Open Orders before re-placing.",
+                    style="dim",
+                )
+
+                def _reconcile(confirmed: bool | None) -> None:
+                    if confirmed:
+                        app.open_reconciliation(target)
+
+                app.push_screen(
+                    ConfirmModal("ORDER STATUS UNKNOWN", body, "check open orders"), _reconcile
+                )
             else:
                 app.notify(result.error, severity="error", timeout=10)
 
