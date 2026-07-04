@@ -1,21 +1,23 @@
-"""Experimental Miller-columns navigation over the browse hierarchy.
+"""Miller-columns browse navigation over the events hierarchy.
 
-A sliding two-wide viewport over a four-level drill stack:
+The root pane is the events list (with category tabs on top, like the home
+screen); drilling in opens a 30/70 split - the parent shrinks to 30% and the
+opened pane takes 70%:
 
-    Categories -> Events -> Outcomes -> Detail
+    Events -> Outcomes -> Detail
 
-Interaction (as requested for UX evaluation):
-- right/enter drills in: opens the child level in a new right pane and moves
-  the cursor into it.
-- left moves back to the left pane WITHOUT closing the right pane; pressing
-  left again from the left pane slides the viewport out one level (and at the
-  root leaves the screen).
-- right while already in the right pane slides that pane into the left slot
-  and opens a fresh child on the right.
+Interaction:
+- right/enter drills in: opens the child level in a new 70% right pane and
+  moves the cursor into it (parent shrinks to 30%).
+- left moves back to the parent WITHOUT closing the child; pressing left again
+  from the parent slides the viewport out one level (and at the root leaves
+  the screen).
+- right while in the right pane slides that pane to the left (30%) and opens a
+  fresh child on the right (70%).
 
-The child pane always reflects the parent's highlighted row (preview-follows-
-cursor), matching the rest of the app. This screen is additive - it does not
-touch the existing push/pop screen stack used by Home/Event/Market.
+A breadcrumb keeps the full path in view after ancestor panes slide off. The
+child pane follows the parent's highlighted row (preview-follows-cursor). This
+screen is additive - it does not touch the Home/Event/Market screen stack.
 """
 
 from __future__ import annotations
@@ -26,13 +28,12 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Static
+from textual.widgets import DataTable, Footer, Static, Tab, Tabs
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.screens.home import CATEGORIES
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.miller import (
-    CategoryTable,
     DetailColumn,
     EventsColumn,
     MillerBack,
@@ -46,41 +47,64 @@ EVENTS_LIMIT = 50
 class ColumnsScreen(Screen):
     BINDINGS = [
         Binding("escape", "step_back", "back", show=False),
+        Binding("tab", "next_tag", "category"),
+        Binding("shift+tab", "prev_tag", "prev category", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self) -> None:
         super().__init__()
-        # Viewport state over the fixed 4-level stack (indices 0..3).
+        # Viewport state over the fixed 3-level stack (0=events, 1=outcomes,
+        # 2=detail).
         self._focus = 0  # focused column
         self._left = 0  # column shown in the left viewport slot
         self._open = 0  # deepest column currently opened in the drill path
         # Selection made at each drill step, for the breadcrumb trail. _sel[c]
         # names the row picked in column c-1 that opened column c (index 0
-        # unused - column 0 is the root category picker).
-        self._sel = ["", "", "", ""]
+        # unused - column 0 is the events list root).
+        self._sel = ["", "", ""]
+        self._tag_slug: str | None = None
+        self._cat_label = CATEGORIES[0][0]
 
     def compose(self) -> ComposeResult:
-        yield AppHeader("columns")
+        yield AppHeader("browse")
         yield Static(id="miller-crumbs")
-        self._cat = CategoryTable(id="miller-cat")
+        yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="col-tags")
         self._events = EventsColumn(id="miller-events")
         self._outcomes = OutcomesTable(id="miller-outcomes")
         self._detail = DetailColumn(id="miller-detail")
         self._wrap = [
-            MillerColumn("Categories", self._cat, id="mcol-0"),
-            MillerColumn("Events", self._events, id="mcol-1"),
-            MillerColumn("Outcomes", self._outcomes, id="mcol-2"),
-            MillerColumn("Detail", self._detail, id="mcol-3"),
+            MillerColumn("Events", self._events, id="mcol-0"),
+            MillerColumn("Outcomes", self._outcomes, id="mcol-1"),
+            MillerColumn("Detail", self._detail, id="mcol-2"),
         ]
         with Horizontal(id="miller-viewport"):
             yield from self._wrap
         yield Footer()
 
     def on_mount(self) -> None:
-        self.title = "columns"
-        self._cat.set_categories(CATEGORIES)
+        self.title = "browse"
+        self.query_one(Tabs).can_focus = False
+        self._load_events(self._tag_slug)
         self._reflow()
+
+    # -- category tabs (drive the root events list) --------------------------
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        slug = event.tab.id
+        self._cat_label = next((label for label, s in CATEGORIES if s == slug), slug or "")
+        self._tag_slug = None if slug == "trending" else slug
+        # Changing category collapses any drill back to the root events list.
+        self._focus = self._left = self._open = 0
+        self._sel = ["", "", ""]
+        self._load_events(self._tag_slug)
+        self._reflow()
+
+    def action_next_tag(self) -> None:
+        self.query_one(Tabs).action_next_tab()
+
+    def action_prev_tag(self) -> None:
+        self.query_one(Tabs).action_previous_tab()
 
     # -- drill (right/enter) --------------------------------------------------
 
@@ -89,7 +113,7 @@ class ColumnsScreen(Screen):
 
     def _drill(self) -> None:
         i = self._focus
-        if i >= 3:  # detail is a leaf
+        if i >= 2:  # detail is a leaf
             return
         if i == self._open:  # first time opening this child - populate it
             if not self._build_child(i):
@@ -106,7 +130,7 @@ class ColumnsScreen(Screen):
 
     def action_step_back(self) -> None:
         if self._focus == self._left + 1:
-            # In the right pane: fall back to the left pane, keep right open.
+            # In the right pane: fall back to the parent, keep the child open.
             self._focus = self._left
             self._reflow()
             return
@@ -127,28 +151,21 @@ class ColumnsScreen(Screen):
         Returns False when there is nothing to drill into.
         """
         if parent == 0:
-            label, slug = CATEGORIES[self._cat.cursor_row or 0]
-            self._sel[1] = label
-            self._wrap[1].set_title(label)
-            self._load_events(None if slug == "trending" else slug)
-            self._update_crumbs()
-            return True
-        if parent == 1:
             event = self._events.highlighted_event()
             if event is None:
                 return False
             markets = event.active_markets
-            self._sel[2] = event.title
-            self._wrap[2].set_title(fmt.trunc(event.title, 40))
+            self._sel[1] = event.title
+            self._wrap[1].set_title(fmt.trunc(event.title, 40))
             self._outcomes.set_markets(markets)
             self._update_crumbs()
             return bool(markets)
-        if parent == 2:
+        if parent == 1:
             market = self._outcomes.highlighted_market()
             if market is None:
                 return False
-            self._sel[3] = market.display_title
-            self._wrap[3].set_title(fmt.trunc(market.display_title, 40))
+            self._sel[2] = market.display_title
+            self._wrap[2].set_title(fmt.trunc(market.display_title, 40))
             self._detail.show(market)
             self._update_crumbs()
             return True
@@ -171,7 +188,7 @@ class ColumnsScreen(Screen):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         i = self._focus
         # Only when the moving column is focused and already has an open child.
-        if i < 3 and i < self._open:
+        if i < 2 and i < self._open:
             self._build_child(i)
 
     # -- render ---------------------------------------------------------------
@@ -192,10 +209,11 @@ class ColumnsScreen(Screen):
 
     def _update_crumbs(self) -> None:
         """Breadcrumb trail to the deepest visible pane - keeps the full path
-        in view even after ancestor panes have slid off the left edge."""
+        in view after ancestor panes have slid off the left edge. Rooted at the
+        active category (which also shows as the selected tab)."""
         rightmost = min(self._left + 1, self._open)
         crumb = Text()
-        crumb.append(" Browse", style="bold" if self._focus == 0 else "dim")
+        crumb.append(" " + self._cat_label, style="bold" if self._focus == 0 else "dim")
         for level in range(1, rightmost + 1):
             crumb.append("  ›  ", style="dim")
             style = "bold" if level == self._focus else "dim"
@@ -203,5 +221,4 @@ class ColumnsScreen(Screen):
         self.query_one("#miller-crumbs", Static).update(crumb)
 
     def action_refresh(self) -> None:
-        if self._open >= 1:
-            self._build_child(0)
+        self._load_events(self._tag_slug)

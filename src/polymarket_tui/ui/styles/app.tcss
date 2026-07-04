@@ -204,7 +204,11 @@ PriceChartPanel {
     padding: 0 1;
 }
 
-/* Miller columns (experimental sliding two-pane navigation) */
+/* Miller columns (sliding drill navigation with 30/70 split) */
+#col-tags {
+    height: 3;
+}
+
 #miller-crumbs {
     height: 1;
     padding: 0 1;
