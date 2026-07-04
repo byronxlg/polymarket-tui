@@ -61,13 +61,13 @@ class EventPane(TierAware, Vertical):
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_info", "rules"),
-        Binding("c", "toggle_activity('comments')", "comments"),
+        Binding("c", "toggle_activity('comments')", "comments", show=False),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", key_display="R"),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
-        Binding("O", "open_web", "web", key_display="O"),
+        Binding("O", "open_web", "web", show=False, key_display="O"),
         Binding("r", "refresh", "refresh", show=False),
     ]
 

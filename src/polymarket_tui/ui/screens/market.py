@@ -81,11 +81,11 @@ class MarketPane(TierAware, Vertical):
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_trades", "trades"),
         Binding("i", "toggle_rules", "rules"),
-        Binding("c", "toggle_activity('comments')", "comments"),
+        Binding("c", "toggle_activity('comments')", "comments", show=False),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", show=False, key_display="R"),
-        Binding("O", "open_web", "web", key_display="O"),
+        Binding("O", "open_web", "web", show=False, key_display="O"),
         Binding("e", "open_event", "event", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
