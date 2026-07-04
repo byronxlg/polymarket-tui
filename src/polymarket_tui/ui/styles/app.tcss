@@ -26,6 +26,17 @@ DataTable > .datatable--cursor {
     color: $text-muted;
 }
 
+#reconcile-banner {
+    display: none;
+    height: auto;
+    padding: 0 1;
+    background: $warning 20%;
+}
+
+#reconcile-banner.active {
+    display: block;
+}
+
 #status-line {
     height: 1;
 }
