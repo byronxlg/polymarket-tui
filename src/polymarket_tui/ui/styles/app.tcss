@@ -234,6 +234,13 @@ PriceChartPanel {
     border-left: solid $primary;
 }
 
+/* Shrunk to 30%, the parent is context - hide its side rails so only the
+   primary list shows. */
+.nav-pane.col-parent #preview-pane,
+.nav-pane.col-parent #event-chart-pane {
+    display: none;
+}
+
 /* Help */
 #help-body {
     padding: 1 2;
