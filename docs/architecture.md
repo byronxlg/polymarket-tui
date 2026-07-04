@@ -62,6 +62,7 @@ src/polymarket_tui/
       order_panel.py     # inline order entry (price/size, confirm strip)
       trades_table.py    # live trades, compact/full presets
       trader_overview.py # value + top positions for an address
+      pnl_strip.py       # all-time profit chart strip (portfolio + trader profile)
       linechart.py       # smooth box-drawing chart renderer
       price_chart.py     # legend + chart panel with crosshair inspect
       activity_panel.py  # comments feed (chart strip)
