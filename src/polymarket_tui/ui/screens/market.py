@@ -1,10 +1,9 @@
 """Market detail: live-polling order book + price history chart.
 
 Logic lives in MarketPane (a widget) so NavHost can host it as the 70% child
-of the drill split. MarketScreen is a thin full-screen wrapper kept as a
-fallback. This is the money path - MarketPane owns the live book (`_book`)
-and the position strip; OrderPanel resolves it via the `is_market_pane`
-marker (see order_panel._market_pane) rather than self.screen.
+of the drill split. This is the money path - MarketPane owns the live book
+(`_book`) and the position strip; OrderPanel resolves it via the
+`is_market_pane` marker (see order_panel._market_pane) rather than self.screen.
 """
 
 from __future__ import annotations
@@ -16,15 +15,13 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.screen import Screen
-from textual.widgets import Footer, Static, Tab, Tabs
+from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
@@ -172,9 +169,7 @@ class MarketPane(Vertical):
         elif event.data_table.id == "trades-table":
             trader = self.query_one(TradesTable).trader_at_cursor()
             if trader is not None:
-                from polymarket_tui.ui.screens.user import UserScreen
-
-                self.app.push_screen(UserScreen(*trader))
+                self.app.open_user(*trader)
 
     def _apply_outcome(self, index: int) -> None:
         if index == self._outcome_index:
@@ -509,9 +504,7 @@ class MarketPane(Vertical):
         if self._event is None:
             self.notify("No event context for this market", severity="warning")
             return
-        from polymarket_tui.ui.screens.related import RelatedScreen
-
-        self.app.push_screen(RelatedScreen(self._event))
+        self.app.open_related(self._event)
 
     def action_order(self, side: str) -> None:
         app = self.app
@@ -533,31 +526,3 @@ class MarketPane(Vertical):
         slug = self._event.slug if self._event else self._market.slug
         watched = self.app.watchlist.toggle(slug)
         self.notify("Watching" if watched else "Unwatched", timeout=2)
-
-
-class MarketScreen(Screen):
-    """Thin full-screen wrapper around MarketPane (fallback / standalone)."""
-
-    AUTO_FOCUS = None  # the order panel's inputs must not grab focus while hidden
-
-    BINDINGS = [Binding("escape", "app.nav_back", "back")]
-
-    def __init__(
-        self,
-        market: Market,
-        event: Event | None = None,
-        order_side: str | None = None,
-    ) -> None:
-        super().__init__()
-        self._pane = MarketPane(market, event, order_side=order_side)
-
-    def compose(self) -> ComposeResult:
-        yield AppHeader("market")
-        yield self._pane
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.title = "market"
-
-    def handle_back(self) -> bool:
-        return self._pane.handle_back()

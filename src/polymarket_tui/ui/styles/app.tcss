@@ -237,7 +237,12 @@ PriceChartPanel {
 /* Shrunk to 30%, the parent is context - hide its side rails so only the
    primary list shows. */
 .nav-pane.col-parent #preview-pane,
-.nav-pane.col-parent #event-chart-pane {
+.nav-pane.col-parent #event-chart-pane,
+.nav-pane.col-parent #market-chart-strip,
+.nav-pane.col-parent #book-pane,
+.nav-pane.col-parent #trades-rail,
+.nav-pane.col-parent #market-overview-pane,
+.nav-pane.col-parent #market-info {
     display: none;
 }
 

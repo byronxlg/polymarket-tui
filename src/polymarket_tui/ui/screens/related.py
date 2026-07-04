@@ -1,35 +1,42 @@
-"""Related markets: series siblings (recurring markets like dailies) or same-tag events."""
+"""Related markets: series siblings (recurring markets like dailies) or same-tag events.
+
+Hosted as a drill pane by NavHost (30/70 split).
+"""
 
 from __future__ import annotations
 
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Static
+from textual.containers import Vertical
+from textual.widgets import Static
 
 from polymarket_tui.models.market import Event
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
 
-class RelatedScreen(Screen):
+class RelatedPane(Vertical):
+    """Series-sibling / same-tag events - a drill pane."""
+
+    header_title = "related"
+
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_watch", "star"),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
-    def __init__(self, event: Event) -> None:
-        super().__init__()
+    def __init__(self, event: Event, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._event = event
 
     def compose(self) -> ComposeResult:
-        yield AppHeader("related")
         yield Static(self._title_line(), classes="screen-title")
         yield EventsBrowser(id="related-browser")
-        yield Footer()
+
+    def focus_inner(self) -> None:
+        self.query_one(EventsTable).focus()
 
     def _title_line(self) -> str:
         series = self._event.primary_series
@@ -42,7 +49,6 @@ class RelatedScreen(Screen):
         return "RELATED"
 
     def on_mount(self) -> None:
-        self.title = "related"
         self.query_one(EventsTable).focus()
         self.load_related()
 

@@ -1,8 +1,7 @@
 """Event detail: multi-outcome price chart plus all child markets.
 
 Logic lives in EventPane (a widget) so NavHost can host it as the 70% child
-of the drill split. EventScreen is a thin full-screen wrapper kept as a
-fallback.
+of the drill split.
 """
 
 from __future__ import annotations
@@ -14,13 +13,11 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Static, Tab, Tabs
+from textual.widgets import DataTable, Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
@@ -102,9 +99,7 @@ class EventPane(Vertical):
         self.app.open_market(market, self._event, order_side=side)
 
     def action_related(self) -> None:
-        from polymarket_tui.ui.screens.related import RelatedScreen
-
-        self.app.push_screen(RelatedScreen(self._event))
+        self.app.open_related(self._event)
 
     def on_mount(self) -> None:
         self.query_one("#rules-panel", Static).display = False
@@ -233,21 +228,3 @@ class EventPane(Vertical):
     def action_refresh(self) -> None:
         self.refresh_event()
         self.load_chart()
-
-
-class EventScreen(Screen):
-    """Thin full-screen wrapper around EventPane (fallback / standalone)."""
-
-    BINDINGS = [Binding("escape", "app.pop_screen", "back")]
-
-    def __init__(self, event: Event) -> None:
-        super().__init__()
-        self._event = event
-
-    def compose(self) -> ComposeResult:
-        yield AppHeader("event")
-        yield EventPane(self._event)
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.title = "event"

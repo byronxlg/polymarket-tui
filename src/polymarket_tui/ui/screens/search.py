@@ -172,9 +172,7 @@ class SearchScreen(Screen):
     def _open_trader(self) -> None:
         profile = self._highlighted_profile()
         if profile is not None:
-            from polymarket_tui.ui.screens.user import UserScreen
-
-            self.app.push_screen(UserScreen(profile.proxy_wallet, profile.display_name))
+            self.app.open_user(profile.proxy_wallet, profile.display_name)
 
     def on_data_table_row_highlighted(self, event) -> None:
         if event.data_table.id == "traders-table":

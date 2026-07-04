@@ -16,12 +16,14 @@ from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
-from polymarket_tui.ui.screens.event import EventPane, EventScreen
+from polymarket_tui.ui.screens.event import EventPane
 from polymarket_tui.ui.screens.help import HelpScreen
-from polymarket_tui.ui.screens.market import MarketPane, MarketScreen
+from polymarket_tui.ui.screens.market import MarketPane
 from polymarket_tui.ui.screens.nav_host import NavHost
 from polymarket_tui.ui.screens.portfolio import PortfolioScreen
+from polymarket_tui.ui.screens.related import RelatedPane
 from polymarket_tui.ui.screens.search import SearchScreen
+from polymarket_tui.ui.screens.user import UserPane
 from polymarket_tui.ui.screens.watchlist import WatchlistScreen
 
 
@@ -129,30 +131,32 @@ class PolymarketApp(App):
         base = self.screen_stack[0]
         return base if isinstance(base, NavHost) else None
 
-    def _drill(self, pane, crumb: str) -> bool:
+    def _drill(self, pane, crumb: str) -> None:
         """Open `pane` as a drill child in NavHost, popping any overlay first."""
         host = self._nav_host()
         if host is None:
-            return False
+            return
         while len(self.screen_stack) > 1:
             self.pop_screen()
         host.drill(pane, crumb)
-        return True
 
     def open_event(self, event: Event) -> None:
         """Open an event; binary events go straight to the market pane."""
         if event.is_binary and event.top_market is not None:
             self.open_market(event.top_market, event)
             return
-        if not self._drill(EventPane(event), event.title):
-            self.push_screen(EventScreen(event))
+        self._drill(EventPane(event), event.title)
 
     def open_market(
         self, market: Market, event: Event | None = None, order_side: str | None = None
     ) -> None:
-        pane = MarketPane(market, event, order_side=order_side)
-        if not self._drill(pane, market.display_title):
-            self.push_screen(MarketScreen(market, event, order_side=order_side))
+        self._drill(MarketPane(market, event, order_side=order_side), market.display_title)
+
+    def open_related(self, event: Event) -> None:
+        self._drill(RelatedPane(event), "related")
+
+    def open_user(self, address: str, name: str) -> None:
+        self._drill(UserPane(address, name), name)
 
     # -- global actions ------------------------------------------------------
 

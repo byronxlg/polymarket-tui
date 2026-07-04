@@ -1,8 +1,7 @@
 """Home: trending events with category tabs, sort cycling, and preview.
 
 The logic lives in HomePane (a widget) so NavHost can host it as the root pane
-of the 30/70 drill split. HomeScreen is a thin full-screen wrapper kept for
-any standalone use.
+of the 30/70 drill split.
 """
 
 from __future__ import annotations
@@ -11,11 +10,9 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
-from textual.screen import Screen
-from textual.widgets import Footer, Static, Tab, Tabs
+from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -183,15 +180,3 @@ class HomePane(Vertical):
 
     def action_next_tag(self) -> None:
         self._move_tag(1)
-
-
-class HomeScreen(Screen):
-    """Thin full-screen wrapper around HomePane (standalone use)."""
-
-    def compose(self) -> ComposeResult:
-        yield AppHeader("polymarket-tui")
-        yield HomePane()
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.title = "polymarket-tui"
