@@ -13,7 +13,9 @@ from polymarket_tui.models.ws import (
     LastTradeMessage,
     LiveBook,
     PriceChangeMessage,
+    UserOrderMessage,
     parse_market_message,
+    parse_user_message,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -113,3 +115,38 @@ def test_live_book_discards_stale_frames():
     )
     assert book.apply_price_change(stale, "A") is False
     assert book.order_book().best_bid.size == 8
+
+
+# -- user channel (issue #1) --------------------------------------------------
+
+
+def test_parse_real_user_placement_frame():
+    raw = _load("ws_user_order_placement.json")[0]
+    msg = parse_user_message(raw)
+    assert isinstance(msg, UserOrderMessage)
+    assert msg.type == "PLACEMENT"
+    assert msg.status == "LIVE"
+    assert msg.resting is True
+    assert msg.gone is False
+    assert msg.side == "BUY"
+
+
+def test_parse_real_user_cancellation_frame():
+    raw = _load("ws_user_order_cancellation.json")[0]
+    msg = parse_user_message(raw)
+    assert isinstance(msg, UserOrderMessage)
+    assert msg.type == "CANCELLATION"
+    assert msg.status == "CANCELED"
+    assert msg.resting is False
+    assert msg.gone is True
+
+
+def test_parse_user_unknown_type_is_none():
+    assert parse_user_message({"event_type": "heartbeat"}) is None
+    assert parse_user_message({}) is None
+
+
+def test_user_order_matched_is_gone():
+    msg = UserOrderMessage(status="MATCHED", original_size="5", size_matched="5")
+    assert msg.gone is True
+    assert msg.resting is False

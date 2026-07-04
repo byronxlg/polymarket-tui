@@ -25,12 +25,16 @@ from polymarket_tui.models.ws import (
     LastTradeMessage,
     LiveBook,
     PriceChangeMessage,
+    UserOrderMessage,
+    UserTradeMessage,
     parse_market_message,
+    parse_user_message,
 )
 
 log = logging.getLogger(__name__)
 
 MARKET_WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+USER_WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/user"
 PING_INTERVAL_S = 10.0
 STALE_AFTER_S = 8.0  # no frames for this long -> considered stale
 _BACKOFF = [0.5, 1.0, 2.0, 5.0, 10.0]
@@ -174,3 +178,111 @@ class MarketChannel:
             self._on_update(kind, asset_id)
         except Exception:  # a UI callback must never kill the socket loop
             log.exception("market ws update callback failed")
+
+
+# (kind, message) -> called on the event loop for own order/trade updates.
+UserCallback = Callable[[str, object], None]
+
+
+class UserChannel:
+    """Authenticated /ws/user socket: own order and fill updates in real time.
+
+    Same reconnect/backoff/keepalive discipline as MarketChannel. Emits parsed
+    UserOrderMessage / UserTradeMessage to the callback so the UI can refresh the
+    open-orders tab and toast fills without a manual refresh.
+    """
+
+    def __init__(
+        self,
+        creds: dict,
+        on_event: UserCallback,
+        *,
+        url: str = USER_WS_URL,
+        connect: Callable[[str], Awaitable] | None = None,
+    ) -> None:
+        self._creds = creds
+        self._on_event = on_event
+        self._url = url
+        self._connect = connect or self._default_connect
+        self._task: asyncio.Task | None = None
+        self._ws = None
+        self._connected = False
+
+    @staticmethod
+    async def _default_connect(url: str):
+        return await websockets.connect(url, ping_interval=None, max_size=None)
+
+    def start(self) -> None:
+        if self._task is None or self._task.done():
+            self._task = asyncio.ensure_future(self._run())
+
+    async def stop(self) -> None:
+        if self._task is not None:
+            self._task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._task
+            self._task = None
+        await self._close_ws()
+
+    async def _close_ws(self) -> None:
+        if self._ws is not None:
+            with contextlib.suppress(Exception):
+                await self._ws.close()
+            self._ws = None
+        self._connected = False
+
+    @property
+    def connected(self) -> bool:
+        return self._connected
+
+    async def _run(self) -> None:
+        attempt = 0
+        while True:
+            try:
+                self._ws = await self._connect(self._url)
+                self._connected = True
+                attempt = 0
+                await self._ws.send(
+                    json.dumps({"type": "user", "markets": [], "auth": self._creds})
+                )
+                await self._read_loop()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                log.debug("user ws error: %s", exc)
+            finally:
+                await self._close_ws()
+            delay = _BACKOFF[min(attempt, len(_BACKOFF) - 1)]
+            attempt += 1
+            await asyncio.sleep(delay)
+
+    async def _read_loop(self) -> None:
+        while True:
+            try:
+                raw = await asyncio.wait_for(self._ws.recv(), timeout=PING_INTERVAL_S)
+            except TimeoutError:
+                await self._ws.send("PING")
+                continue
+            self._dispatch(raw if isinstance(raw, str) else raw.decode())
+
+    def _dispatch(self, text: str) -> None:
+        if text == "PONG":
+            return
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            return
+        for raw in payload if isinstance(payload, list) else [payload]:
+            if not isinstance(raw, dict):
+                continue
+            msg = parse_user_message(raw)
+            if isinstance(msg, UserOrderMessage):
+                self._emit("order", msg)
+            elif isinstance(msg, UserTradeMessage):
+                self._emit("trade", msg)
+
+    def _emit(self, kind: str, msg: object) -> None:
+        try:
+            self._on_event(kind, msg)
+        except Exception:
+            log.exception("user ws event callback failed")

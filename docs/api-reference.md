@@ -187,9 +187,9 @@ Backs the activity screen. Param `type=TRADE` filters.
 
 ## 4. CLOB WebSocket
 
-Host: `wss://ws-subscriptions-clob.polymarket.com/ws/`. Two channels. Market-channel
-shapes below are **verified from real captured frames** (see tests/fixtures/ws_market_*.json,
-captured 2026-07-04); the user-channel shapes are still from prior knowledge.
+Host: `wss://ws-subscriptions-clob.polymarket.com/ws/`. Two channels. Both market- and
+user-channel shapes below are **verified from real captured frames** (see
+tests/fixtures/ws_market_*.json and ws_user_*.json, captured 2026-07-04).
 
 Frames arrive **batched as a JSON array** (`[{...}, {...}]`), even for a single message.
 Each element carries `event_type`. Timestamps are epoch-ms strings.
@@ -220,14 +220,24 @@ is down or no frames arrive for STALE_AFTER_S.
 
 ### /ws/user  (auth)
 
-Subscribe: `{"type": "user", "markets": ["<condition_id>", ...], "auth": {"apiKey": ...,
-"secret": ..., "passphrase": ...}}` (L2 creds; empty/omitted markets list = all - verify).
+Subscribe: `{"type": "user", "markets": [], "auth": {"apiKey": ..., "secret": ...,
+"passphrase": ...}}`. L2 creds are derived via `core.auth.derive_l2_creds` (V1 client's
+`create_or_derive_api_creds`, deterministic from the wallet signature). An empty `markets`
+list subscribes to all own activity (verified). No initial snapshot - frames only arrive
+on order/fill events, so keep REST `get_open_orders` for the baseline.
 
-Messages:
+Messages (verified shapes):
 
-- `order` - placement/update/cancel of own orders: id, status, price, original_size,
-  size_matched, ...
-- `trade` - own fills: id, price, size, side, status (MATCHED -> MINED -> CONFIRMED), ...
+- `order` - own order lifecycle: `{event_type, id, market (condition id), asset_id, side,
+  outcome, price, original_size, size_matched, type, status, timestamp, maker_address, ...}`.
+  `type` is PLACEMENT / UPDATE / CANCELLATION; `status` is LIVE / MATCHED / CANCELED.
+  A LIVE order is (partly) resting; CANCELED or MATCHED means it left the book.
+- `trade` - own fills: `{event_type, id, market, asset_id, side, outcome, price, size,
+  status, timestamp}`; status walks MATCHED -> MINED -> CONFIRMED. (Shape from prior
+  knowledge; not fill-captured in this pass.)
+
+The app runs this socket at the app level (`start_user_channel`): `order`/`trade` frames
+toast and refresh the portfolio open-orders tab live, no manual refresh needed.
 
 Keepalive: send `"PING"` text frame every ~10s; server may close idle sockets (verify).
 
