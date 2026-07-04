@@ -59,6 +59,7 @@ def test_round_trip(tmp_credstore):
         "funder": "0xFunder",
         "private_key": "deadbeef" * 8,
         "signature_type": 1,
+        "builder_code": "",
     }
 
 
@@ -108,3 +109,34 @@ def test_corrupt_file_returns_none(tmp_credstore):
     tmp_credstore.CONFIG_DIR.mkdir(parents=True)
     tmp_credstore.CRED_PATH.write_text("not [valid toml{{")
     assert tmp_credstore.load_credentials() is None
+
+
+def test_builder_code_round_trip(tmp_credstore):
+    code = "0x" + "ab" * 32
+    tmp_credstore.save_credentials("0xF", "deadbeef" * 8, 1, builder_code=code)
+    text = tmp_credstore.CRED_PATH.read_text()
+    assert f'builder_code = "{code}"' in text  # not a secret, stays in the TOML
+    assert tmp_credstore.load_credentials()["builder_code"] == code
+
+
+def test_builder_code_omitted_when_empty(tmp_credstore):
+    tmp_credstore.save_credentials("0xF", "k", 1)
+    assert "builder_code" not in tmp_credstore.CRED_PATH.read_text()
+    assert tmp_credstore.load_credentials()["builder_code"] == ""
+
+
+def test_builder_code_survives_key_migration(tmp_credstore):
+    # Legacy TOML with the key still inline AND a builder code present.
+    code = "0x" + "cd" * 32
+    tmp_credstore.CONFIG_DIR.mkdir(parents=True)
+    tmp_credstore.CRED_PATH.write_text(
+        f'funder = "0xF"\nprivate_key = "legacykey"\nsignature_type = 1\n'
+        f'builder_code = "{code}"\n'
+    )
+    loaded = tmp_credstore.load_credentials()
+    assert loaded["private_key"] == "legacykey"
+    assert loaded["builder_code"] == code
+    # Rewrite dropped the key but kept the builder code.
+    text = tmp_credstore.CRED_PATH.read_text()
+    assert "legacykey" not in text
+    assert code in text

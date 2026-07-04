@@ -8,6 +8,7 @@ All money math uses Decimal; floats only at the client boundary.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -20,6 +21,8 @@ from polymarket_tui.core.config import Mode, Settings
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.state.watchlist import DATA_DIR
+
+log = logging.getLogger(__name__)
 
 AUDIT_PATH = Path(DATA_DIR) / "orders.jsonl"
 DUPLICATE_WINDOW_S = 10.0
@@ -173,6 +176,14 @@ class OrderService:
         self._settings = settings
         self._authed = authed
         self._recent: list[tuple[float, str]] = []  # (monotonic, fingerprint)
+        # A configured-but-malformed builder code attributes to nobody; warn once
+        # instead of silently dropping it (a bad code never blocks the order).
+        if settings.polymarket_builder_code and settings.builder_code is None:
+            log.warning(
+                "Ignoring malformed POLYMARKET_BUILDER_CODE %r - orders will not be attributed"
+                " (expected a 0x-prefixed 32-byte hex code).",
+                settings.polymarket_builder_code,
+            )
 
     # -- validation --------------------------------------------------------------
 
@@ -276,11 +287,18 @@ class OrderService:
 
         from py_clob_client_v2 import OrderArgs, OrderType
 
+        # Attach the Builders-Program code only when one is configured and valid;
+        # absence is a no-op (the client defaults to the zero/no-attribution code).
+        builder_kwargs = {}
+        if self._settings.builder_code:
+            builder_kwargs["builder_code"] = self._settings.builder_code
+
         order_args = OrderArgs(
             token_id=draft.token_id,
             price=float(draft.price),
             size=float(draft.size),
             side=draft.side.value,
+            **builder_kwargs,
         )
         order_type = OrderType.FAK if draft.is_market_order else getattr(OrderType, draft.tif.value)
         live = self._settings.mode is Mode.TRADER_LIVE

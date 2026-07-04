@@ -60,6 +60,14 @@ signed = client.create_order(OrderArgs(token_id, price, size, side))   # to_thre
 resp   = client.post_order(signed, order_type)                          # to_thread
 ```
 
+If `POLYMARKET_BUILDER_CODE` (or the `builder_code` in credentials.toml) is set to a
+valid `0x`-prefixed bytes32, `OrderService.place` adds `builder_code=` to `OrderArgs`
+so matched fills are attributed to us on-chain (Polymarket Builders Program, issue #12).
+Absence, the all-zero code, or a malformed value is a no-op: the order signs and posts
+exactly as before, attributed to nobody. Builder fees stay at the profile default of 0
+bps - the user pays no builder cost. Setting a non-zero fee would be a user-visible cost
+and must be disclosed in the order panel first (design principle: money is never careless).
+
 Map response to UX:
 
 | Result | UX |

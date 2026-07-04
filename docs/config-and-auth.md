@@ -25,6 +25,7 @@ otherwise the credentials file, otherwise read-only mode.
 | `POLYMARKET_SIGNATURE_TYPE` | default `1` | 1 = proxy wallet, 0 = EOA, 2 = Magic/email |
 | `POLYMARKET_EXECUTION_LIVE` | default unset | `1` enables real order posting; otherwise dry-run |
 | `POLYMARKET_HOST` | default `https://clob.polymarket.com` | override for testing |
+| `POLYMARKET_BUILDER_CODE` | default unset | Builders-Program attribution code (`0x`-prefixed bytes32). Not a secret; attaches to signed orders. Empty/malformed = no attribution, never blocks. |
 | `PMTUI_MAX_NOTIONAL` | default `500` | typed-confirm threshold in trading.md check 8 |
 
 `core/config.py` is a pydantic-settings `Settings` object; everything else reads config

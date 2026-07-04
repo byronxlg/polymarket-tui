@@ -22,6 +22,28 @@ class Mode(StrEnum):
     TRADER_LIVE = "LIVE"
 
 
+def normalize_builder_code(raw: str) -> str | None:
+    """Canonicalize a Builders-Program builder code, or None if unusable.
+
+    A builder code is a 0x-prefixed 32-byte hex string (bytes32) attached to
+    orders so matched fills are attributed on-chain. The all-zero code means
+    "no attribution" and is treated the same as absent. A malformed code is
+    dropped (returns None) rather than attached - a bad code counts for nobody
+    and must never block or corrupt an otherwise-valid order.
+    """
+    raw = (raw or "").strip().lower()
+    if not raw:
+        return None
+    if not raw.startswith("0x"):
+        raw = "0x" + raw
+    body = raw[2:]
+    if len(body) != 64 or any(c not in "0123456789abcdef" for c in body):
+        return None
+    if int(body, 16) == 0:
+        return None
+    return raw
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
@@ -30,7 +52,13 @@ class Settings(BaseSettings):
     polymarket_signature_type: int = 1
     polymarket_execution_live: bool = False
     polymarket_host: str = "https://clob.polymarket.com"
+    polymarket_builder_code: str = ""
     pmtui_max_notional: float = 500.0
+
+    @property
+    def builder_code(self) -> str | None:
+        """Validated builder code to attribute orders with, or None if unset/bad."""
+        return normalize_builder_code(self.polymarket_builder_code)
 
     @property
     def mode(self) -> Mode:
@@ -60,10 +88,12 @@ def get_settings() -> Settings:
     saved = load_credentials()
     if saved is None:
         return settings
-    return settings.model_copy(
-        update={
-            "polymarket_funder": saved["funder"],
-            "polymarket_private_key": saved["private_key"],
-            "polymarket_signature_type": saved["signature_type"],
-        }
-    )
+    update = {
+        "polymarket_funder": saved["funder"],
+        "polymarket_private_key": saved["private_key"],
+        "polymarket_signature_type": saved["signature_type"],
+    }
+    # Env (already on `settings`) wins over the file for the builder code too.
+    if not settings.polymarket_builder_code and saved.get("builder_code"):
+        update["polymarket_builder_code"] = saved["builder_code"]
+    return settings.model_copy(update=update)

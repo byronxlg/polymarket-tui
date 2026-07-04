@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 
-from polymarket_tui.core.config import Settings
+from polymarket_tui.core.config import Settings, normalize_builder_code
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.services.orders import (
     IssueLevel,
@@ -304,3 +304,72 @@ class TestHelpers:
         assert parse_price("$0.5") is None  # no dollars entry - cents only
         assert parse_price("") is None
         assert parse_price("abc") is None
+
+
+ZERO_CODE = "0x" + "0" * 64
+VALID_CODE = "0x" + "ab" * 32
+
+
+class CapturingAuthed:
+    """Captures the OrderArgs handed to the signing path (dry-run)."""
+
+    def __init__(self) -> None:
+        self.order_args = None
+
+    async def sign_order(self, order_args) -> object:
+        self.order_args = order_args
+        return object()
+
+
+def dry_service(authed, builder_code: str = "") -> OrderService:
+    # Key + funder => TRADER_DRY (execution_live defaults False).
+    return OrderService(
+        Settings(
+            polymarket_private_key="k",
+            polymarket_funder="0xf",
+            polymarket_builder_code=builder_code,
+        ),
+        authed,
+    )
+
+
+class TestBuilderCode:
+    def test_normalize_valid(self):
+        assert normalize_builder_code(VALID_CODE) == VALID_CODE
+
+    def test_normalize_adds_0x_and_lowercases(self):
+        assert normalize_builder_code("AB" * 32) == VALID_CODE
+
+    def test_normalize_rejects_empty_zero_and_malformed(self):
+        assert normalize_builder_code("") is None
+        assert normalize_builder_code("   ") is None
+        assert normalize_builder_code(ZERO_CODE) is None  # zero == no attribution
+        assert normalize_builder_code("0x123") is None  # wrong length
+        assert normalize_builder_code("0x" + "zz" * 32) is None  # non-hex
+        assert normalize_builder_code("0x" + "ab" * 33) is None  # too long
+
+    def test_settings_builder_code_property(self):
+        assert Settings(polymarket_builder_code=VALID_CODE).builder_code == VALID_CODE
+        assert Settings(polymarket_builder_code="garbage").builder_code is None
+        assert Settings().builder_code is None
+
+    @pytest.mark.asyncio
+    async def test_place_attaches_configured_code(self):
+        authed = CapturingAuthed()
+        result = await dry_service(authed, VALID_CODE).place(make_draft())
+        assert result.ok and result.dry_run
+        assert authed.order_args.builder_code == VALID_CODE
+
+    @pytest.mark.asyncio
+    async def test_place_without_code_uses_client_default(self):
+        authed = CapturingAuthed()
+        await dry_service(authed).place(make_draft())
+        # No code configured => OrderArgs keeps the client's zero/no-attribution default.
+        assert authed.order_args.builder_code == ZERO_CODE
+
+    @pytest.mark.asyncio
+    async def test_place_ignores_malformed_code(self):
+        authed = CapturingAuthed()
+        await dry_service(authed, "not-a-code").place(make_draft())
+        # Malformed code is dropped, never attached - the order still signs.
+        assert authed.order_args.builder_code == ZERO_CODE
