@@ -68,12 +68,15 @@ get attribution from other people running the TUI (a purely-local override would
 nobody but the operator). The code is public (an on-chain identifier), not a secret.
 
 Resolution (see `Settings.builder_code`): no override -> the shipped default; a valid
-`POLYMARKET_BUILDER_CODE` / `credentials.toml` code -> self-attribution; `off`/`none`/`0`
--> disabled; malformed -> disabled + a one-time warning. Being open source, a user can
-always override or strip the default - client-side codes can't be enforced without
-server-side signing. Builder fees stay at the profile default of 0 bps - the user pays no
-builder cost. A non-zero fee would be a user-visible cost and must be disclosed in the
-order panel first (design principle: money is never careless).
+`POLYMARKET_BUILDER_CODE` / `credentials.toml` code -> attribution is redirected to it
+(self-attribution / forks); empty, malformed, or zero -> falls back to the default
+(malformed also logs a one-time warning). There is deliberately no config value that
+disables attribution; turning it off requires editing `DEFAULT_BUILDER_CODE` in source.
+That is friction, not enforcement - being open source, a user editing the source can
+always strip it; only server-side signing could truly enforce attribution. Builder fees
+stay at the profile default of 0 bps - the user pays no builder cost. A non-zero fee would
+be a user-visible cost and must be disclosed in the order panel first (design principle:
+money is never careless).
 
 Map response to UX:
 

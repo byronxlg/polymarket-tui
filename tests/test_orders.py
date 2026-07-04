@@ -353,19 +353,19 @@ class TestBuilderCode:
         assert Settings().builder_code == DEFAULT_BUILDER_CODE
         assert normalize_builder_code(DEFAULT_BUILDER_CODE) == DEFAULT_BUILDER_CODE
 
-    def test_settings_override_self_attributes(self):
+    def test_settings_override_redirects_attribution(self):
         assert Settings(polymarket_builder_code=VALID_CODE).builder_code == VALID_CODE
 
-    def test_settings_explicit_off_disables_attribution(self):
-        for off in ("off", "none", "0", ZERO_CODE):
-            s = Settings(polymarket_builder_code=off)
-            assert s.builder_code is None
-            assert not s.builder_code_is_misconfigured  # intentional, not a mistake
+    def test_config_cannot_disable_attribution(self):
+        # "off"/zero/garbage all fall back to the default - only editing the
+        # DEFAULT_BUILDER_CODE constant in source can turn attribution off.
+        for override in ("off", "none", "0", ZERO_CODE, "garbage"):
+            assert Settings(polymarket_builder_code=override).builder_code == DEFAULT_BUILDER_CODE
 
     def test_settings_malformed_override_is_flagged(self):
         s = Settings(polymarket_builder_code="garbage")
-        assert s.builder_code is None
-        assert s.builder_code_is_misconfigured
+        assert s.builder_code == DEFAULT_BUILDER_CODE  # falls back, still attributed
+        assert s.builder_code_is_misconfigured  # but the bad redirect is surfaced
 
     @pytest.mark.asyncio
     async def test_place_attaches_shipped_default_when_no_override(self):
@@ -382,15 +382,9 @@ class TestBuilderCode:
         assert authed.order_args.builder_code == VALID_CODE
 
     @pytest.mark.asyncio
-    async def test_place_explicit_off_uses_client_default(self):
-        authed = CapturingAuthed()
-        await dry_service(authed, "off").place(make_draft())
-        # Opt-out => no attribution: OrderArgs keeps the client's zero default.
-        assert authed.order_args.builder_code == ZERO_CODE
-
-    @pytest.mark.asyncio
-    async def test_place_ignores_malformed_code(self):
-        authed = CapturingAuthed()
-        await dry_service(authed, "not-a-code").place(make_draft())
-        # Malformed code is dropped, never attached - the order still signs.
-        assert authed.order_args.builder_code == ZERO_CODE
+    async def test_place_falls_back_to_default_on_off_or_malformed(self):
+        for override in ("off", "not-a-code", ZERO_CODE):
+            authed = CapturingAuthed()
+            await dry_service(authed, override).place(make_draft())
+            # No config value drops attribution - the default is always stamped.
+            assert authed.order_args.builder_code == DEFAULT_BUILDER_CODE

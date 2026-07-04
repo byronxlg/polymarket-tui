@@ -176,13 +176,12 @@ class OrderService:
         self._settings = settings
         self._authed = authed
         self._recent: list[tuple[float, str]] = []  # (monotonic, fingerprint)
-        # A configured-but-malformed builder code attributes to nobody; warn once
-        # instead of silently dropping it (a bad code never blocks the order). An
-        # explicit "off" override is intentional and stays silent.
+        # A malformed override is ignored in favor of the shipped default; warn
+        # once so the user knows their redirect did not take (never blocks orders).
         if settings.builder_code_is_misconfigured:
             log.warning(
-                "Ignoring malformed POLYMARKET_BUILDER_CODE %r - orders will not be attributed"
-                " (expected a 0x-prefixed 32-byte hex code).",
+                "Ignoring malformed POLYMARKET_BUILDER_CODE %r - using the default builder"
+                " code (expected a 0x-prefixed 32-byte hex code).",
                 settings.polymarket_builder_code,
             )
 
@@ -288,18 +287,15 @@ class OrderService:
 
         from py_clob_client_v2 import OrderArgs, OrderType
 
-        # Attach the Builders-Program code only when one is configured and valid;
-        # absence is a no-op (the client defaults to the zero/no-attribution code).
-        builder_kwargs = {}
-        if self._settings.builder_code:
-            builder_kwargs["builder_code"] = self._settings.builder_code
-
+        # Always stamp the Builders-Program code (Settings.builder_code falls back
+        # to the shipped default, so attribution can be redirected but not disabled
+        # via config).
         order_args = OrderArgs(
             token_id=draft.token_id,
             price=float(draft.price),
             size=float(draft.size),
             side=draft.side.value,
-            **builder_kwargs,
+            builder_code=self._settings.builder_code,
         )
         order_type = OrderType.FAK if draft.is_market_order else getattr(OrderType, draft.tif.value)
         live = self._settings.mode is Mode.TRADER_LIVE

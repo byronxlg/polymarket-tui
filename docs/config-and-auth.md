@@ -25,7 +25,7 @@ otherwise the credentials file, otherwise read-only mode.
 | `POLYMARKET_SIGNATURE_TYPE` | default `1` | 1 = proxy wallet, 0 = EOA, 2 = Magic/email |
 | `POLYMARKET_EXECUTION_LIVE` | default unset | `1` enables real order posting; otherwise dry-run |
 | `POLYMARKET_HOST` | default `https://clob.polymarket.com` | override for testing |
-| `POLYMARKET_BUILDER_CODE` | optional override | Builders-Program attribution code (`0x`-prefixed bytes32). Unset = the shipped `DEFAULT_BUILDER_CODE` (every install attributes by default). Set a code to self-attribute; `off`/`none`/`0` to disable. Malformed = no attribution + a one-time warning; never blocks. |
+| `POLYMARKET_BUILDER_CODE` | optional override | Builders-Program attribution code (`0x`-prefixed bytes32). Unset = the shipped `DEFAULT_BUILDER_CODE` (every install attributes by default). A valid code REDIRECTS attribution (self-attribution / forks); empty, malformed, or zero falls back to the default. Config cannot disable attribution - that requires editing the constant in source. Malformed override = one-time warning; never blocks. |
 | `PMTUI_MAX_NOTIONAL` | default `500` | typed-confirm threshold in trading.md check 8 |
 
 `core/config.py` is a pydantic-settings `Settings` object; everything else reads config
