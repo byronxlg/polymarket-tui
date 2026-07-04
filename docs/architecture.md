@@ -7,80 +7,88 @@
 |  ui/            Textual App, Screens, Widgets                 |
 |                 (render state, emit user intents)             |
 +---------------------------------------------------------------+
-|  services/      MarketService  PortfolioService  OrderService |
-|                 StreamService (WS fan-in -> reactive state)   |
+|  services/      PortfolioService  OrderService                |
 +---------------------------------------------------------------+
-|  api/           GammaClient  ClobClient  DataApiClient        |
-|                 WsClient (market + user channels)             |
+|  api/           GammaClient  ClobPublicClient                 |
+|                 AuthedClobClient  DataApiClient               |
 +---------------------------------------------------------------+
 |  models/        pydantic domain models (Event, Market,        |
-|                 OrderBook, Position, Order, Trade, ...)       |
+|                 OrderBook, Position, OpenOrder, Profile, ...) |
 +---------------------------------------------------------------+
-|  core/          config, auth bootstrap, errors, formatting    |
+|  core/          config, credstore, auth bootstrap, ntp, fmt   |
 +---------------------------------------------------------------+
 ```
 
-Dependency rule: arrows point down only. `ui` never imports `api`; screens talk to services.
-Services return domain models, never raw JSON. This keeps the four upstream APIs (which
-overlap and disagree on field names) behind one coherent vocabulary.
+Dependency rule: arrows point down only. Screens reach clients/services via
+attributes on the App (`app.gamma`, `app.portfolio`, `app.orders`, ...).
+Services and clients return domain models, never raw JSON - the four upstream
+APIs overlap and disagree on field names, and pydantic models absorb the
+quirks (Gamma's JSON-encoded string lists, string numbers) at the boundary.
 
 ## Project layout
 
 ```
-polymarket_tui/
-  __main__.py            # entry point: config load -> App.run()
+src/polymarket_tui/
+  __main__.py            # entry point: PolymarketApp().run()
   core/
-    config.py            # Settings (pydantic-settings, env-driven)
-    auth.py              # L2 cred bootstrap (V1 client -> V2 creds), cached
-    errors.py            # ApiError, AuthError, OrderRejected, ...
-    fmt.py               # money/price/pct/relative-time formatters
+    config.py            # Settings (pydantic-settings) + capability modes
+    credstore.py         # ~/.config/polymarket-tui/credentials.toml (0600)
+    auth.py              # L2 cred bootstrap (V1 client -> V2 creds)
+    ntp.py               # stdlib SNTP offset probe for the header clock
+    fmt.py               # cents/money/size/date formatters, trunc
   models/
-    event.py  market.py  book.py  position.py  order.py  trade.py  activity.py
+    market.py            # Tag, Series, Market, Event, OrderBook, PricePoint
+    portfolio.py         # Position, ActivityItem, Profile, OpenOrder
   api/
-    gamma.py             # async httpx wrapper over gamma-api
-    clob.py              # wraps py-clob-client-v2 (sync lib -> asyncio.to_thread)
-    data.py              # async httpx wrapper over data-api
-    ws.py                # websocket manager: market + user channels, reconnect
+    gamma.py             # async httpx: events, markets, tags, search, comments
+    clob.py              # async httpx: public book + price history
+    clob_auth.py         # py-clob-client-v2 behind asyncio.to_thread (auth'd)
+    data.py              # async httpx: positions, trades, activity, user-pnl
   services/
-    markets.py           # discovery, search, event/market detail, price history
-    portfolio.py         # positions, balance, activity, trade history
-    orders.py            # validation pipeline, place, cancel
-    stream.py            # subscription registry, book maintenance, message dispatch
+    portfolio.py         # TTL-cached positions/balance/value/activity
+    orders.py            # validation pipeline, place/cancel, JSONL audit
   state/
-    store.py             # AppState: caches, watchlist, subscription refcounts
-    watchlist.py         # JSON persistence in ~/.local/share/polymarket-tui/
+    watchlist.py         # starred events + followed traders (JSON, v1->v2)
   ui/
-    app.py               # PolymarketApp(Textual App), global bindings, theming
+    app.py               # PolymarketApp: global bindings, account strip, nav
     screens/
-      home.py  event.py  market.py  portfolio.py  search.py  watchlist.py  help.py
+      home.py event.py market.py portfolio.py search.py watchlist.py
+      user.py related.py auth.py help.py
     widgets/
-      event_table.py  book_widget.py  price_chart.py  order_form.py
-      confirm_modal.py  positions_table.py  orders_table.py  trades_log.py
-      balance_bar.py  tag_bar.py  toast.py
-    styles/
-      app.tcss           # Textual CSS
+      app_header.py      # title + account strip + ms clock (20Hz)
+      event_table.py     # EventsTable (shared list rows)
+      preview.py         # EventsBrowser (table + cursor-following preview rail)
+      book_panel.py      # order book with log-scaled size bars
+      order_panel.py     # inline order entry (price/size, confirm strip)
+      trades_table.py    # live trades, compact/full presets
+      trader_overview.py # value + top positions for an address
+      linechart.py       # smooth box-drawing chart renderer
+      price_chart.py     # legend + chart panel with crosshair inspect
+      activity_panel.py  # comments feed (chart strip)
+      confirm_modal.py   # y/esc confirmation with arming delay
+      vim_table.py       # arrow-first DataTable (TopReached/BottomReached)
+      tables.py          # shared positions-table columns/rows, pnl_text
+    styles/app.tcss
 tests/
-  api/  services/  ui/   # respx-mocked API tests; Pilot-driven UI tests
-docs/                    # these documents
+  test_orders.py         # table-driven validation + cancel gating
+  test_credstore.py      # credentials round-trip, permissions
 ```
 
 ## Async model
 
 Everything runs on Textual's single asyncio event loop.
 
-- **REST**: `httpx.AsyncClient` (one shared instance per API base URL, HTTP/2, connection
-  pooling). Screens call services from `@work` Textual workers so slow calls never block
-  rendering; results are applied via reactive attributes or `post_message`.
-- **py-clob-client-v2 is synchronous.** All calls to it go through
-  `asyncio.to_thread(...)` inside `api/clob.py`. Order signing is CPU-trivial (<10ms), so
-  a thread hop is sufficient; no process pool needed.
-- **WebSockets**: `services/stream.py` owns two long-lived tasks (market channel, user
-  channel). Each is a `websockets` connect-loop with exponential backoff reconnect
-  (1s, 2s, 4s ... cap 30s) and resubscribe-on-reconnect. Incoming messages are parsed to
-  typed events and dispatched to subscribers via an in-process pub/sub
-  (`stream.subscribe(token_id) -> AsyncIterator[BookEvent]` plus a Textual message bridge).
-- **Polling fallback**: if the WS is down, `stream` degrades to REST polling of
-  `/book` every 3s for actively-viewed tokens and marks the UI stale-indicator.
+- **REST**: `httpx.AsyncClient` per API host (HTTP/2, pooling). Screens call
+  clients from `@work` Textual workers so slow calls never block rendering.
+- **py-clob-client-v2 is synchronous**: every call goes through
+  `asyncio.to_thread` inside `api/clob_auth.py`. The client is bootstrapped
+  lazily on first authenticated call and cached.
+- **Polling**: the order book refetches every 3s on market screens; the
+  trades rail every 5s; balances/account strip every 60s; NTP offset every
+  15min. Websocket streaming is planned (roadmap M2) but not built - there is
+  no ws.py/stream service yet.
+- **Order placement runs on an app-lifetime worker** so closing the panel
+  cannot cancel an in-flight post (the HTTP request would still land).
 
 ## Data flow examples
 
@@ -88,62 +96,52 @@ Everything runs on Textual's single asyncio event loop.
 
 ```
 MarketScreen.on_mount
-  -> MarketService.get_market(slug)          # Gamma: metadata, token ids
-  -> ClobClient.get_book(token_id)           # initial book snapshot
-  -> ClobClient.get_prices_history(token_id) # chart series
-  -> StreamService.subscribe([yes_id, no_id])
-       ws "book" events    -> replace book widget state
-       ws "price_change"   -> patch book levels, update midpoint/spread
-       ws "last_trade_price" -> append to trades log, tick chart
-MarketScreen.on_unmount -> StreamService.unsubscribe(...)  # refcounted
+  -> fill outcome table from Market metadata (Gamma fields)
+  -> app.clob.order_book(token)        # snapshot now, re-poll every 3s
+  -> app.clob.prices_history(token)    # chart series for the active timeframe
+  -> app.data.market_trades(condition) # trades rail, re-poll every 5s
+  -> app.portfolio.positions()         # "YOUR POSITION" line (cached, 30s TTL)
 ```
 
 ### Placing an order
 
 ```
-OrderForm submit
-  -> OrderService.validate(draft)     # tick size, min size, balance, price-vs-mid
-  -> ConfirmModal (always)            # rendered summary incl. notional + warnings
-  -> OrderService.place(draft)        # to_thread: create_order + post_order
-  -> result toast; user WS channel delivers authoritative order/fill updates
-  -> PortfolioService cache invalidated
+OrderPanel (b/s) -> enter
+  -> OrderService.validate(draft, book, cash, position)
+       blocks mirror exchange rejections only; warnings never block
+  -> confirm strip arms; y
+  -> OrderService.place(draft)   # DRY: sign only; LIVE: create+post (to_thread)
+  -> audit line appended to ~/.local/share/polymarket-tui/orders.jsonl
+  -> toast; portfolio caches invalidated; account strip refreshed
 ```
 
 ## State and caching
 
-`state/store.py` holds a single `AppState` object owned by the App:
+`PortfolioService` owns the per-account caches:
 
 | Cache | TTL / invalidation |
 |---|---|
-| Event/market metadata (Gamma) | 60s TTL, keyed by slug/id |
-| Tag list | process lifetime |
-| Order books | live via WS; snapshot refetch on resubscribe |
-| Positions, balance | 30s TTL, invalidated on any order placement/fill |
-| Open orders | live via user WS channel; REST snapshot on portfolio open |
-| Price history | 5min TTL keyed by (token, interval) |
-| Watchlist | persisted JSON, loaded at startup |
+| Positions | 30s TTL, force-refreshed by the portfolio screen, invalidated on placement |
+| Portfolio value / USDC balance | 60s TTL, invalidated on placement |
+| Open orders / activity | fetched on demand (no cache) |
 
-Books are maintained as sorted dicts (price -> size) per token; `price_change` deltas are
-applied in place, `book` messages replace wholesale. A monotonic `timestamp`/hash guard
-discards out-of-order messages.
+Watchlist (events + traders) persists to `~/.local/share/polymarket-tui/`.
+Credentials persist via `core/credstore.py`; env vars override the file;
+the LIVE flag is never persisted.
 
 ## Error handling
 
-- `api/` raises typed errors: `RateLimited(retry_after)`, `ApiError(status, body)`,
-  `AuthError`, `OrderRejected(error_msg)`.
-- Services translate to user-facing outcomes; UI shows toasts, never tracebacks.
-- 429s: honor retry-after, back off; CLOB read budget is ~50 req/s per key, Gamma
-  unspecified. All REST calls go through a small token-bucket limiter in `api/`.
-- Auth failure at startup drops the app into **read-only mode** (see config-and-auth.md)
-  rather than exiting: browse/books/charts work, portfolio and trading show a banner.
+- Workers catch client exceptions and surface toasts, never tracebacks;
+  panels show "unavailable" states inline.
+- Auth bootstrap failure degrades to observer/read-only rather than exiting.
+- A timed-out order post reports status-unknown and is never auto-retried -
+  it may have landed; check Open Orders first.
 
 ## Testing strategy
 
-- `api/`: respx-mocked httpx tests using captured real payloads (fixtures in
-  `tests/fixtures/*.json` recorded from the live API).
-- `services/orders.py`: table-driven validation tests (tick size, min size, balance,
-  price sanity) - this module gets the densest coverage.
-- `ui/`: Textual Pilot integration tests per screen (mount, key presses, assert rendered
-  content) with services faked at the boundary.
-- One live smoke test (`tests/live/`, opt-in via env flag) that exercises read paths
-  against production, mirroring the existing skill smoke test.
+- `services/orders.py` gets the densest coverage: table-driven validation
+  tests pinning the warn-only policy, plus cancel gating with a fake client.
+- `core/credstore.py`: round-trip, permissions, corrupt-file handling.
+- Audit writes are isolated to tmp via an autouse fixture.
+- UI changes are verified by driving the real app in tmux against the live
+  APIs (see CLAUDE.md) rather than mocked Pilot suites.

@@ -7,7 +7,7 @@ market discovery, live order books, charts, trading, and portfolio management.
 
 | Doc | Contents |
 |---|---|
-| [design-principles.md](design-principles.md) | UX and code principles distilled from building the app |
+| [../.claude/rules/design-principles.md](../.claude/rules/design-principles.md) | UX and code principles distilled from building the app |
 | [ADR-001-tech-stack.md](ADR-001-tech-stack.md) | Tech stack decision: Python + Textual + py-clob-client-v2 |
 | [architecture.md](architecture.md) | Layers, async model, data flow, project layout |
 | [api-reference.md](api-reference.md) | All four API surfaces with live-verified shapes and quirks |
@@ -28,7 +28,7 @@ market discovery, live order books, charts, trading, and portfolio management.
 - Cancel orders (single, all, per-market)
 - Watchlist (local persistence)
 - User activity feed
-- Live streaming updates via CLOB WebSocket (book, prices, own orders/fills)
+- Live streaming updates via CLOB WebSocket (planned - see roadmap; books/trades currently poll)
 
 **Out of scope** (require on-chain transactions the web UI performs via its embedded relayer,
 or are social features with low TUI value):

@@ -69,7 +69,7 @@ comments), `clob.polymarket.com` (order books, price history, orders),
 
 ## Docs
 
-- `docs/design-principles.md` - the UX/code principles this app follows
+- `.claude/rules/design-principles.md` - the UX/code principles this app follows
 - `docs/architecture.md` - layers, async model, caching
 - `docs/api-reference.md` - the four API surfaces, verified shapes, quirks
 - `docs/trading.md` - the money path: validation, confirmation, audit

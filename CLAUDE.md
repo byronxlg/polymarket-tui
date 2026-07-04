@@ -3,7 +3,7 @@
 Terminal client for Polymarket (Python 3.12 + Textual). Browsing, live order
 books, charts, portfolio, and order placement against the real exchange.
 
-@docs/design-principles.md
+@.claude/rules/design-principles.md
 
 ## Commands
 
@@ -62,7 +62,7 @@ httpx clients; py-clob-client-v2 wrapped behind asyncio.to_thread),
 full picture; docs/trading.md is the money-path spec - read it before
 touching services/orders.py or the order panel.
 
-Trading path invariants (see docs/design-principles.md for the rest):
+Trading path invariants (see .claude/rules/design-principles.md for the rest):
 - hard-block only what the exchange would reject; warnings rare
 - Decimal end-to-end; cents in the UI
 - never auto-retry a timed-out post; audit every order/cancel to
