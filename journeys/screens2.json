@@ -1,0 +1,12 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["portfolio", ["p"], 5],
+    ["portfolio_orders", ["Tab"], 2],
+    ["portfolio_back", ["Escape"], 1],
+    ["search_typed", ["/", "bitcoin"], 5],
+    ["search_back", ["Escape", "Escape"], 1],
+    ["help", ["?"], 2]
+  ]
+}

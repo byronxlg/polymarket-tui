@@ -108,7 +108,7 @@ class GammaClient:
         data = await self._get("/tags", {"limit": 100, "order": "id"})
         return [Tag.model_validate(t) for t in data]
 
-    async def search(self, query: str, limit_per_type: int = 10) -> tuple[list[Event], list]:
+    async def search(self, query: str, limit_per_type: int = 30) -> tuple[list[Event], list]:
         """Full-text search: (events, profiles)."""
         from polymarket_tui.models.portfolio import Profile
 
