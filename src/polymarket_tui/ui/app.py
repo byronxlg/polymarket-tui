@@ -12,7 +12,7 @@ from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
 from polymarket_tui.api.ws import UserChannel
 from polymarket_tui.core.auth import derive_l2_creds
-from polymarket_tui.core.config import Settings, get_settings
+from polymarket_tui.core.config import Mode, Settings, get_settings
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.models.ws import UserOrderMessage, UserTradeMessage
 from polymarket_tui.services.orders import OrderService, ReconcileTarget
@@ -28,6 +28,7 @@ from polymarket_tui.ui.screens.related import RelatedPane
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.user import UserPane
 from polymarket_tui.ui.screens.watchlist import WatchlistPane
+from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 
 class PolymarketApp(App):
@@ -42,6 +43,7 @@ class PolymarketApp(App):
         Binding("w", "watchlist", "watchlist", show=False),
         Binding("p", "portfolio", "portfolio"),
         Binding("A", "auth", "auth", show=False, key_display="A"),
+        Binding("L", "toggle_live", "live", show=False, key_display="L"),
         Binding("question_mark", "help", "help", key_display="?"),
         Binding("left", "nav_back", "back", show=False),
         Binding("less_than_sign", "nav_back", "back", show=False),
@@ -252,6 +254,38 @@ class PolymarketApp(App):
 
     def action_auth(self) -> None:
         self._push_unless_current(AuthScreen, AuthScreen)
+
+    def action_toggle_live(self) -> None:
+        """Session-wide DRY/LIVE flip: going live is confirmed, dropping to
+        DRY is instant. The flag is never persisted (config.py invariant)."""
+        if not self.settings.can_auth:
+            self.notify(
+                "Trading needs a private key + funder - press A to authenticate",
+                severity="warning",
+            )
+            return
+        if self.settings.mode is Mode.TRADER_LIVE:
+            self.reconfigure(
+                self.settings.model_copy(update={"polymarket_execution_live": False})
+            )
+            self.notify("DRY - orders are signed but never posted", timeout=4)
+            return
+        body = Text()
+        body.append("Orders and cancels will be posted to the exchange for real.\n")
+        body.append("Dry-run protection is OFF for this session.", style="bold red")
+
+        def _confirmed(ok: bool | None) -> None:
+            if ok:
+                self.reconfigure(
+                    self.settings.model_copy(update={"polymarket_execution_live": True})
+                )
+                self.notify(
+                    "LIVE - orders and cancels post to the exchange (L to drop back to DRY)",
+                    severity="warning",
+                    timeout=5,
+                )
+
+        self.push_screen(ConfirmModal("ENABLE LIVE TRADING", body, "go live"), _confirmed)
 
     def action_portfolio(self) -> None:
         if not self.settings.can_read_portfolio:

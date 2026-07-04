@@ -1,0 +1,10 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["modal", ["L"], 2],
+    ["declined", ["Escape"], 1],
+    ["confirmed_live", ["L", "Enter"], 3],
+    ["back_to_dry", ["L"], 2]
+  ]
+}

@@ -398,6 +398,8 @@ class OrderPanel(Vertical):
             detail.append(f"   mid {fmt.cents(book.midpoint)}", style="dim")
         mode = self.app.settings.mode
         detail.append(f"   [{mode.value}]", style="yellow" if mode is Mode.TRADER_DRY else "red")
+        if mode is Mode.TRADER_DRY:
+            detail.append("  L = go live", style="dim")
         info.update(detail)
 
     def _set_confirming(self, draft: OrderDraft | None) -> None:

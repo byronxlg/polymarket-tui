@@ -43,6 +43,7 @@ expanded trades collapse before the screen closes.
 | w | watchlist |
 | H or Home | home screen |
 | A | auth / credentials |
+| L | toggle DRY/LIVE for this session (going live asks for confirmation) |
 | ? | this help |
 | q | quit |
 
