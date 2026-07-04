@@ -71,7 +71,8 @@ One scheme everywhere - press `?` in the app for the full reference:
   the YES/NO book, flip BUY/SELL while ordering, show rules
 - Market pages: `b`/`s` order entry under the live book (price in cents,
   empty = market order, up/down = tick), `y`/`n` book side, `a` expand the
-  live trades rail (right opens the trader), `c` comments, `e` parent event
+  inline trades to full width (right opens the trader), `i` rules,
+  `c` comments, `e` parent event
 - `/` search (markets and traders), `p` portfolio, `w` watchlist, `A` auth,
   `q` quit
 

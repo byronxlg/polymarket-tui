@@ -1,0 +1,13 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["event", ["Enter"], 6],
+    ["comments", ["c"], 4],
+    ["comments_off", ["c"], 1],
+    ["inspect", ["Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down"], 2],
+    ["inspect_step", ["Left", "Left", "Left"], 2],
+    ["inspect_out", ["Escape"], 1],
+    ["related", ["R"], 5]
+  ]
+}
