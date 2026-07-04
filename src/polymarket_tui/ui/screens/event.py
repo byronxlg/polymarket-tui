@@ -1,4 +1,8 @@
-"""Event detail: multi-outcome price chart plus all child markets."""
+"""Event detail: multi-outcome price chart plus all child markets.
+
+Logic lives in EventPane (a widget) so NavHost can host it as the 70% child
+of the drill split.
+"""
 
 from __future__ import annotations
 
@@ -9,22 +13,24 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Static, Tab, Tabs
+from textual.widgets import DataTable, Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
-class EventScreen(Screen):
+class EventPane(Vertical):
+    """Event detail body - hosted as a drill pane by NavHost."""
+
+    header_title = "event"
+
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_info", "rules"),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
@@ -34,14 +40,13 @@ class EventScreen(Screen):
         Binding("r", "refresh", "refresh", show=False),
     ]
 
-    def __init__(self, event: Event) -> None:
-        super().__init__()
+    def __init__(self, event: Event, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._event = event
         self._show_info = False
         self._interval = "1D"
 
     def compose(self) -> ComposeResult:
-        yield AppHeader("event")
         yield Static(self._title_line(), classes="screen-title")
         with Horizontal(id="event-body"):
             yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
@@ -57,7 +62,9 @@ class EventScreen(Screen):
             tabs.can_focus = False
             yield tabs
             yield PriceChartPanel(id="event-chart")
-        yield Footer()
+
+    def focus_inner(self) -> None:
+        self.query_one("#markets-table", DataTable).focus()
 
     def _title_line(self) -> str:
         e = self._event
@@ -92,12 +99,9 @@ class EventScreen(Screen):
         self.app.open_market(market, self._event, order_side=side)
 
     def action_related(self) -> None:
-        from polymarket_tui.ui.screens.related import RelatedScreen
-
-        self.app.push_screen(RelatedScreen(self._event))
+        self.app.open_related(self._event)
 
     def on_mount(self) -> None:
-        self.title = "event"
         self.query_one("#rules-panel", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         table = self.query_one(DataTable)

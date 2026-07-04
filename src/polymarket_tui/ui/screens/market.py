@@ -1,4 +1,10 @@
-"""Market detail: live-polling order book + price history chart."""
+"""Market detail: live-polling order book + price history chart.
+
+Logic lives in MarketPane (a widget) so NavHost can host it as the 70% child
+of the drill split. This is the money path - MarketPane owns the live book
+(`_book`) and the position strip; OrderPanel resolves it via the
+`is_market_pane` marker (see order_panel._market_pane) rather than self.screen.
+"""
 
 from __future__ import annotations
 
@@ -9,15 +15,13 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.screen import Screen
-from textual.widgets import Footer, Static, Tab, Tabs
+from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
@@ -29,8 +33,15 @@ from polymarket_tui.ui.widgets.vim_table import VimDataTable
 BOOK_POLL_SECONDS = 3.0
 
 
-class MarketScreen(Screen):
-    AUTO_FOCUS = None  # the order panel's inputs must not grab focus while hidden
+class MarketPane(Vertical):
+    """Market detail body - hosted as a drill pane by NavHost.
+
+    Owns the live order book in `_book`; OrderPanel finds this pane via the
+    `is_market_pane` marker to read the book and refresh positions.
+    """
+
+    header_title = "market"
+    is_market_pane = True  # marker for OrderPanel._market_pane() (no import cycle)
 
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
@@ -53,8 +64,9 @@ class MarketScreen(Screen):
         market: Market,
         event: Event | None = None,
         order_side: str | None = None,
+        **kwargs,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self._market = market
         self._event = event
         self._outcome_index = 0  # 0 = YES/first outcome, 1 = NO
@@ -66,7 +78,6 @@ class MarketScreen(Screen):
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
 
     def compose(self) -> ComposeResult:
-        yield AppHeader("market")
         yield Static(self._title_line(), classes="screen-title", id="market-title")
         with Horizontal(id="market-body"):
             with Vertical(id="market-left"):
@@ -93,7 +104,13 @@ class MarketScreen(Screen):
             yield PriceChartPanel(id="price-chart")
             yield ActivityPanel(id="comments-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
-        yield Footer()
+
+    def focus_inner(self) -> None:
+        self.query_one("#outcomes-table", VimDataTable).focus()
+
+    @property
+    def current_book(self) -> OrderBook | None:
+        return self._book
 
     # -- labels ------------------------------------------------------------
 
@@ -152,9 +169,7 @@ class MarketScreen(Screen):
         elif event.data_table.id == "trades-table":
             trader = self.query_one(TradesTable).trader_at_cursor()
             if trader is not None:
-                from polymarket_tui.ui.screens.user import UserScreen
-
-                self.app.push_screen(UserScreen(*trader))
+                self.app.open_user(*trader)
 
     def _apply_outcome(self, index: int) -> None:
         if index == self._outcome_index:
@@ -213,7 +228,6 @@ class MarketScreen(Screen):
             self.query_one("#trades-rail").display = self.size.width >= 170
 
     def on_mount(self) -> None:
-        self.title = "market"
         table = self.query_one("#outcomes-table", VimDataTable)
         table.add_column("Outcome", width=24, key="outcome")
         table.add_column("Price", width=7, key="price")
@@ -439,7 +453,7 @@ class MarketScreen(Screen):
             self.query_one(TraderOverview).show_trader(*trader)
 
     def handle_back(self) -> bool:
-        """left/escape step out one level before leaving the screen."""
+        """left/escape step out one level before leaving the pane."""
         panel = self.query_one(OrderPanel)
         if panel.is_open:
             panel.close()
@@ -459,9 +473,7 @@ class MarketScreen(Screen):
 
     def action_open_event(self) -> None:
         if self._event is not None:
-            from polymarket_tui.ui.screens.event import EventScreen
-
-            self.app.push_screen(EventScreen(self._event))
+            self.app.open_event(self._event)
             return
         self._fetch_and_open_event()
 
@@ -486,17 +498,13 @@ class MarketScreen(Screen):
             self.notify("No event found for this market", severity="warning")
             return
         self._event = event
-        from polymarket_tui.ui.screens.event import EventScreen
-
-        self.app.push_screen(EventScreen(event))
+        self.app.open_event(event)
 
     def action_related(self) -> None:
         if self._event is None:
             self.notify("No event context for this market", severity="warning")
             return
-        from polymarket_tui.ui.screens.related import RelatedScreen
-
-        self.app.push_screen(RelatedScreen(self._event))
+        self.app.open_related(self._event)
 
     def action_order(self, side: str) -> None:
         app = self.app

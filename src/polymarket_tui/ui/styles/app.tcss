@@ -204,6 +204,48 @@ PriceChartPanel {
     padding: 0 1;
 }
 
+/* NavHost: 30/70 sliding drill split hosting the real screen bodies. */
+#nav-viewport {
+    height: 1fr;
+}
+
+#nav-crumbs {
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+    color: $text;
+}
+
+.nav-pane {
+    width: 1fr;
+    border-left: solid $panel-lighten-2;
+}
+
+/* Parent shrinks to 30%, the pane opened on right = 70%. */
+.nav-pane.col-parent {
+    width: 30%;
+}
+
+.nav-pane.col-child {
+    width: 70%;
+}
+
+.nav-pane.focused {
+    border-left: solid $primary;
+}
+
+/* Shrunk to 30%, the parent is context - hide its side rails so only the
+   primary list shows. */
+.nav-pane.col-parent #preview-pane,
+.nav-pane.col-parent #event-chart-pane,
+.nav-pane.col-parent #market-chart-strip,
+.nav-pane.col-parent #book-pane,
+.nav-pane.col-parent #trades-rail,
+.nav-pane.col-parent #market-overview-pane,
+.nav-pane.col-parent #market-info {
+    display: none;
+}
+
 /* Help */
 #help-body {
     padding: 1 2;

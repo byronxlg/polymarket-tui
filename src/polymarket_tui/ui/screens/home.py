@@ -1,15 +1,18 @@
-"""Home screen: trending events with category tabs, sort cycling, and preview."""
+"""Home: trending events with category tabs, sort cycling, and preview.
+
+The logic lives in HomePane (a widget) so NavHost can host it as the root pane
+of the 30/70 drill split.
+"""
 
 from __future__ import annotations
 
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Static, Tab, Tabs
+from textual.containers import Vertical
+from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
@@ -36,7 +39,11 @@ SORT_LABELS = {
 }
 
 
-class HomeScreen(Screen):
+class HomePane(Vertical):
+    """Trending events browser - the root pane of the drill navigation."""
+
+    header_title = "polymarket-tui"
+
     BINDINGS = [
         Binding("o", "cycle_sort", "sort"),
         Binding("space", "toggle_watch", "star"),
@@ -48,28 +55,28 @@ class HomeScreen(Screen):
         Binding("escape", "leave_tag_bar", "back to list", show=False),
     ]
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._tag_slug: str | None = None
         self._sort_index = 0
         self._offset = 0
         self._loading = False
 
     def compose(self) -> ComposeResult:
-        yield AppHeader("polymarket-tui")
         yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="tag-bar")
         yield Static(self._status_line(), id="status-line", classes="subtle")
         yield EventsBrowser(id="home-browser")
-        yield Footer()
 
     def _status_line(self) -> str:
         return f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, tab category)"
 
     def on_mount(self) -> None:
-        self.title = "polymarket-tui"
         self.query_one(Tabs).can_focus = False
         self.table.focus()
         self.load_events()
+
+    def focus_inner(self) -> None:
+        self.table.focus()
 
     @property
     def table(self) -> EventsTable:

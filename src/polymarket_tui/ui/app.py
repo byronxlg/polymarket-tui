@@ -19,12 +19,14 @@ from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
-from polymarket_tui.ui.screens.event import EventScreen
+from polymarket_tui.ui.screens.event import EventPane
 from polymarket_tui.ui.screens.help import HelpScreen
-from polymarket_tui.ui.screens.home import HomeScreen
-from polymarket_tui.ui.screens.market import MarketScreen
+from polymarket_tui.ui.screens.market import MarketPane
+from polymarket_tui.ui.screens.nav_host import NavHost
 from polymarket_tui.ui.screens.portfolio import PortfolioScreen
+from polymarket_tui.ui.screens.related import RelatedPane
 from polymarket_tui.ui.screens.search import SearchScreen
+from polymarket_tui.ui.screens.user import UserPane
 from polymarket_tui.ui.screens.watchlist import WatchlistScreen
 
 
@@ -65,8 +67,8 @@ class PolymarketApp(App):
         # Live own-order/fill updates over the /ws/user socket (issue #1).
         self.user_channel: UserChannel | None = None
 
-    def get_default_screen(self) -> HomeScreen:
-        return HomeScreen()
+    def get_default_screen(self) -> NavHost:
+        return NavHost()
 
     def on_mount(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
@@ -172,17 +174,36 @@ class PolymarketApp(App):
 
     # -- navigation helpers (screens call these) ---------------------------
 
+    def _nav_host(self) -> NavHost | None:
+        base = self.screen_stack[0]
+        return base if isinstance(base, NavHost) else None
+
+    def _drill(self, pane, crumb: str) -> None:
+        """Open `pane` as a drill child in NavHost, popping any overlay first."""
+        host = self._nav_host()
+        if host is None:
+            return
+        while len(self.screen_stack) > 1:
+            self.pop_screen()
+        host.drill(pane, crumb)
+
     def open_event(self, event: Event) -> None:
-        """Open an event; binary events go straight to the market screen."""
+        """Open an event; binary events go straight to the market pane."""
         if event.is_binary and event.top_market is not None:
-            self.push_screen(MarketScreen(event.top_market, event))
-        else:
-            self.push_screen(EventScreen(event))
+            self.open_market(event.top_market, event)
+            return
+        self._drill(EventPane(event), event.title)
 
     def open_market(
         self, market: Market, event: Event | None = None, order_side: str | None = None
     ) -> None:
-        self.push_screen(MarketScreen(market, event, order_side=order_side))
+        self._drill(MarketPane(market, event, order_side=order_side), market.display_title)
+
+    def open_related(self, event: Event) -> None:
+        self._drill(RelatedPane(event), "related")
+
+    def open_user(self, address: str, name: str) -> None:
+        self._drill(UserPane(address, name), name)
 
     # -- global actions ------------------------------------------------------
 
@@ -236,6 +257,9 @@ class PolymarketApp(App):
     def action_home(self) -> None:
         while len(self.screen_stack) > 1:
             self.pop_screen()
+        base = self.screen_stack[0]
+        if isinstance(base, NavHost):
+            base.reset_to_root()
 
     def action_nav_back(self) -> None:
         # Screens may consume "back" to step out one level (close a panel,

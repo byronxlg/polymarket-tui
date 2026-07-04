@@ -1,15 +1,17 @@
-"""Public trader profile: positions and recent activity for any address."""
+"""Public trader profile: positions and recent activity for any address.
+
+Hosted as a drill pane by NavHost (30/70 split).
+"""
 
 from __future__ import annotations
 
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
-from textual.widgets import Footer, Static, TabbedContent, TabPane
+from textual.containers import Vertical
+from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.tables import (
     activity_row,
     position_row,
@@ -19,36 +21,40 @@ from polymarket_tui.ui.widgets.tables import (
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
-class UserScreen(Screen):
+class UserPane(Vertical):
+    """Public trader profile - a drill pane."""
+
+    header_title = "trader"
+
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_watch", "watch user"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "next_pane", "prev pane", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
-    def __init__(self, address: str, name: str) -> None:
-        super().__init__()
+    def __init__(self, address: str, name: str, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._address = address
         self._name = name
 
     def compose(self) -> ComposeResult:
-        yield AppHeader("trader")
         yield Static(self._title_line(), classes="screen-title", id="user-title")
         with TabbedContent(id="user-tabs"):
             with TabPane("Positions", id="pane-user-positions"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="user-positions")
             with TabPane("Activity", id="pane-user-activity"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="user-activity")
-        yield Footer()
+
+    def focus_inner(self) -> None:
+        self.query_one("#user-positions", VimDataTable).focus()
 
     def _title_line(self) -> str:
         watched = " | watched" if self.app.watchlist.is_watched_user(self._address) else ""
         return f"{self._name}  |  {self._address[:6]}...{self._address[-4:]}{watched}"
 
     def on_mount(self) -> None:
-        self.title = "trader"
         positions = self.query_one("#user-positions", VimDataTable)
         setup_positions_columns(positions)
 

@@ -119,9 +119,7 @@ class WatchlistScreen(Screen):
             address = str(event.row_key.value)
             user = next((u for u in self.app.watchlist.users if u["address"] == address), None)
             if user is not None:
-                from polymarket_tui.ui.screens.user import UserScreen
-
-                self.app.push_screen(UserScreen(address, user.get("name") or address[:10]))
+                self.app.open_user(address, user.get("name") or address[:10])
             return
         selected = self.table.highlighted_event()
         if selected is not None:
