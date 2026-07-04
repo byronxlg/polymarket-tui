@@ -237,7 +237,7 @@ class MarketPane(TierAware, Vertical):
                 "bid": Text(fmt.cents(bid), style="green"),
                 "ask": Text(fmt.cents(ask), style="red"),
                 "spread": fmt.cents(m.spread),
-                "vol": fmt.money(m.volume_24hr),
+                "vol": fmt.vol(m.volume_24hr),
             }
             table.add_row(*(cells[key] for key, _, _ in columns), key=str(idx))
 
@@ -302,9 +302,9 @@ class MarketPane(TierAware, Vertical):
         m = self._market
         bits = []
         if m.volume_24hr is not None:
-            bits.append(f"vol24h {fmt.money(m.volume_24hr)}")
+            bits.append(f"vol24h {fmt.vol(m.volume_24hr)}")
         if m.liquidity is not None:
-            bits.append(f"liquidity {fmt.money(m.liquidity)}")
+            bits.append(f"liquidity {fmt.vol(m.liquidity)}")
         if m.order_price_min_tick_size:
             bits.append(f"tick {m.order_price_min_tick_size}")
         if m.order_min_size:

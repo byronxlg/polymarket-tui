@@ -129,7 +129,7 @@ class EventsTable(VimDataTable):
             "outcome": fmt.trunc(outcome, widths.get("outcome", 24)),
             "price": price,
             "change": change_text(top.one_day_price_change if top else None),
-            "vol": fmt.money(event.volume_24hr),
+            "vol": fmt.vol(event.volume_24hr),
             "ends": Text(ends, style="dim red") if ends == "ended" else ends,
         }
 

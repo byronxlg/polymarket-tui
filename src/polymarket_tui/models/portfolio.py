@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Position(BaseModel):
@@ -47,6 +47,13 @@ class ActivityItem(BaseModel):
     name: str = ""
     pseudonym: str = ""
     proxy_wallet: str = Field(default="", alias="proxyWallet")
+
+    @model_validator(mode="after")
+    def _derive_usdc(self) -> ActivityItem:
+        # The live trade feed omits usdcSize; notional is size * price.
+        if not self.usdc_size and self.size and self.price:
+            self.usdc_size = self.size * self.price
+        return self
 
     @property
     def trader(self) -> str:

@@ -35,6 +35,26 @@ def money(value: float | None) -> str:
     return f"${value:,.2f}"
 
 
+def vol(value: float | None) -> str:
+    """Compact dollars for volume/liquidity columns: $475, $6.9K, $54K, $3.6M.
+
+    Unlike money(), never shows cents - flow columns are read for magnitude,
+    and mixing $475.37 with $54K in one column reads as two formats.
+    """
+    if value is None:
+        return "-"
+    a = abs(value)
+    if a >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.1f}B"
+    if a >= 1_000_000:
+        return f"${value / 1_000_000:.1f}M"
+    if a >= 10_000:
+        return f"${value / 1_000:.0f}K"
+    if a >= 1_000:
+        return f"${value / 1_000:.1f}K"
+    return f"${value:,.0f}"
+
+
 def compact_size(size: float) -> str:
     if size >= 1_000_000:
         return f"{size / 1_000_000:.1f}M"

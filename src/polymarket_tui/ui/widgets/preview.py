@@ -53,8 +53,8 @@ class MarketPreview(Static):
                 if market.one_day_price_change is not None
                 else "-",
             ),
-            ("vol 24h", fmt.money(market.volume_24hr)),
-            ("liquidity", fmt.money(market.liquidity)),
+            ("vol 24h", fmt.vol(market.volume_24hr)),
+            ("liquidity", fmt.vol(market.liquidity)),
             ("ends", fmt.end_date(market.end_date)),
         ]
         if market.order_price_min_tick_size:
@@ -90,9 +90,9 @@ class EventPreview(Static):
         if event.end_date:
             meta.append(f"ends {fmt.end_date(event.end_date)}")
         if event.volume_24hr:
-            meta.append(f"vol24h {fmt.money(event.volume_24hr)}")
+            meta.append(f"vol24h {fmt.vol(event.volume_24hr)}")
         if event.liquidity:
-            meta.append(f"liq {fmt.money(event.liquidity)}")
+            meta.append(f"liq {fmt.vol(event.liquidity)}")
         if meta:
             out.append("  ".join(meta) + "\n", style="dim")
         out.append("\n")
