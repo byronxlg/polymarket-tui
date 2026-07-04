@@ -16,7 +16,7 @@ from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
-from polymarket_tui.ui.screens.event import EventScreen
+from polymarket_tui.ui.screens.event import EventPane, EventScreen
 from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.market import MarketScreen
 from polymarket_tui.ui.screens.nav_host import NavHost
@@ -125,11 +125,27 @@ class PolymarketApp(App):
 
     # -- navigation helpers (screens call these) ---------------------------
 
+    def _nav_host(self) -> NavHost | None:
+        base = self.screen_stack[0]
+        return base if isinstance(base, NavHost) else None
+
+    def _drill(self, pane, crumb: str) -> bool:
+        """Open `pane` as a drill child in NavHost, popping any overlay first."""
+        host = self._nav_host()
+        if host is None:
+            return False
+        while len(self.screen_stack) > 1:
+            self.pop_screen()
+        host.drill(pane, crumb)
+        return True
+
     def open_event(self, event: Event) -> None:
         """Open an event; binary events go straight to the market screen."""
         if event.is_binary and event.top_market is not None:
+            # Binary events reroute to a MarketPane in Stage 3; push for now.
             self.push_screen(MarketScreen(event.top_market, event))
-        else:
+            return
+        if not self._drill(EventPane(event), event.title):
             self.push_screen(EventScreen(event))
 
     def open_market(

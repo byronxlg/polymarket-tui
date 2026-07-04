@@ -84,13 +84,18 @@ class NavHost(Screen):
             self._focus = self._left
             self._reflow()
             return True
-        if self._left == 0:
-            return True  # at the root - nothing to slide out to
-        # Slide the viewport out one level; the focused pane becomes the child
-        # slot and its parent reappears on the left.
-        self._left -= 1
-        self._reflow()
-        return True
+        # In the left (parent) pane.
+        if self._left > 0:
+            # Slide the viewport out one level; the focused pane becomes the
+            # child slot and its parent reappears on the left.
+            self._left -= 1
+            self._reflow()
+            return True
+        if len(self._panes) > 1:
+            # At the root with a child open: collapse back to full-width root.
+            self.reset_to_root()
+            return True
+        return True  # truly at the root
 
     def reset_to_root(self) -> None:
         """Collapse the drill stack back to the root pane (used by 'home')."""
