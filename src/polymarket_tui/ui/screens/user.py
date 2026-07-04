@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -11,7 +10,12 @@ from textual.widgets import Footer, Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.widgets.app_header import AppHeader
-from polymarket_tui.ui.widgets.tables import position_row, setup_positions_columns
+from polymarket_tui.ui.widgets.tables import (
+    activity_row,
+    position_row,
+    setup_activity_columns,
+    setup_positions_columns,
+)
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
@@ -49,14 +53,7 @@ class UserScreen(Screen):
         setup_positions_columns(positions)
 
         activity = self.query_one("#user-activity", VimDataTable)
-        activity.add_column("When", width=13, key="when")
-        activity.add_column("Type", width=8, key="type")
-        activity.add_column("Side", width=5, key="side")
-        activity.add_column("Market", width=46, key="market")
-        activity.add_column("Outcome", width=10, key="outcome")
-        activity.add_column("Price", width=7, key="price")
-        activity.add_column("Size", width=10, key="size")
-        activity.add_column("USDC", width=10, key="usdc")
+        setup_activity_columns(activity, market_width=46, size_width=10)
 
         for tabs in self.query("Tabs"):
             tabs.can_focus = False
@@ -94,16 +91,7 @@ class UserScreen(Screen):
         activity_table.clear()
         for i, item in enumerate(items):
             activity_table.add_row(
-                item.when.astimezone().strftime("%b %d %H:%M"),
-                item.type,
-                Text(item.side, style="green" if item.side == "BUY" else "red")
-                if item.side
-                else "-",
-                fmt.trunc(item.title, 46),
-                fmt.trunc(item.outcome, 10),
-                fmt.cents(item.price) if item.type == "TRADE" else "-",
-                fmt.compact_size(item.size) if item.size else "-",
-                fmt.money(item.usdc_size),
+                *activity_row(item, market_width=46, compact_size=True),
                 key=f"{i}|{item.slug}",
             )
 

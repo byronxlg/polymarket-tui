@@ -16,7 +16,12 @@ from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 from polymarket_tui.ui.widgets.linechart import render_chart
-from polymarket_tui.ui.widgets.tables import position_row, setup_positions_columns
+from polymarket_tui.ui.widgets.tables import (
+    activity_row,
+    position_row,
+    setup_activity_columns,
+    setup_positions_columns,
+)
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
@@ -67,14 +72,7 @@ class PortfolioScreen(Screen):
         orders.add_column("Placed", width=12, key="placed")
 
         history = self.query_one("#history-table", VimDataTable)
-        history.add_column("When", width=13, key="when")
-        history.add_column("Type", width=8, key="type")
-        history.add_column("Side", width=5, key="side")
-        history.add_column("Market", width=42, key="market")
-        history.add_column("Outcome", width=10, key="outcome")
-        history.add_column("Price", width=7, key="price")
-        history.add_column("Size", width=8, key="size")
-        history.add_column("USDC", width=10, key="usdc")
+        setup_activity_columns(history, market_width=42, size_width=8)
 
         # Tab strip inside TabbedContent should not trap focus/arrow keys.
         for tabs in self.query("Tabs"):
@@ -236,16 +234,7 @@ class PortfolioScreen(Screen):
         table.clear()
         for i, item in enumerate(items):
             table.add_row(
-                item.when.astimezone().strftime("%b %d %H:%M"),
-                item.type,
-                Text(item.side, style="green" if item.side == "BUY" else "red")
-                if item.side
-                else "-",
-                fmt.trunc(item.title, 42),
-                fmt.trunc(item.outcome, 10),
-                fmt.cents(item.price) if item.type == "TRADE" else "-",
-                f"{item.size:,.0f}" if item.size else "-",
-                fmt.money(item.usdc_size),
+                *activity_row(item, market_width=42, compact_size=False),
                 key=f"{i}|{item.slug}",
             )
 
