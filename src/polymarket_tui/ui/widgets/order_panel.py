@@ -276,16 +276,25 @@ class OrderPanel(Vertical):
 
     # -- rendering ----------------------------------------------------------------
 
+    @property
+    def _outcome_style(self) -> str:
+        # Yes/No carry the strong color; index 0 = Yes side of the pair.
+        return "bold green" if self._outcome_index == 0 else "bold red"
+
+    @property
+    def _side_style(self) -> str:
+        # Side is muted so the outcome color reads first.
+        return "dim green" if self._side is Side.BUY else "dim red"
+
     def _refresh_summary(self) -> None:
         summary = self.query_one("#op-summary", Static)
         info = self.query_one("#op-info", Static)
-        side_style = "bold green" if self._side is Side.BUY else "bold red"
         draft, error = self._current_draft()
         out = Text()
-        out.append(f"{self._side.value} ", style=side_style)
+        out.append(f"{self._side.value} ", style=self._side_style)
         if draft is None:
             outcomes = (self._market.outcomes if self._market else None) or ["Yes", "No"]
-            out.append(f"{outcomes[self._outcome_index]}  ", style="bold")
+            out.append(f"{outcomes[self._outcome_index]}  ", style=self._outcome_style)
             out.append(error, style="dim")
             summary.update(out)
             hint = Text("enter: next/review  esc: close  up/down step (shift x10)", style="dim")
@@ -296,7 +305,8 @@ class OrderPanel(Vertical):
             info.update(hint)
             return
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"{draft.size:,.0f} {draft.outcome_label.upper()} ", style="bold")
+        out.append(f"{draft.size:,.0f} ", style="bold")
+        out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
         out.append(f"@ {draft.price * 100:.1f}c ", style="bold cyan")
         out.append(f"({kind})", style="dim")
         summary.update(out)
@@ -334,7 +344,11 @@ class OrderPanel(Vertical):
             " PLACE " if live else " DRY-RUN ",
             style="bold reverse red" if live else "bold reverse yellow",
         )
-        out.append(f" {draft.summary()}  ", style="bold")
+        out.append(f" {draft.side.value} ", style=self._side_style)
+        out.append(f"{draft.size:,.0f} ", style="bold")
+        out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
+        kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
+        out.append(f"@ {draft.price * 100:.1f}c ({kind})  ", style="bold cyan")
         out.append("y", style="bold reverse")
         out.append(" place  ")
         out.append("esc", style="bold reverse")

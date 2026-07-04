@@ -125,38 +125,33 @@ class TestValidation:
         issues = service.validate(draft, make_book(), None, position_size=50.0)
         assert [i for i in issues if i.level is IssueLevel.BLOCK] == []
 
-    def test_price_far_from_mid_blocks(self, service):
-        # mid = 33c; 40c is >10% off
+    def test_price_far_from_mid_warns_never_blocks(self, service):
+        # mid = 33c; 40c is >10% off -> advisory only, the user decides
         issues = service.validate(make_draft(price=Decimal("0.40")), make_book(), 100.0, None)
         assert "off mid" in messages(issues)
-        assert IssueLevel.BLOCK in {i.level for i in issues}
-
-    def test_price_slightly_off_mid_warns(self, service):
-        # mid = 33c; 32c is ~3% off -> warn only
-        issues = service.validate(make_draft(price=Decimal("0.320")), make_book(), 100.0, None)
-        assert levels(issues) == {"warn"}
-
-    def test_crossing_buy_warns(self, service):
-        issues = service.validate(make_draft(price=Decimal("0.340")), make_book(), 100.0, None)
-        assert any("immediately" in i.message for i in issues)
         assert all(i.level is IssueLevel.WARN for i in issues)
+
+    def test_price_slightly_off_mid_is_silent(self, service):
+        # mid = 33c; 32c is ~3% off -> no nagging
+        issues = service.validate(make_draft(price=Decimal("0.320")), make_book(), 100.0, None)
+        assert issues == []
+
+    def test_crossing_the_spread_is_silent(self, service):
+        issues = service.validate(make_draft(price=Decimal("0.340")), make_book(), 100.0, None)
+        assert issues == []
 
     def test_market_order_skips_mid_check(self, service):
         draft = make_draft(is_market_order=True, price=Decimal("0.340"), tif=Tif.FAK)
         issues = service.validate(draft, make_book(), 100.0, None)
         assert not any("off mid" in i.message for i in issues)
 
-    def test_max_notional_blocks(self, service):
+    def test_max_notional_warns_never_blocks(self, service):
         draft = make_draft(price=Decimal("0.90"), size=Decimal("600"))
         issues = service.validate(draft, make_book(bid=0.89, ask=0.91), 10_000.0, None)
         assert "PMTUI_MAX_NOTIONAL" in messages(issues)
+        assert all(i.level is IssueLevel.WARN for i in issues)
 
-    def test_quarter_of_cash_warns(self, service):
-        draft = make_draft(size=Decimal("100"))  # $33 notional vs $100 cash
-        issues = service.validate(draft, make_book(), 100.0, None)
-        assert any("25%" in i.message for i in issues)
-
-    def test_duplicate_guard(self, service):
+    def test_duplicate_guard_warns_never_blocks(self, service):
         draft = make_draft()
         service._recent.append(
             (
@@ -166,6 +161,13 @@ class TestValidation:
         )
         issues = service.validate(draft, make_book(), 100.0, None)
         assert "Identical" in messages(issues)
+        assert all(i.level is IssueLevel.WARN for i in issues)
+
+    def test_only_exchange_reject_mirrors_block(self, service):
+        """Policy: hard blocks exist only for orders the exchange would reject."""
+        draft = make_draft(price=Decimal("0.90"), size=Decimal("600"))
+        issues = service.validate(draft, make_book(bid=0.89, ask=0.91), 10_000.0, None)
+        assert IssueLevel.BLOCK not in {i.level for i in issues}
 
     def test_no_book_no_balance_still_validates_structure(self, service):
         issues = service.validate(make_draft(), None, None, None)

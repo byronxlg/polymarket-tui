@@ -187,71 +187,38 @@ class OrderService:
                     Issue(IssueLevel.BLOCK, f"Selling {draft.size:,.0f} but you hold {held:,.0f}.")
                 )
 
-        # 6/7. price sanity vs book
+        # Blocks above mirror exchange rejections only - an order failing them
+        # cannot succeed. Everything below is advisory: warnings, never blocks,
+        # and only for rare likely-mistake situations.
+
+        # far off mid: probably a typo'd price
         mid = Decimal(str(book.midpoint)) if book and book.midpoint is not None else None
         if mid is not None and mid > 0 and not draft.is_market_order:
             deviation = abs(draft.price - mid) / mid
             if deviation > Decimal("0.10"):
                 issues.append(
                     Issue(
-                        IssueLevel.BLOCK,
-                        f"Price is {deviation:.0%} off mid ({mid * 100:.1f}c) - adjust it.",
-                    )
-                )
-            elif deviation > Decimal("0.02"):
-                issues.append(
-                    Issue(IssueLevel.WARN, f"Price is {deviation:.1%} off mid ({mid * 100:.1f}c).")
-                )
-        if book is not None:
-            best_ask = book.best_ask
-            best_bid = book.best_bid
-            if (
-                draft.side is Side.BUY
-                and best_ask is not None
-                and draft.price >= Decimal(str(best_ask.price))
-            ):
-                issues.append(
-                    Issue(
                         IssueLevel.WARN,
-                        f"Crosses the spread - fills immediately at {best_ask.price * 100:.1f}c.",
-                    )
-                )
-            if (
-                draft.side is Side.SELL
-                and best_bid is not None
-                and draft.price <= Decimal(str(best_bid.price))
-            ):
-                issues.append(
-                    Issue(
-                        IssueLevel.WARN,
-                        f"Crosses the spread - fills immediately at {best_bid.price * 100:.1f}c.",
+                        f"Price is {deviation:.0%} off mid ({mid * 100:.1f}c).",
                     )
                 )
 
-        # 8. fat finger
+        # unusually large order for this account's configured comfort level
         if draft.notional > Decimal(str(self._settings.pmtui_max_notional)):
             issues.append(
                 Issue(
-                    IssueLevel.BLOCK,
+                    IssueLevel.WARN,
                     f"Notional ${draft.notional:,.2f} exceeds PMTUI_MAX_NOTIONAL"
                     f" (${self._settings.pmtui_max_notional:,.0f}).",
                 )
             )
-        elif (
-            cash_balance
-            and draft.side is Side.BUY
-            and draft.notional > Decimal(str(cash_balance)) * Decimal("0.25")
-        ):
-            issues.append(Issue(IssueLevel.WARN, "Order is more than 25% of your cash."))
 
-        # 9. duplicate guard
+        # accidental double-submit
         fingerprint = f"{draft.token_id}|{draft.side}|{draft.price}|{draft.size}"
         now = time.monotonic()
         self._recent = [(t, f) for t, f in self._recent if now - t < DUPLICATE_WINDOW_S]
         if any(f == fingerprint for _, f in self._recent):
-            issues.append(
-                Issue(IssueLevel.BLOCK, "Identical order placed seconds ago - wait or adjust.")
-            )
+            issues.append(Issue(IssueLevel.WARN, "Identical order placed seconds ago."))
 
         return issues
 

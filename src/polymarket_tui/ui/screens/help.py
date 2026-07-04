@@ -63,6 +63,11 @@ that fraction of your position - the held amount is shown in the panel.
 tab hops fields, enter reviews, y places, esc steps back. ctrl+g cycles
 TIF (GTC/FOK/FAK). The book stays live above the form.
 
+The app never blocks an order the exchange would accept. Hard stops exist
+only for orders that cannot succeed (closed market, bad tick, below minimum
+size, price out of range, insufficient cash/shares). Anything else - far
+off mid, large notional, rapid duplicate - is at most a yellow warning.
+
 ## Chart inspect
 
 Charts sit below/beside the prices they explain - history is context, not
