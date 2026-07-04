@@ -204,6 +204,27 @@ PriceChartPanel {
     padding: 0 1;
 }
 
+/* Miller columns (experimental sliding two-pane navigation) */
+#miller-viewport {
+    height: 1fr;
+}
+
+.miller-col {
+    width: 1fr;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+.miller-col.focused {
+    border: solid $primary;
+}
+
+.miller-head {
+    height: 1;
+    color: $text-muted;
+    text-style: bold;
+}
+
 /* Help */
 #help-body {
     padding: 1 2;

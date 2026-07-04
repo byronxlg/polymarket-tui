@@ -16,6 +16,7 @@ from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
+from polymarket_tui.ui.screens.columns import ColumnsScreen
 from polymarket_tui.ui.screens.event import EventScreen
 from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.home import HomeScreen
@@ -36,6 +37,7 @@ class PolymarketApp(App):
         Binding("home", "home", "home", show=False),
         Binding("w", "watchlist", "watchlist", show=False),
         Binding("p", "portfolio", "portfolio"),
+        Binding("C", "columns", "columns", key_display="C"),
         Binding("A", "auth", "auth", show=False, key_display="A"),
         Binding("question_mark", "help", "help", key_display="?"),
         Binding("left", "nav_back", "back", show=False),
@@ -148,6 +150,10 @@ class PolymarketApp(App):
 
     def action_watchlist(self) -> None:
         self._push_unless_current(WatchlistScreen, WatchlistScreen)
+
+    def action_columns(self) -> None:
+        """Experimental Miller-columns browse navigation (sliding two-pane)."""
+        self._push_unless_current(ColumnsScreen, ColumnsScreen)
 
     def reconfigure(self, settings: Settings) -> None:
         """Swap credentials at runtime (auth screen). Rebuilds the authed stack."""
