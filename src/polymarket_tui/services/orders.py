@@ -8,7 +8,6 @@ All money math uses Decimal; floats only at the client boundary.
 from __future__ import annotations
 
 import json
-import logging
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -17,12 +16,10 @@ from enum import StrEnum
 from pathlib import Path
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
-from polymarket_tui.core.config import Mode, Settings
+from polymarket_tui.core.config import BUILDER_CODE, Mode, Settings
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.state.watchlist import DATA_DIR
-
-log = logging.getLogger(__name__)
 
 AUDIT_PATH = Path(DATA_DIR) / "orders.jsonl"
 DUPLICATE_WINDOW_S = 10.0
@@ -176,14 +173,6 @@ class OrderService:
         self._settings = settings
         self._authed = authed
         self._recent: list[tuple[float, str]] = []  # (monotonic, fingerprint)
-        # A malformed override is ignored in favor of the shipped default; warn
-        # once so the user knows their redirect did not take (never blocks orders).
-        if settings.builder_code_is_misconfigured:
-            log.warning(
-                "Ignoring malformed POLYMARKET_BUILDER_CODE %r - using the default builder"
-                " code (expected a 0x-prefixed 32-byte hex code).",
-                settings.polymarket_builder_code,
-            )
 
     # -- validation --------------------------------------------------------------
 
@@ -287,15 +276,15 @@ class OrderService:
 
         from py_clob_client_v2 import OrderArgs, OrderType
 
-        # Always stamp the Builders-Program code (Settings.builder_code falls back
-        # to the shipped default, so attribution can be redirected but not disabled
-        # via config).
+        # Always stamp the hardcoded Builders-Program code (config.BUILDER_CODE) so
+        # every order - including those placed by other people running the TUI - is
+        # attributed to us. Not configurable by design.
         order_args = OrderArgs(
             token_id=draft.token_id,
             price=float(draft.price),
             size=float(draft.size),
             side=draft.side.value,
-            builder_code=self._settings.builder_code,
+            builder_code=BUILDER_CODE,
         )
         order_type = OrderType.FAK if draft.is_market_order else getattr(OrderType, draft.tif.value)
         live = self._settings.mode is Mode.TRADER_LIVE

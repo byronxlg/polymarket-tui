@@ -24,9 +24,7 @@ def key_backend() -> str:
     return "keychain" if keychain.available() else "file"
 
 
-def _write_toml(
-    funder: str, signature_type: int, private_key: str = "", builder_code: str = ""
-) -> Path:
+def _write_toml(funder: str, signature_type: int, private_key: str = "") -> Path:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CONFIG_DIR.chmod(0o700)
     lines = [
@@ -41,9 +39,6 @@ def _write_toml(
     if private_key:
         lines.append(f'private_key = "{private_key}"')
     lines.append(f"signature_type = {signature_type}")
-    # builder_code is not a secret; it lives here to stay out of source.
-    if builder_code:
-        lines.append(f'builder_code = "{builder_code}"')
     body = "\n".join(lines) + "\n"
     # Create with restrictive permissions before writing any secret.
     fd = os.open(CRED_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -54,11 +49,9 @@ def _write_toml(
 
 
 def load_credentials() -> dict | None:
-    """Return {funder, private_key, signature_type, builder_code} or None.
+    """Return {funder, private_key, signature_type} or None if absent/unreadable.
 
     Migrates a key still sitting in the TOML into the Keychain on first read.
-    builder_code is the optional Builders-Program attribution code (not a
-    secret); it defaults to "" when the file predates enrollment.
     """
     try:
         with CRED_PATH.open("rb") as f:
@@ -71,12 +64,11 @@ def load_credentials() -> dict | None:
     funder = str(data.get("funder", ""))
     signature_type = int(data.get("signature_type", 1))
     file_key = str(data.get("private_key", ""))
-    builder_code = str(data.get("builder_code", ""))
 
     # Transparent migration: a key still in the TOML moves to the Keychain and
-    # the TOML is rewritten without it (but keeps the builder code).
+    # the TOML is rewritten without it.
     if file_key and keychain.available() and keychain.set_key(file_key):
-        _write_toml(funder, signature_type, builder_code=builder_code)
+        _write_toml(funder, signature_type)
         file_key = ""
 
     private_key = file_key
@@ -87,22 +79,14 @@ def load_credentials() -> dict | None:
         "funder": funder,
         "private_key": private_key,
         "signature_type": signature_type,
-        "builder_code": builder_code,
     }
 
 
-def save_credentials(
-    funder: str, private_key: str, signature_type: int, builder_code: str = ""
-) -> Path:
+def save_credentials(funder: str, private_key: str, signature_type: int) -> Path:
     """Persist credentials. The key goes to the Keychain when available; the TOML
-    keeps only funder + signature type (+ optional builder code) in that case."""
+    keeps only funder + signature type in that case."""
     in_keychain = bool(private_key) and keychain.available() and keychain.set_key(private_key)
-    return _write_toml(
-        funder,
-        signature_type,
-        private_key="" if in_keychain else private_key,
-        builder_code=builder_code,
-    )
+    return _write_toml(funder, signature_type, private_key="" if in_keychain else private_key)
 
 
 def clear_credentials() -> bool:

@@ -60,23 +60,20 @@ signed = client.create_order(OrderArgs(token_id, price, size, side))   # to_thre
 resp   = client.post_order(signed, order_type)                          # to_thread
 ```
 
-`OrderService.place` adds `builder_code=` to `OrderArgs` so matched fills are attributed
-on-chain (Polymarket Builders Program, issue #12). Attribution is stamped at signing
-time by whichever instance signs the order, so the code ships as `DEFAULT_BUILDER_CODE`
-in `core/config.py`: **every install attributes by default**, which is the only way to
-get attribution from other people running the TUI (a purely-local override would attribute
-nobody but the operator). The code is public (an on-chain identifier), not a secret.
+`OrderService.place` always adds `builder_code=BUILDER_CODE` to `OrderArgs` so matched
+fills are attributed on-chain (Polymarket Builders Program, issue #12). Attribution is
+stamped at signing time by whichever instance signs the order, so `BUILDER_CODE` is
+**hardcoded** in `core/config.py`: every install attributes to us, which is the only way
+to get attribution from other people running the TUI (the code must be present in the
+instance that signs). The code is public (an on-chain identifier), not a secret.
 
-Resolution (see `Settings.builder_code`): no override -> the shipped default; a valid
-`POLYMARKET_BUILDER_CODE` / `credentials.toml` code -> attribution is redirected to it
-(self-attribution / forks); empty, malformed, or zero -> falls back to the default
-(malformed also logs a one-time warning). There is deliberately no config value that
-disables attribution; turning it off requires editing `DEFAULT_BUILDER_CODE` in source.
-That is friction, not enforcement - being open source, a user editing the source can
-always strip it; only server-side signing could truly enforce attribution. Builder fees
-stay at the profile default of 0 bps - the user pays no builder cost. A non-zero fee would
-be a user-visible cost and must be disclosed in the order panel first (design principle:
-money is never careless).
+There is deliberately **no** env var or config override - an override would just hand
+every user a switch to redirect attribution away from us. Removing attribution requires
+editing the `BUILDER_CODE` constant in source. That is friction, not enforcement: being
+open source, a user editing the source can always strip it; only server-side signing could
+truly enforce it. Builder fees stay at the profile default of 0 bps - the user pays no
+builder cost. A non-zero fee would be a user-visible cost and must be disclosed in the
+order panel first (design principle: money is never careless).
 
 Map response to UX:
 

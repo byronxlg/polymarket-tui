@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
-from polymarket_tui.core.config import DEFAULT_BUILDER_CODE, Settings, normalize_builder_code
+from polymarket_tui.core.config import BUILDER_CODE, Settings
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.services.orders import (
     IssueLevel,
@@ -306,10 +307,6 @@ class TestHelpers:
         assert parse_price("abc") is None
 
 
-ZERO_CODE = "0x" + "0" * 64
-VALID_CODE = "0x" + "ab" * 32
-
-
 class CapturingAuthed:
     """Captures the OrderArgs handed to the signing path (dry-run)."""
 
@@ -321,70 +318,29 @@ class CapturingAuthed:
         return object()
 
 
-def dry_service(authed, builder_code: str = "") -> OrderService:
+def dry_service(authed) -> OrderService:
     # Key + funder => TRADER_DRY (execution_live defaults False).
     return OrderService(
-        Settings(
-            polymarket_private_key="k",
-            polymarket_funder="0xf",
-            polymarket_builder_code=builder_code,
-        ),
+        Settings(polymarket_private_key="k", polymarket_funder="0xf"),
         authed,
     )
 
 
 class TestBuilderCode:
-    def test_normalize_valid(self):
-        assert normalize_builder_code(VALID_CODE) == VALID_CODE
-
-    def test_normalize_adds_0x_and_lowercases(self):
-        assert normalize_builder_code("AB" * 32) == VALID_CODE
-
-    def test_normalize_rejects_empty_zero_and_malformed(self):
-        assert normalize_builder_code("") is None
-        assert normalize_builder_code("   ") is None
-        assert normalize_builder_code(ZERO_CODE) is None  # zero == no attribution
-        assert normalize_builder_code("0x123") is None  # wrong length
-        assert normalize_builder_code("0x" + "zz" * 32) is None  # non-hex
-        assert normalize_builder_code("0x" + "ab" * 33) is None  # too long
-
-    def test_settings_defaults_to_shipped_code(self):
-        # No override => every install attributes to the shipped default.
-        assert Settings().builder_code == DEFAULT_BUILDER_CODE
-        assert normalize_builder_code(DEFAULT_BUILDER_CODE) == DEFAULT_BUILDER_CODE
-
-    def test_settings_override_redirects_attribution(self):
-        assert Settings(polymarket_builder_code=VALID_CODE).builder_code == VALID_CODE
-
-    def test_config_cannot_disable_attribution(self):
-        # "off"/zero/garbage all fall back to the default - only editing the
-        # DEFAULT_BUILDER_CODE constant in source can turn attribution off.
-        for override in ("off", "none", "0", ZERO_CODE, "garbage"):
-            assert Settings(polymarket_builder_code=override).builder_code == DEFAULT_BUILDER_CODE
-
-    def test_settings_malformed_override_is_flagged(self):
-        s = Settings(polymarket_builder_code="garbage")
-        assert s.builder_code == DEFAULT_BUILDER_CODE  # falls back, still attributed
-        assert s.builder_code_is_misconfigured  # but the bad redirect is surfaced
+    def test_shipped_code_is_valid_bytes32(self):
+        # Guard against a typo in the constant: must be 0x + 64 hex, non-zero.
+        assert re.fullmatch(r"0x[0-9a-f]{64}", BUILDER_CODE)
+        assert int(BUILDER_CODE, 16) != 0
 
     @pytest.mark.asyncio
-    async def test_place_attaches_shipped_default_when_no_override(self):
+    async def test_place_always_stamps_the_hardcoded_code(self):
+        # Every order - including other users' - is attributed to the shipped
+        # code. It is not configurable, so this is the only value that can appear.
         authed = CapturingAuthed()
         result = await dry_service(authed).place(make_draft())
         assert result.ok and result.dry_run
-        # This is what attributes *other* users' orders to us out of the box.
-        assert authed.order_args.builder_code == DEFAULT_BUILDER_CODE
+        assert authed.order_args.builder_code == BUILDER_CODE
 
-    @pytest.mark.asyncio
-    async def test_place_attaches_override_code(self):
-        authed = CapturingAuthed()
-        await dry_service(authed, VALID_CODE).place(make_draft())
-        assert authed.order_args.builder_code == VALID_CODE
-
-    @pytest.mark.asyncio
-    async def test_place_falls_back_to_default_on_off_or_malformed(self):
-        for override in ("off", "not-a-code", ZERO_CODE):
-            authed = CapturingAuthed()
-            await dry_service(authed, override).place(make_draft())
-            # No config value drops attribution - the default is always stamped.
-            assert authed.order_args.builder_code == DEFAULT_BUILDER_CODE
+    def test_builder_code_is_not_a_settings_field(self):
+        # No env/config override exists to redirect attribution away from us.
+        assert "polymarket_builder_code" not in Settings.model_fields

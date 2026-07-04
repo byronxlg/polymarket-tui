@@ -22,39 +22,16 @@ class Mode(StrEnum):
     TRADER_LIVE = "LIVE"
 
 
-# The builder code shipped with the app (Polymarket Builders Program, issue #12).
-# Public, not a secret - it is an on-chain identifier, so hardcoding it here is
-# safe and deliberate: every install attributes its fills to us BY DEFAULT, which
-# is the only way to get attribution from other people running the TUI (the code
-# must be present in whatever instance signs the order). A POLYMARKET_BUILDER_CODE
-# / credentials.toml override can REDIRECT attribution to another valid code
-# (self-attribution / forks), but it cannot switch attribution off - any empty,
-# malformed, or zero override falls back to this default. The only way to attribute
-# nobody is to change this constant in source, which is deliberate friction (a
-# client-side code can never be truly enforced against someone editing the source).
-DEFAULT_BUILDER_CODE = "0x97fe407b11c95484a98264376f8bbd2152c7375d69eff687b914c3d1eff38ede"
-
-
-def normalize_builder_code(raw: str) -> str | None:
-    """Canonicalize a Builders-Program builder code, or None if unusable.
-
-    A builder code is a 0x-prefixed 32-byte hex string (bytes32) attached to
-    orders so matched fills are attributed on-chain. The all-zero code means
-    "no attribution" and is treated the same as absent. A malformed code is
-    dropped (returns None) rather than attached - a bad code counts for nobody
-    and must never block or corrupt an otherwise-valid order.
-    """
-    raw = (raw or "").strip().lower()
-    if not raw:
-        return None
-    if not raw.startswith("0x"):
-        raw = "0x" + raw
-    body = raw[2:]
-    if len(body) != 64 or any(c not in "0123456789abcdef" for c in body):
-        return None
-    if int(body, 16) == 0:
-        return None
-    return raw
+# The builder code every order is attributed to (Polymarket Builders Program,
+# issue #12). Hardcoded on purpose and NOT configurable: attribution is stamped
+# client-side at signing time, so the only way to get attributed for orders placed
+# by other people running the TUI is to bake the code into the app itself. There is
+# deliberately no env var or config override - an override would just hand every
+# user a switch to redirect attribution away from us. The code is public (an
+# on-chain identifier), not a secret, so hardcoding it here is safe. Attribution can
+# only be removed by editing this constant in source (open source, so unavoidable;
+# only server-side signing could truly enforce it).
+BUILDER_CODE = "0x97fe407b11c95484a98264376f8bbd2152c7375d69eff687b914c3d1eff38ede"
 
 
 class Settings(BaseSettings):
@@ -65,27 +42,7 @@ class Settings(BaseSettings):
     polymarket_signature_type: int = 1
     polymarket_execution_live: bool = False
     polymarket_host: str = "https://clob.polymarket.com"
-    polymarket_builder_code: str = ""
     pmtui_max_notional: float = 500.0
-
-    @property
-    def builder_code(self) -> str:
-        """Builder code every order is attributed to (always set).
-
-        A valid override redirects attribution; an empty, malformed, or zero
-        override falls back to the shipped DEFAULT_BUILDER_CODE. There is no
-        config value that disables attribution - that requires editing the
-        DEFAULT_BUILDER_CODE constant in source.
-        """
-        return normalize_builder_code(self.polymarket_builder_code) or DEFAULT_BUILDER_CODE
-
-    @property
-    def builder_code_is_misconfigured(self) -> bool:
-        """True when a non-empty override is malformed (so the default is used)."""
-        return (
-            bool(self.polymarket_builder_code.strip())
-            and normalize_builder_code(self.polymarket_builder_code) is None
-        )
 
     @property
     def mode(self) -> Mode:
@@ -115,12 +72,10 @@ def get_settings() -> Settings:
     saved = load_credentials()
     if saved is None:
         return settings
-    update = {
-        "polymarket_funder": saved["funder"],
-        "polymarket_private_key": saved["private_key"],
-        "polymarket_signature_type": saved["signature_type"],
-    }
-    # Env (already on `settings`) wins over the file for the builder code too.
-    if not settings.polymarket_builder_code and saved.get("builder_code"):
-        update["polymarket_builder_code"] = saved["builder_code"]
-    return settings.model_copy(update=update)
+    return settings.model_copy(
+        update={
+            "polymarket_funder": saved["funder"],
+            "polymarket_private_key": saved["private_key"],
+            "polymarket_signature_type": saved["signature_type"],
+        }
+    )
