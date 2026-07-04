@@ -74,6 +74,7 @@ One scheme everywhere - press `?` in the app for the full reference:
   inline trades to full width (right opens the trader), `i` rules,
   `c` comments, `e` parent event
 - `/` search (markets and traders), `p` portfolio, `w` watchlist, `A` auth,
+  `L` toggle DRY/LIVE for the session (going live asks for confirmation),
   `q` quit
 
 ## Data sources
