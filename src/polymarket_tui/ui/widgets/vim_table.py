@@ -20,6 +20,13 @@ class VimDataTable(DataTable):
             super().__init__()
             self.table = table
 
+    class BottomReached(Message):
+        """Down pressed on the last row - focus whatever sits below."""
+
+        def __init__(self, table: VimDataTable) -> None:
+            super().__init__()
+            self.table = table
+
     BINDINGS = [
         Binding("right", "select_cursor", "open", show=False),
         Binding("left", "app.nav_back", "back", show=False),
@@ -30,3 +37,9 @@ class VimDataTable(DataTable):
             self.post_message(self.TopReached(self))
             return
         super().action_cursor_up()
+
+    def action_cursor_down(self) -> None:
+        if self.row_count == 0 or self.cursor_row == self.row_count - 1:
+            self.post_message(self.BottomReached(self))
+            return
+        super().action_cursor_down()

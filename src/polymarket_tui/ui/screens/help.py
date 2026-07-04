@@ -20,7 +20,7 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 
 | Key | Action |
 |-----|--------|
-| arrows | move; up also enters what is above (category bar, chart, search box) |
+| arrows | move; up/down also flow into adjacent panels (category bar, chart, search box) |
 | right or enter | open the selected row |
 | left or escape | back |
 | tab / shift+tab | cycle the screen's selector (category / timeframe / pane) |
@@ -62,9 +62,10 @@ cycles TIF (GTC/FOK/FAK). The book stays live above the form.
 
 ## Chart inspect
 
-up (from the top of a list, or anywhere on a market) enters inspect:
-left/right scrub through time (shift for big steps), legend shows values at
-the crosshair, down or esc exits.
+Charts sit below/beside the prices they explain - history is context, not
+the headline. On an event, down past the last outcome row enters chart
+inspect; on a market, up enters it. left/right scrub through time (shift
+for big steps), the legend shows values at the crosshair, up/down/esc exit.
 
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.

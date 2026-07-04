@@ -65,6 +65,7 @@ class PriceChartPanel(Vertical):
         Binding("escape", "exit_inspect", "exit inspect", show=False),
         Binding("x", "exit_inspect", "exit inspect", show=False),
         Binding("down", "exit_inspect", "exit inspect", show=False),
+        Binding("up", "exit_inspect", "exit inspect", show=False),
     ]
 
     DEFAULT_CSS = """

@@ -54,18 +54,18 @@ class MarketScreen(Screen):
         yield Static(self._title_line(), classes="screen-title", id="market-title")
         with Vertical(id="market-body-wrap"):
             with Horizontal(id="market-body"):
-                with Vertical(id="chart-pane"):
-                    tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
-                    tabs.can_focus = False
-                    yield tabs
-                    yield PriceChartPanel(id="price-chart")
-                    yield ActivityPanel(id="activity-panel")
                 with Vertical(id="book-pane"):
                     yield Static(self._book_header(), id="book-title")
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
                     scroll.can_focus = False
                     yield scroll
                     yield OrderPanel(id="order-panel")
+                with Vertical(id="chart-pane"):
+                    tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
+                    tabs.can_focus = False
+                    yield tabs
+                    yield PriceChartPanel(id="price-chart")
+                    yield ActivityPanel(id="activity-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
         yield Footer()
 

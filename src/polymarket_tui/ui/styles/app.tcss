@@ -46,10 +46,10 @@ EventsBrowser EventsTable {
     padding: 0 1;
 }
 
-/* Event screen */
+/* Event screen: table first, chart is a context strip below */
 #event-chart-pane {
-    height: 45%;
-    min-height: 12;
+    height: 30%;
+    min-height: 10;
     border: solid $panel-lighten-2;
     padding: 0 1;
 }
@@ -73,15 +73,16 @@ PriceChartPanel {
     height: 1fr;
 }
 
-#chart-pane {
-    width: 3fr;
+/* Market screen: book + order entry lead on the left, chart is context */
+#book-pane {
+    width: 44%;
+    min-width: 44;
     border: solid $panel-lighten-2;
     padding: 0 1;
 }
 
-#book-pane {
-    width: 2fr;
-    min-width: 44;
+#chart-pane {
+    width: 1fr;
     border: solid $panel-lighten-2;
     padding: 0 1;
 }

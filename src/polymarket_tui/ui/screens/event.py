@@ -41,11 +41,6 @@ class EventScreen(Screen):
     def compose(self) -> ComposeResult:
         yield AppHeader("event")
         yield Static(self._title_line(), classes="screen-title")
-        with Vertical(id="event-chart-pane"):
-            tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
-            tabs.can_focus = False
-            yield tabs
-            yield PriceChartPanel(id="event-chart")
         with Horizontal(id="event-body"):
             yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
             pane = VerticalScroll(
@@ -55,6 +50,11 @@ class EventScreen(Screen):
             )
             pane.can_focus = False
             yield pane
+        with Vertical(id="event-chart-pane"):
+            tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
+            tabs.can_focus = False
+            yield tabs
+            yield PriceChartPanel(id="event-chart")
         yield Footer()
 
     def _title_line(self) -> str:
@@ -180,7 +180,8 @@ class EventScreen(Screen):
                 self._interval = key
                 self.load_chart()
 
-    def on_vim_data_table_top_reached(self, message) -> None:
+    def on_vim_data_table_bottom_reached(self, message) -> None:
+        # The chart lives below the table now - down past the last row inspects it.
         self.action_inspect_chart()
 
     def action_inspect_chart(self) -> None:
