@@ -1,6 +1,6 @@
 # ADR-001: Tech stack for polymarket-tui
 
-**Status:** Proposed
+**Status:** Accepted (see Amendments)
 **Date:** 2026-07-03
 **Deciders:** Byron
 
@@ -104,9 +104,22 @@ form-heavy, multi-screen apps, which is what "web UI parity" demands.
 | Tests | pytest + pytest-asyncio + textual Pilot; respx for HTTP mocking |
 | Lint/format | ruff |
 
-## Action items
+## Amendments (2026-07-04)
 
-1. [ ] `git init`, scaffold `pyproject.toml` with uv
-2. [ ] Create `polymarket-tui` Doppler project, seed dev config (see config-and-auth.md)
-3. [ ] Implement API layer against api-reference.md
-4. [ ] Build M0 read-only browse screens (see roadmap.md)
+The core decision (Python + Textual + py-clob-client-v2) stands. Details that
+changed during the build:
+
+- Charts: textual-plotext was replaced by a custom box-drawing line renderer
+  (`ui/widgets/linechart.py`) - braille plots read as blocky.
+- Secrets: Doppler was dropped in favor of the in-app auth screen persisting
+  to `~/.config/polymarket-tui/credentials.toml` (see config-and-auth.md).
+- WebSockets: not yet a dependency; streaming is tracked in issue #1 and the
+  book/trades poll REST in the meantime.
+- textual is pinned >= 1.0 (built against 8.x).
+
+## Action items (all completed)
+
+1. [x] `git init`, scaffold `pyproject.toml` with uv
+2. [x] Credentials setup (now the in-app auth screen + credstore; see config-and-auth.md)
+3. [x] Implement API layer against api-reference.md
+4. [x] Build read-only browse screens, then account and trading features

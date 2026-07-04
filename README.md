@@ -90,7 +90,9 @@ comments), `clob.polymarket.com` (order books, price history, orders),
 - `docs/api-reference.md` - the four API surfaces, verified shapes, quirks
 - `docs/trading.md` - the money path: validation, confirmation, audit
 - `docs/config-and-auth.md` - credentials, capability modes
-- `docs/roadmap.md` - shipped / remaining
+
+Remaining work is tracked in
+[GitHub issues](https://github.com/byronxlg/polymarket-tui/issues).
 
 ## Disclaimer
 

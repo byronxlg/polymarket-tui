@@ -85,7 +85,7 @@ Everything runs on Textual's single asyncio event loop.
   lazily on first authenticated call and cached.
 - **Polling**: the order book refetches every 3s on market screens; the
   trades rail every 5s; balances/account strip every 60s; NTP offset every
-  15min. Websocket streaming is planned (roadmap M2) but not built - there is
+  15min. Websocket streaming is planned (issue #1) but not built - there is
   no ws.py/stream service yet.
 - **Order placement runs on an app-lifetime worker** so closing the panel
   cannot cancel an in-flight post (the HTTP request would still land).
