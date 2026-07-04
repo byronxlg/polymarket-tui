@@ -18,7 +18,12 @@ from textual.widgets import Footer, Input, Label, Select, Static
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.core import fmt
 from polymarket_tui.core.config import Mode, Settings
-from polymarket_tui.core.credstore import CRED_PATH, clear_credentials, save_credentials
+from polymarket_tui.core.credstore import (
+    CRED_PATH,
+    clear_credentials,
+    key_backend,
+    save_credentials,
+)
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
@@ -152,7 +157,11 @@ class AuthScreen(Screen):
         out.append(f"  ({MODE_DESCRIPTIONS[mode]})\n", style="dim")
         funder = settings.polymarket_funder
         out.append(f"  funder        {short_address(funder) if funder else '(not set)'}\n")
-        key_state = "present (in memory)" if settings.polymarket_private_key else "(not set)"
+        backend = "macOS Keychain" if key_backend() == "keychain" else "file (plaintext)"
+        if settings.polymarket_private_key:
+            key_state = f"present (in memory, stored in {backend})"
+        else:
+            key_state = "(not set)"
         out.append(f"  private key   {key_state}\n")
         if settings.polymarket_private_key:
             signer = derive_signer(settings.polymarket_private_key)
