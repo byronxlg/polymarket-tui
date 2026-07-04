@@ -1,0 +1,25 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["portfolio", ["p"], 5],
+    ["portfolio_pane2", ["Tab"], 2],
+    ["portfolio_pane3", ["Tab"], 2],
+    ["portfolio_pane4", ["Tab"], 2],
+    ["portfolio_back", ["Escape"], 2],
+    ["search", ["/"], 1],
+    ["search_typed", ["bitcoin"], 4],
+    ["search_down", ["Down", "Down"], 2],
+    ["search_open", ["Enter"], 5],
+    ["back1", ["Escape"], 2],
+    ["back2", ["Escape"], 2],
+    ["watchlist", ["w"], 4],
+    ["help", ["?"], 2],
+    ["help_back", ["Escape"], 1],
+    ["auth", ["A"], 2],
+    ["auth_back", ["Escape"], 1],
+    ["cat_tab", ["Tab"], 4],
+    ["cat_tab2", ["Tab"], 4],
+    ["sort_cycle", ["o"], 3]
+  ]
+}
