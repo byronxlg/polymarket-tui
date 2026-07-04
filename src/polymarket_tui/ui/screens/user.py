@@ -12,7 +12,11 @@ from textual.containers import Vertical
 from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
+from polymarket_tui.models.portfolio import ActivityItem, Position
+from polymarket_tui.ui.tiers import Tier, TierAware, effective_tier
 from polymarket_tui.ui.widgets.tables import (
+    ACTIVITY_TIER_COLUMNS,
+    POSITIONS_TIER_COLUMNS,
     activity_row,
     position_row,
     setup_activity_columns,
@@ -21,7 +25,7 @@ from polymarket_tui.ui.widgets.tables import (
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
-class UserPane(Vertical):
+class UserPane(TierAware, Vertical):
     """Public trader profile - a drill pane."""
 
     header_title = "trader"
@@ -38,6 +42,11 @@ class UserPane(Vertical):
         super().__init__(**kwargs)
         self._address = address
         self._name = name
+        # Kept so a tier change can re-render the tables without refetching.
+        self._positions: list[Position] = []
+        self._activity: list[ActivityItem] = []
+        # Effective (positions, activity) column tiers after width fitting.
+        self._table_tiers: tuple[Tier, Tier] = ("full", "full")
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title", id="user-title")
@@ -55,16 +64,67 @@ class UserPane(Vertical):
         return f"{self._name}  |  {self._address[:6]}...{self._address[-4:]}{watched}"
 
     def on_mount(self) -> None:
-        positions = self.query_one("#user-positions", VimDataTable)
-        setup_positions_columns(positions)
-
-        activity = self.query_one("#user-activity", VimDataTable)
-        setup_activity_columns(activity, market_width=46, size_width=10)
-
+        self._table_tiers = (self.tier, self.tier)
+        self._build_columns()
         for tabs in self.query("Tabs"):
             tabs.can_focus = False
-        positions.focus()
+        self.query_one("#user-positions", VimDataTable).focus()
         self.load_user()
+        self.tier_ready()
+        self._schedule_refit()
+
+    def _build_columns(self) -> None:
+        pos_tier, act_tier = self._table_tiers
+        positions = self.query_one("#user-positions", VimDataTable)
+        positions.clear(columns=True)
+        setup_positions_columns(positions, tier=pos_tier)
+        activity = self.query_one("#user-activity", VimDataTable)
+        activity.clear(columns=True)
+        setup_activity_columns(activity, tier=act_tier)
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self._schedule_refit()
+
+    def on_resize(self) -> None:
+        if self._tier_ready:
+            self._schedule_refit()
+
+    def _schedule_refit(self) -> None:
+        # The tables live in tabs (the hidden one measures 0 wide), so fit
+        # both against the pane's own width after layout settles.
+        self.call_after_refresh(self._refit)
+
+    def _refit(self) -> None:
+        width = self.size.width - 2  # border + slack
+        if width <= 0:
+            return
+        table_tiers = (
+            effective_tier(self.tier, width, POSITIONS_TIER_COLUMNS),
+            effective_tier(self.tier, width, ACTIVITY_TIER_COLUMNS),
+        )
+        if table_tiers == self._table_tiers:
+            return
+        self._table_tiers = table_tiers
+        self._build_columns()
+        self._render_tables()
+
+    def _render_tables(self) -> None:
+        pos_tier, act_tier = self._table_tiers
+        positions_table = self.query_one("#user-positions", VimDataTable)
+        positions_table.clear()
+        for pos in sorted(self._positions, key=lambda p: p.current_value, reverse=True):
+            if pos.size < 0.01:
+                continue
+            positions_table.add_row(
+                *position_row(pos, tier=pos_tier), key=f"{pos.slug}|{pos.asset}"
+            )
+        activity_table = self.query_one("#user-activity", VimDataTable)
+        activity_table.clear()
+        for i, item in enumerate(self._activity):
+            activity_table.add_row(
+                *activity_row(item, compact_size=True, tier=act_tier),
+                key=f"{i}|{item.slug}",
+            )
 
     @work(exclusive=True)
     async def load_user(self) -> None:
@@ -77,29 +137,16 @@ class UserPane(Vertical):
         except Exception:
             pass
 
-        positions_table = self.query_one("#user-positions", VimDataTable)
         try:
-            positions = await app.data.positions(self._address)
+            self._positions = await app.data.positions(self._address)
         except Exception as exc:
             self.notify(f"positions unavailable: {exc}", severity="error")
-            positions = []
-        positions_table.clear()
-        for pos in sorted(positions, key=lambda p: p.current_value, reverse=True):
-            if pos.size < 0.01:
-                continue
-            positions_table.add_row(*position_row(pos), key=f"{pos.slug}|{pos.asset}")
-
-        activity_table = self.query_one("#user-activity", VimDataTable)
+            self._positions = []
         try:
-            items = await app.data.activity(self._address, limit=60)
+            self._activity = await app.data.activity(self._address, limit=60)
         except Exception:
-            items = []
-        activity_table.clear()
-        for i, item in enumerate(items):
-            activity_table.add_row(
-                *activity_row(item, market_width=46, compact_size=True),
-                key=f"{i}|{item.slug}",
-            )
+            self._activity = []
+        self._render_tables()
 
     def on_data_table_row_selected(self, event) -> None:
         key = str(event.row_key.value)

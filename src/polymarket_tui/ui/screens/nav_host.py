@@ -11,6 +11,11 @@ through app.nav_back -> NavHost.handle_back: from the child it focuses the
 parent (child stays open), from the parent it slides the viewport out a level.
 The focused pane's own handle_back (e.g. MarketPane closing an armed order
 panel) runs first, preserving the money-path step-out order.
+
+Every reflow assigns each visible pane a width tier (see ui.tiers): compact
+for the 30% parent slot, medium for the 70% child, full when alone. The
+tier-<name> class drives CSS show/hide; set_tier() lets panes rebuild their
+table columns.
 """
 
 from __future__ import annotations
@@ -24,6 +29,7 @@ from textual.widgets import Footer, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.screens.home import HomePane
+from polymarket_tui.ui.tiers import TIERS, Tier
 from polymarket_tui.ui.widgets.app_header import AppHeader
 
 
@@ -115,8 +121,14 @@ class NavHost(Screen):
             visible = i in (self._left, self._left + 1)
             pane.display = visible
             pane.set_class(i == self._focus, "focused")
-            pane.set_class(visible and child_open and i == self._left, "col-parent")
-            pane.set_class(visible and i == self._left + 1, "col-child")
+            if not visible:
+                continue
+            tier: Tier = "full"
+            if child_open:
+                tier = "compact" if i == self._left else "medium"
+            for t in TIERS:
+                pane.set_class(t == tier, f"tier-{t}")
+            pane.set_tier(tier)
         header = self.query_one(AppHeader)
         header.set_title(getattr(self._panes[self._focus], "header_title", "polymarket-tui"))
         self._update_crumbs()

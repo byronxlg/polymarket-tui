@@ -18,13 +18,41 @@ from textual.widgets import DataTable, Static, Tab, Tabs
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
+# (key, label, width) per width tier: medium drops Spread so the table plus
+# preview rail fit in the 70% slot; compact keeps outcome + price + 24h only.
+MARKETS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("outcome", "Outcome", 40),
+        ("price", "Price", 7),
+        ("change", "24h", 7),
+        ("bid", "Bid", 7),
+        ("ask", "Ask", 7),
+        ("spread", "Spread", 7),
+        ("vol", "Vol 24h", 9),
+    ),
+    "medium": (
+        ("outcome", "Outcome", 34),
+        ("price", "Price", 7),
+        ("change", "24h", 7),
+        ("bid", "Bid", 7),
+        ("ask", "Ask", 7),
+        ("vol", "Vol 24h", 9),
+    ),
+    "compact": (
+        ("outcome", "Outcome", 26),
+        ("price", "Price", 7),
+        ("change", "24h", 7),
+    ),
+}
 
-class EventPane(Vertical):
+
+class EventPane(TierAware, Vertical):
     """Event detail body - hosted as a drill pane by NavHost."""
 
     header_title = "event"
@@ -45,6 +73,7 @@ class EventPane(Vertical):
         self._event = event
         self._show_info = False
         self._interval = "1D"
+        self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title")
@@ -104,33 +133,65 @@ class EventPane(Vertical):
     def on_mount(self) -> None:
         self.query_one("#rules-panel", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
-        table = self.query_one(DataTable)
-        table.add_column("Outcome", width=40, key="outcome")
-        table.add_column("Price", width=7, key="price")
-        table.add_column("24h", width=7, key="change")
-        table.add_column("Bid", width=7, key="bid")
-        table.add_column("Ask", width=7, key="ask")
-        table.add_column("Spread", width=7, key="spread")
-        table.add_column("Vol 24h", width=9, key="vol")
-        table.focus()
+        self._columns_spec = list(MARKETS_TIER_COLUMNS[self.tier])
+        self._build_columns()
+        self.query_one(DataTable).focus()
         self._fill_table()
         self.load_chart()
         self.refresh_event()
+        self.tier_ready()
+        self._schedule_refit()
+
+    def _build_columns(self) -> None:
+        table = self.query_one(DataTable)
+        table.clear(columns=True)
+        for key, label, width in self._columns_spec:
+            table.add_column(label, width=width, key=key)
+
+    def on_tier_changed(self, tier: Tier) -> None:
+        self._schedule_refit()
+
+    def on_resize(self) -> None:
+        if self._tier_ready:
+            self._schedule_refit()
+
+    def _schedule_refit(self) -> None:
+        # Measure after layout settles: the slot tier is a cap, the column
+        # set follows the table's real width.
+        self.call_after_refresh(self._refit)
+
+    def _refit(self) -> None:
+        table = self.query_one(DataTable)
+        width = table.size.width
+        if width <= 0 or not table.columns:
+            return
+        tier = effective_tier(self.tier, width, MARKETS_TIER_COLUMNS)
+        spec = fit_columns(MARKETS_TIER_COLUMNS[tier], width, "outcome")
+        if spec == self._columns_spec:
+            return
+        self._columns_spec = spec
+        cursor = table.cursor_row
+        self._build_columns()
+        self._fill_table()
+        if cursor is not None and table.row_count:
+            table.move_cursor(row=min(cursor, table.row_count - 1))
 
     def _fill_table(self) -> None:
         table = self.query_one(DataTable)
         table.clear()
+        columns = self._columns_spec
+        outcome_width = dict((k, w) for k, _, w in columns)["outcome"]
         for market in self._event.active_markets:
-            table.add_row(
-                fmt.trunc(market.display_title, 40),
-                Text(fmt.cents(market.yes_price), style="bold cyan"),
-                change_text(market.one_day_price_change),
-                Text(fmt.cents(market.best_bid), style="green"),
-                Text(fmt.cents(market.best_ask), style="red"),
-                fmt.cents(market.spread),
-                fmt.money(market.volume_24hr),
-                key=market.slug,
-            )
+            cells = {
+                "outcome": fmt.trunc(market.display_title, outcome_width),
+                "price": Text(fmt.cents(market.yes_price), style="bold cyan"),
+                "change": change_text(market.one_day_price_change),
+                "bid": Text(fmt.cents(market.best_bid), style="green"),
+                "ask": Text(fmt.cents(market.best_ask), style="red"),
+                "spread": fmt.cents(market.spread),
+                "vol": fmt.money(market.volume_24hr),
+            }
+            table.add_row(*(cells[key] for key, _, _ in columns), key=market.slug)
         markets = self._event.active_markets
         self.query_one(MarketPreview).show_market(markets[0] if markets else None)
 

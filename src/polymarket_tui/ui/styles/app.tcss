@@ -204,7 +204,11 @@ PriceChartPanel {
     padding: 0 1;
 }
 
-/* NavHost: 30/70 sliding drill split hosting the real screen bodies. */
+/* NavHost: 30/70 sliding drill split hosting the real screen bodies.
+   NavHost stamps a width tier class per reflow (see ui/tiers.py):
+   tier-compact = 30% parent slot, tier-medium = 70% child, tier-full =
+   alone. CSS handles the show/hide per tier; panes rebuild their table
+   columns in on_tier_changed. */
 #nav-viewport {
     height: 1fr;
 }
@@ -221,12 +225,11 @@ PriceChartPanel {
     border-left: solid $panel-lighten-2;
 }
 
-/* Parent shrinks to 30%, the pane opened on right = 70%. */
-.nav-pane.col-parent {
+.nav-pane.tier-compact {
     width: 30%;
 }
 
-.nav-pane.col-child {
+.nav-pane.tier-medium {
     width: 70%;
 }
 
@@ -234,16 +237,26 @@ PriceChartPanel {
     border-left: solid $primary;
 }
 
-/* Shrunk to 30%, the parent is context - hide its side rails so only the
-   primary list shows. */
-.nav-pane.col-parent #preview-pane,
-.nav-pane.col-parent #event-chart-pane,
-.nav-pane.col-parent #market-chart-strip,
-.nav-pane.col-parent #book-pane,
-.nav-pane.col-parent #trades-rail,
-.nav-pane.col-parent #market-overview-pane,
-.nav-pane.col-parent #market-info {
+/* Compact: the pane is context - only the primary list survives.
+   MarketPane panels are NOT hidden here: it also toggles them with inline
+   display flags (which override stylesheet rules), so it owns all its panel
+   visibility in _apply_visibility(). */
+.nav-pane.tier-compact #preview-pane,
+.nav-pane.tier-compact #event-chart-pane,
+.nav-pane.tier-compact #status-line {
     display: none;
+}
+
+/* Medium: main content with slimmer rails so the primary table keeps its
+   columns; history strips give a little height back to the tables. */
+.nav-pane.tier-medium #preview-pane {
+    width: 38;
+    max-width: 32%;
+}
+
+.nav-pane.tier-medium #event-chart-pane,
+.nav-pane.tier-medium #market-chart-strip {
+    height: 25%;
 }
 
 /* Help */
