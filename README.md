@@ -7,9 +7,23 @@ terminal.
 
 Built with Python 3.12 and [Textual](https://textual.textualize.io/).
 
-## Install & run
+## Install
 
-Requires [uv](https://docs.astral.sh/uv/).
+**One-line install** (installs [uv](https://docs.astral.sh/uv/) if missing,
+then installs `polymarket-tui` as a uv tool):
+
+```sh
+curl -sSL https://raw.githubusercontent.com/byronxlg/polymarket-tui/main/install.sh | bash
+```
+
+**Homebrew** (this repo doubles as the tap):
+
+```sh
+brew tap byronxlg/polymarket-tui https://github.com/byronxlg/polymarket-tui
+brew install polymarket-tui
+```
+
+**From source** (for development):
 
 ```sh
 git clone https://github.com/byronxlg/polymarket-tui
@@ -17,6 +31,8 @@ cd polymarket-tui
 uv sync
 uv run polymarket-tui
 ```
+
+Then run `polymarket-tui`.
 
 No credentials needed to browse: markets, books, charts, trades, comments,
 and any trader's public positions all work read-only.
