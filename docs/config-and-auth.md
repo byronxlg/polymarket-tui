@@ -27,6 +27,9 @@ otherwise the credentials file, otherwise read-only mode.
 | `POLYMARKET_HOST` | default `https://clob.polymarket.com` | override for testing |
 | `PMTUI_MAX_NOTIONAL` | default `500` | typed-confirm threshold in trading.md check 8 |
 
+The Builders-Program attribution code is **hardcoded** as `BUILDER_CODE` in
+`core/config.py` and intentionally has no env var or config override - see trading.md.
+
 `core/config.py` is a pydantic-settings `Settings` object; everything else reads config
 from it, never from `os.environ` directly.
 

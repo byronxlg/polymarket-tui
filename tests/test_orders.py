@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
-from polymarket_tui.core.config import Settings
+from polymarket_tui.core.config import BUILDER_CODE, Settings
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.services.orders import (
     IssueLevel,
@@ -304,3 +305,42 @@ class TestHelpers:
         assert parse_price("$0.5") is None  # no dollars entry - cents only
         assert parse_price("") is None
         assert parse_price("abc") is None
+
+
+class CapturingAuthed:
+    """Captures the OrderArgs handed to the signing path (dry-run)."""
+
+    def __init__(self) -> None:
+        self.order_args = None
+
+    async def sign_order(self, order_args) -> object:
+        self.order_args = order_args
+        return object()
+
+
+def dry_service(authed) -> OrderService:
+    # Key + funder => TRADER_DRY (execution_live defaults False).
+    return OrderService(
+        Settings(polymarket_private_key="k", polymarket_funder="0xf"),
+        authed,
+    )
+
+
+class TestBuilderCode:
+    def test_shipped_code_is_valid_bytes32(self):
+        # Guard against a typo in the constant: must be 0x + 64 hex, non-zero.
+        assert re.fullmatch(r"0x[0-9a-f]{64}", BUILDER_CODE)
+        assert int(BUILDER_CODE, 16) != 0
+
+    @pytest.mark.asyncio
+    async def test_place_always_stamps_the_hardcoded_code(self):
+        # Every order - including other users' - is attributed to the shipped
+        # code. It is not configurable, so this is the only value that can appear.
+        authed = CapturingAuthed()
+        result = await dry_service(authed).place(make_draft())
+        assert result.ok and result.dry_run
+        assert authed.order_args.builder_code == BUILDER_CODE
+
+    def test_builder_code_is_not_a_settings_field(self):
+        # No env/config override exists to redirect attribution away from us.
+        assert "polymarket_builder_code" not in Settings.model_fields

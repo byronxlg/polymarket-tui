@@ -16,7 +16,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
-from polymarket_tui.core.config import Mode, Settings
+from polymarket_tui.core.config import BUILDER_CODE, Mode, Settings
 from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.state.watchlist import DATA_DIR
@@ -276,11 +276,15 @@ class OrderService:
 
         from py_clob_client_v2 import OrderArgs, OrderType
 
+        # Always stamp the hardcoded Builders-Program code (config.BUILDER_CODE) so
+        # every order - including those placed by other people running the TUI - is
+        # attributed to us. Not configurable by design.
         order_args = OrderArgs(
             token_id=draft.token_id,
             price=float(draft.price),
             size=float(draft.size),
             side=draft.side.value,
+            builder_code=BUILDER_CODE,
         )
         order_type = OrderType.FAK if draft.is_market_order else getattr(OrderType, draft.tif.value)
         live = self._settings.mode is Mode.TRADER_LIVE

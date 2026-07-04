@@ -60,6 +60,21 @@ signed = client.create_order(OrderArgs(token_id, price, size, side))   # to_thre
 resp   = client.post_order(signed, order_type)                          # to_thread
 ```
 
+`OrderService.place` always adds `builder_code=BUILDER_CODE` to `OrderArgs` so matched
+fills are attributed on-chain (Polymarket Builders Program, issue #12). Attribution is
+stamped at signing time by whichever instance signs the order, so `BUILDER_CODE` is
+**hardcoded** in `core/config.py`: every install attributes to us, which is the only way
+to get attribution from other people running the TUI (the code must be present in the
+instance that signs). The code is public (an on-chain identifier), not a secret.
+
+There is deliberately **no** env var or config override - an override would just hand
+every user a switch to redirect attribution away from us. Removing attribution requires
+editing the `BUILDER_CODE` constant in source. That is friction, not enforcement: being
+open source, a user editing the source can always strip it; only server-side signing could
+truly enforce it. Builder fees stay at the profile default of 0 bps - the user pays no
+builder cost. A non-zero fee would be a user-visible cost and must be disclosed in the
+order panel first (design principle: money is never careless).
+
 Map response to UX:
 
 | Result | UX |

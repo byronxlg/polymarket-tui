@@ -86,9 +86,7 @@ def save_credentials(funder: str, private_key: str, signature_type: int) -> Path
     """Persist credentials. The key goes to the Keychain when available; the TOML
     keeps only funder + signature type in that case."""
     in_keychain = bool(private_key) and keychain.available() and keychain.set_key(private_key)
-    return _write_toml(
-        funder, signature_type, private_key="" if in_keychain else private_key
-    )
+    return _write_toml(funder, signature_type, private_key="" if in_keychain else private_key)
 
 
 def clear_credentials() -> bool:
