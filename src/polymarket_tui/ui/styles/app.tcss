@@ -3,7 +3,7 @@ Screen {
 }
 
 #tag-bar {
-    height: 3;
+    height: 2;  /* labels + underline; the default 3rd row was a dead gap */
 }
 
 DataTable {
@@ -57,9 +57,11 @@ EventsBrowser EventsTable {
     padding: 0 1;
 }
 
-/* Event screen: table first, chart is a context strip below */
+/* Event screen: table and preview size to their content; the chart
+   absorbs the remaining height (a fixed strip left a void between short
+   outcome lists and the plot, and squashed multi-series charts). */
 #event-chart-pane {
-    height: 30%;
+    height: 1fr;
     min-height: 10;
     border: solid $panel-lighten-2;
     padding: 0 1;
@@ -70,12 +72,19 @@ PriceChartPanel {
 }
 
 #event-body {
-    height: 1fr;
+    height: auto;
+    max-height: 65%;
 }
 
 #markets-table {
     width: 1fr;
-    height: 1fr;
+    height: auto;
+    max-height: 100%;
+}
+
+#event-body #preview-pane {
+    height: auto;
+    max-height: 100%;
 }
 
 /* Market screen mirrors the event page: outcome table | book rail, chart strip below */
@@ -153,7 +162,7 @@ PriceChartPanel {
 }
 
 #interval-tabs {
-    height: 3;
+    height: 2;  /* labels + underline; keeps short chart strips plottable */
 }
 
 #book-scroll {
@@ -283,7 +292,6 @@ PriceChartPanel {
     max-width: 32%;
 }
 
-.nav-pane.tier-medium #event-chart-pane,
 .nav-pane.tier-medium #market-chart-strip {
     height: 25%;
 }

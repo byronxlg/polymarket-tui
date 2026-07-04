@@ -45,7 +45,7 @@ def render_chart(
 ) -> Text:
     plot_w = width - GUTTER
     rows = height - 1  # bottom row is the time axis
-    if plot_w < 10 or rows < 4 or not series:
+    if plot_w < 10 or rows < 3 or not series:
         return Text("")
 
     lo_t = min(pts[0].t for pts, _ in series)

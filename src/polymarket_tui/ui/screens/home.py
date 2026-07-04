@@ -6,6 +6,9 @@ of the 30/70 drill split.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
+from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -68,8 +71,12 @@ class HomePane(TierAware, Vertical):
         yield Static(self._status_line(), id="status-line", classes="subtle")
         yield EventsBrowser(id="home-browser")
 
-    def _status_line(self) -> str:
-        return f" sort: {SORT_LABELS[SORT_ORDERS[self._sort_index]]}  (o to cycle, tab category)"
+    def _status_line(self) -> Text:
+        out = Text()
+        out.append(" sort ", style="dim")
+        out.append(SORT_LABELS[SORT_ORDERS[self._sort_index]], style="bold")
+        out.append("   o cycle sort   tab category", style="dim")
+        return out
 
     def on_mount(self) -> None:
         self.query_one(Tabs).can_focus = False
@@ -108,7 +115,14 @@ class HomePane(TierAware, Vertical):
             self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
             self._loading = False
             return
-        events = [e for e in events if e.top_market is not None]
+        now = datetime.now(UTC)
+        # Gamma still returns just-ended events as active; hide them like the
+        # web trending list does (they read as noise next to live markets).
+        events = [
+            e
+            for e in events
+            if e.top_market is not None and (e.end_date is None or e.end_date > now)
+        ]
         self.table.set_events(events, set(app.watchlist.slugs), clear=not append)
         if not append:
             browser = self.query_one(EventsBrowser)

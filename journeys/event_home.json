@@ -1,0 +1,13 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["home", [], 1],
+    ["event_multi", ["Enter"], 6],
+    ["event_rules", ["Space"], 2],
+    ["event_rules_off", ["Space"], 1],
+    ["event_1w", ["Tab", "Tab", "Tab"], 4],
+    ["home_back", ["Escape"], 2],
+    ["home_sports", ["Up", "Right", "Right"], 5]
+  ]
+}
