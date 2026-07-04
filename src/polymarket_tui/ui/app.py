@@ -130,8 +130,10 @@ class PolymarketApp(App):
         else:
             self.push_screen(EventScreen(event))
 
-    def open_market(self, market: Market, event: Event | None = None) -> None:
-        self.push_screen(MarketScreen(market, event))
+    def open_market(
+        self, market: Market, event: Event | None = None, order_side: str | None = None
+    ) -> None:
+        self.push_screen(MarketScreen(market, event, order_side=order_side))
 
     # -- global actions ------------------------------------------------------
 

@@ -29,6 +29,8 @@ class EventScreen(Screen):
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", key_display="R"),
+        Binding("b", "order('BUY')", "buy"),
+        Binding("s", "order('SELL')", "sell"),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
@@ -71,6 +73,23 @@ class EventScreen(Screen):
         elif e.tags:
             parts.append("/".join(t.label for t in e.tags[:3]))
         return "  |  ".join(parts)
+
+    def action_order(self, side: str) -> None:
+        """Jump into the highlighted outcome's market with the order panel open."""
+        table = self.query_one(DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+        row_key = table.coordinate_to_cell_key((table.cursor_row, 0)).row_key
+        market = self._market_by_slug(str(row_key.value))
+        if market is None:
+            return
+        if not self.app.settings.can_auth:
+            self.app.notify(
+                "Trading needs a private key + funder - press A to authenticate",
+                severity="warning",
+            )
+            return
+        self.app.open_market(market, self._event, order_side=side)
 
     def action_related(self) -> None:
         from polymarket_tui.ui.screens.related import RelatedScreen

@@ -47,14 +47,18 @@ watchlist, related), flip the YES/NO book (market), show/hide rules
 | Key | Where | Action |
 |-----|-------|--------|
 | o | home | cycle sort (24h volume / liquidity / ending / newest) |
-| b / s | market | order entry below the live book (BUY / SELL) |
+| b / s | market, event | order entry below the live book (BUY / SELL) |
 | y / n | market | jump straight to the YES / NO book |
-| a / c | market | live trades feed / comments (swap into the chart strip) |
+| a / c | market | switch the lean feed: live trades / comments (again hides) |
+| e | market | open the parent event |
 | R | event, market | related markets (series siblings for dailies) |
 | x | portfolio open-orders tab | cancel the highlighted order |
 | r | anywhere | refresh |
 
 ## Order entry
+
+right/enter on an outcome row also opens the buy form. b/s switch the
+side at any time, even while typing in the fields.
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
 price empty for a market order at the touch. up/down bump by one tick or
@@ -78,9 +82,12 @@ for big steps), the legend shows values at the crosshair, up/down/esc exit.
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.
 
-Markets and traders share the search screen (/): arrow down past the last
-event to reach the trader results; enter opens a public profile with their
-positions and activity; the watchlist (w) keeps Events and Traders tabs.
+Search (/) has two result modes toggled with tab: MARKETS and TRADERS.
+Arrows drive the visible list from the input; enter opens. In traders mode
+the side pane previews the highlighted trader (value, top positions);
+opening a profile shows full positions/activity, space follows them there.
+The watchlist (w) keeps Events and Traders tabs. Market pages show your
+position for that market under the outcome rows.
 
 Data: gamma-api.polymarket.com, clob.polymarket.com, data-api.polymarket.com.
 """

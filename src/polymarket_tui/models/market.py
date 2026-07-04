@@ -60,6 +60,15 @@ class Market(BaseModel):
     description: str = ""
     order_price_min_tick_size: float | None = Field(default=None, alias="orderPriceMinTickSize")
     order_min_size: float | None = Field(default=None, alias="orderMinSize")
+    raw_events: list = Field(default_factory=list, alias="events")
+
+    @property
+    def event_slug(self) -> str | None:
+        """Slug of the parent event when Gamma embeds it (markets fetched directly)."""
+        for entry in self.raw_events:
+            if isinstance(entry, dict) and entry.get("slug"):
+                return str(entry["slug"])
+        return None
 
     _decode_tokens = field_validator("clob_token_ids", "outcomes", "outcome_prices", mode="before")(
         _decode_json_list

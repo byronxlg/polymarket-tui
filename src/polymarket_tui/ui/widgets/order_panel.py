@@ -33,7 +33,32 @@ from polymarket_tui.services.orders import (
 TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
 
 
-class PriceInput(Input):
+class SideKey(Message):
+    """b/s pressed inside an order field - flip the order side."""
+
+    def __init__(self, side: Side) -> None:
+        super().__init__()
+        self.side = side
+
+
+class _SideSwitchingInput(Input):
+    """b/s never mean text in these numeric fields - they flip the side."""
+
+    async def _on_key(self, event) -> None:
+        if event.character in ("b", "B"):
+            event.stop()
+            event.prevent_default()
+            self.post_message(SideKey(Side.BUY))
+            return
+        if event.character in ("s", "S"):
+            event.stop()
+            event.prevent_default()
+            self.post_message(SideKey(Side.SELL))
+            return
+        await super()._on_key(event)
+
+
+class PriceInput(_SideSwitchingInput):
     """Price field: up/down bump by one market tick."""
 
     BINDINGS = [
@@ -52,7 +77,7 @@ class PriceInput(Input):
         self.post_message(self.Bumped(direction))
 
 
-class SizeInput(Input):
+class SizeInput(_SideSwitchingInput):
     """Size field: up/down bump by one share, shift for ten."""
 
     BINDINGS = [
@@ -81,6 +106,8 @@ class OrderPanel(Vertical):
         Binding("ctrl+g", "cycle_tif", "tif", show=False),
         Binding("y", "confirm_yes", "place", show=False),
         Binding("n", "confirm_no", "edit", show=False),
+        Binding("b", "side('BUY')", "buy", show=False),
+        Binding("s", "side('SELL')", "sell", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -138,9 +165,9 @@ class OrderPanel(Vertical):
             yield Label("price")
             # Disabled while closed: hidden-but-focusable inputs would steal
             # the screen's autofocus and swallow the b/s keys.
-            yield PriceInput(placeholder="cents; empty = market", id="op-price", disabled=True)
+            yield PriceInput(placeholder="cents (empty = market)", id="op-price", disabled=True)
             yield Label("size")
-            yield SizeInput(placeholder="shares or %", id="op-size", disabled=True)
+            yield SizeInput(placeholder="qty or %", id="op-size", disabled=True)
         yield Static(id="op-info")
         yield Static(id="op-issues")
         yield Static(id="op-confirm")
@@ -178,10 +205,11 @@ class OrderPanel(Vertical):
         self.screen.set_focus(None)
 
     def set_side(self, side: Side) -> None:
+        if side is self._side:
+            return
         self._side = side
         self._set_confirming(None)
         self._refresh_summary()
-        self.query_one("#op-size", Input).focus()
 
     def set_outcome(self, outcome_index: int) -> None:
         if self._outcome_index != outcome_index:
@@ -362,6 +390,12 @@ class OrderPanel(Vertical):
     def on_input_changed(self, event: Input.Changed) -> None:
         self._set_confirming(None)
         self._refresh_summary()
+
+    def on_side_key(self, event: SideKey) -> None:
+        self.set_side(event.side)
+
+    def action_side(self, side: str) -> None:
+        self.set_side(Side(side))
 
     def on_price_input_bumped(self, event: PriceInput.Bumped) -> None:
         self.bump_price(event.direction)

@@ -72,9 +72,14 @@ PriceChartPanel {
     height: 1fr;
 }
 
+#market-left {
+    width: 1fr;
+}
+
 #outcomes-table {
     width: 1fr;
-    height: 1fr;
+    height: auto;
+    max-height: 6;
 }
 
 #book-pane {
@@ -91,9 +96,14 @@ PriceChartPanel {
     padding: 0 1;
 }
 
-#market-chart-strip ActivityPanel {
+#position-line {
+    height: 1;
+    margin-top: 1;
+}
+
+#market-left ActivityPanel {
     height: 1fr;
-    border-top: none;
+    margin-top: 1;
 }
 
 #interval-tabs {
@@ -137,13 +147,24 @@ PriceChartPanel {
     margin: 0 0 1 0;
 }
 
-#traders-title {
+#mode-line {
     height: 1;
 }
 
+#traders-block {
+    height: 1fr;
+}
+
 #traders-table {
-    height: auto;
-    max-height: 8;
+    width: 1fr;
+    height: 1fr;
+}
+
+#trader-overview-pane {
+    width: 46;
+    max-width: 40%;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
 }
 
 /* Help */

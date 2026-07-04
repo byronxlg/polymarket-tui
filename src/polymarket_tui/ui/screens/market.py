@@ -39,10 +39,16 @@ class MarketScreen(Screen):
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", show=False, key_display="R"),
+        Binding("e", "open_event", "event", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
-    def __init__(self, market: Market, event: Event | None = None) -> None:
+    def __init__(
+        self,
+        market: Market,
+        event: Event | None = None,
+        order_side: str | None = None,
+    ) -> None:
         super().__init__()
         self._market = market
         self._event = event
@@ -50,12 +56,16 @@ class MarketScreen(Screen):
         self._interval = "1H"  # matches the initially-active interval tab
         self._history: list = []
         self._book = None
+        self._pending_order_side = order_side  # open the order panel once the book arrives
 
     def compose(self) -> ComposeResult:
         yield AppHeader("market")
         yield Static(self._title_line(), classes="screen-title", id="market-title")
         with Horizontal(id="market-body"):
-            yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
+            with Vertical(id="market-left"):
+                yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
+                yield Static(id="position-line")
+                yield ActivityPanel(id="activity-panel")
             with Vertical(id="book-pane"):
                 yield Static(self._book_header(), id="book-title")
                 scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
@@ -67,7 +77,6 @@ class MarketScreen(Screen):
             tabs.can_focus = False
             yield tabs
             yield PriceChartPanel(id="price-chart")
-            yield ActivityPanel(id="activity-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
         yield Footer()
 
@@ -118,6 +127,10 @@ class MarketScreen(Screen):
             return
         self._apply_outcome(event.cursor_row)
 
+    def on_data_table_row_selected(self, event) -> None:
+        if event.data_table.id == "outcomes-table":
+            self.action_order("BUY")
+
     def _apply_outcome(self, index: int) -> None:
         if index == self._outcome_index:
             return
@@ -163,7 +176,9 @@ class MarketScreen(Screen):
         table.add_column("Vol 24h", width=9, key="vol")
         self._fill_outcomes()
         table.focus()
-        self.query_one(ActivityPanel).configure(self._market, self._event)
+        panel = self.query_one(ActivityPanel)
+        panel.configure(self._market, self._event)
+        panel.toggle("trades")  # lean live feed on by default
         self.load_book()
         self.load_history()
         self.load_position()
@@ -171,9 +186,11 @@ class MarketScreen(Screen):
 
     @work(exclusive=True, group="position")
     async def load_position(self) -> None:
-        """Show the user's position in this market on the info line, if any."""
+        """Your holdings in this market, shown under the outcome table."""
+        line = self.query_one("#position-line", Static)
         app = self.app
         if not app.settings.can_read_portfolio:
+            line.update(Text(""))
             return
         try:
             positions = await app.portfolio.positions()
@@ -182,15 +199,23 @@ class MarketScreen(Screen):
         tokens = set(self._market.clob_token_ids)
         mine = [p for p in positions if p.asset in tokens and p.size >= 0.01]
         if not mine:
+            line.update(Text(" no position in this market", style="dim"))
             return
-        bits = []
-        for p in mine:
-            bits.append(
-                f"your position: {p.size:,.0f} {p.outcome} @ {fmt.cents(p.avg_price)}"
-                f" (now {fmt.cents(p.cur_price)}, P&L {p.cash_pnl:+,.2f})"
+        out = Text()
+        out.append(" YOUR POSITION  ", style="bold")
+        for i, p in enumerate(mine):
+            if i:
+                out.append("   |   ")
+            out.append(f"{p.size:,.0f} ", style="bold")
+            out.append(
+                f"{p.outcome} ",
+                style="bold green" if p.outcome.lower() == "yes" else "bold red",
             )
-        info = self.query_one("#market-info", Static)
-        info.update("  |  ".join(bits) + "\n" + self._info_line())
+            out.append(f"@ {fmt.cents(p.avg_price)} ", style="dim")
+            out.append(f"now {fmt.cents(p.cur_price)}  ")
+            pnl_style = "green" if p.cash_pnl > 0 else "red" if p.cash_pnl < 0 else "dim"
+            out.append(f"{p.cash_pnl:+,.2f} ({p.percent_pnl:+.0f}%)", style=pnl_style)
+        line.update(out)
 
     @property
     def _token_id(self) -> str | None:
@@ -212,6 +237,9 @@ class MarketScreen(Screen):
             return
         self._book = book
         panel.update_book(book)
+        if self._pending_order_side is not None:
+            side, self._pending_order_side = self._pending_order_side, None
+            self.action_order(side)
 
     @work(exclusive=True, group="history")
     async def load_history(self) -> None:
@@ -268,11 +296,40 @@ class MarketScreen(Screen):
             )
 
     def action_toggle_activity(self, mode: str) -> None:
-        panel = self.query_one(ActivityPanel)
-        panel.toggle(mode)
-        showing_feed = panel.mode is not None
-        self.query_one("#interval-tabs", Tabs).display = not showing_feed
-        self.query_one(PriceChartPanel).display = not showing_feed
+        self.query_one(ActivityPanel).toggle(mode)
+
+    def action_open_event(self) -> None:
+        if self._event is not None:
+            from polymarket_tui.ui.screens.event import EventScreen
+
+            self.app.push_screen(EventScreen(self._event))
+            return
+        self._fetch_and_open_event()
+
+    @work(exclusive=True, group="open-event")
+    async def _fetch_and_open_event(self) -> None:
+        slug = self._market.event_slug
+        event = None
+        if slug:
+            try:
+                event = await self.app.gamma.event_by_slug(slug)
+            except Exception:
+                event = None
+        if event is None:
+            # Markets opened from positions carry no embedded event - refetch.
+            try:
+                fresh = await self.app.gamma.market_by_slug(self._market.slug)
+                if fresh is not None and fresh.event_slug:
+                    event = await self.app.gamma.event_by_slug(fresh.event_slug)
+            except Exception:
+                event = None
+        if event is None:
+            self.notify("No event found for this market", severity="warning")
+            return
+        self._event = event
+        from polymarket_tui.ui.screens.event import EventScreen
+
+        self.app.push_screen(EventScreen(event))
 
     def action_related(self) -> None:
         if self._event is None:
