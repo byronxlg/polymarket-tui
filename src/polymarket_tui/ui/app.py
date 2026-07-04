@@ -224,6 +224,22 @@ class PolymarketApp(App):
             reuse=order_side is None,
         )
 
+    def quick_order(self, event: Event, side: str) -> None:
+        """b/s on a list row: jump straight to the tradable market with the
+        order panel armed (targeted traders skip the event screen)."""
+        if not self.settings.can_auth:
+            self.notify(
+                "Trading needs a private key + funder - press A to authenticate",
+                severity="warning",
+            )
+            return
+        top = event.top_market
+        if event.is_binary and top is not None:
+            self.open_market(top, event, order_side=side)
+        else:
+            self.open_event(event)
+            self.notify("Multi-outcome event - pick an outcome, then b/s", timeout=4)
+
     def open_related(self, event: Event) -> None:
         self._drill(RelatedPane(event), "related")
 
