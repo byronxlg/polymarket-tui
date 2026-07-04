@@ -80,7 +80,8 @@ class EventsTable(VimDataTable):
         if width <= 0:
             return  # not laid out yet; the first real resize refits
         tier = effective_tier(self._cap, width, TIER_COLUMNS)
-        spec = fit_columns(TIER_COLUMNS[tier], width, "event")
+        flex_max = max((len(e.title) for e in self._events), default=0) or None
+        spec = fit_columns(TIER_COLUMNS[tier], width, "event", flex_max)
         if spec == self._columns_spec and self.columns:
             return
         self._columns_spec = spec
@@ -106,6 +107,7 @@ class EventsTable(VimDataTable):
             self.events_by_slug[event.slug] = event
         self._events.extend(fresh)
         self._render_rows(fresh)
+        self._refit()  # the longest title may have changed
 
     def _render_rows(self, events: list[Event]) -> None:
         widths = {key: width for key, _, width in self._columns_spec}

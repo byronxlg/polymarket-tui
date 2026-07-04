@@ -34,7 +34,8 @@ class MarketPreview(Static):
         out = Text()
         out.append(fmt.trunc(market.display_title, w) + "\n", style="bold")
         if market.question and market.question != market.display_title:
-            out.append(fmt.trunc(market.question, 2 * w) + "\n", style="dim")
+            # Full question - the panel wraps and scrolls, no need to cut it.
+            out.append(market.question.strip() + "\n", style="dim")
         out.append("\n")
         out.append(f"{'YES':<8}", style="bold green")
         out.append(f"{fmt.cents(market.yes_price):>8}\n", style="bold cyan")
@@ -110,9 +111,9 @@ class EventPreview(Static):
             out.append(f"... {len(markets) - PREVIEW_OUTCOMES} more\n", style="dim")
 
         if event.description:
+            # Full description - the panel wraps and scrolls, no need to cut it.
             out.append("\n")
-            desc = event.description.strip().replace("\n", " ")
-            out.append(desc[:600] + ("…" if len(desc) > 600 else ""), style="dim")
+            out.append(event.description.strip().replace("\n", " "), style="dim")
         self.update(out)
 
 

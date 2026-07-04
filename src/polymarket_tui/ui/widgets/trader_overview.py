@@ -67,7 +67,8 @@ class TraderOverview(Static):
         if self._address:
             out.append(f"{self._address[:8]}...{self._address[-6:]}\n", style="dim")
         if self._bio:
-            out.append(fmt.trunc(self._bio, 2 * w) + "\n", style="dim")
+            # Full bio - the panel wraps and scrolls, no need to cut it.
+            out.append(self._bio.strip() + "\n", style="dim")
         if self._status:
             out.append(f"\n{self._status}", style="dim")
             self.update(out)

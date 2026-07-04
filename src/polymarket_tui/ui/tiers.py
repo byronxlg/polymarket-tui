@@ -45,16 +45,30 @@ def effective_tier(
 
 
 def fit_columns(
-    columns: tuple[ColumnSpec, ...], width: int, flex_key: str
+    columns: tuple[ColumnSpec, ...] | list[ColumnSpec],
+    width: int,
+    flex_key: str,
+    flex_max: int | None = None,
 ) -> list[ColumnSpec]:
-    """Shrink the primary text column so the set fits `width` (floor 14)."""
-    deficit = columns_need(columns) - width
-    if deficit <= 0:
-        return list(columns)
-    return [
-        (key, label, max(14, w - deficit) if key == flex_key else w)
-        for key, label, w in columns
-    ]
+    """Fit the set to `width` by resizing the primary text column.
+
+    Deficit shrinks it (floor 14). Surplus grows it - but only up to
+    flex_max (the longest actual cell content), so titles stop truncating
+    as soon as there is room without pushing the numeric columns into the
+    void when rows are short.
+    """
+    delta = width - columns_need(columns)
+    if delta < 0:
+        return [
+            (key, label, max(14, w + delta) if key == flex_key else w)
+            for key, label, w in columns
+        ]
+    if delta > 0 and flex_max is not None:
+        return [
+            (key, label, max(w, min(flex_max, w + delta)) if key == flex_key else w)
+            for key, label, w in columns
+        ]
+    return list(columns)
 
 
 class TierAware:

@@ -179,7 +179,9 @@ class EventPane(TierAware, Vertical):
         if width <= 0 or not table.columns:
             return
         tier = effective_tier(self.tier, width, MARKETS_TIER_COLUMNS)
-        spec = fit_columns(MARKETS_TIER_COLUMNS[tier], width, "outcome")
+        titles = [m.display_title for m in self._event.active_markets]
+        flex_max = max((len(t) for t in titles), default=0) or None
+        spec = fit_columns(MARKETS_TIER_COLUMNS[tier], width, "outcome", flex_max)
         if spec == self._columns_spec:
             return
         self._columns_spec = spec
@@ -252,6 +254,7 @@ class EventPane(TierAware, Vertical):
             self._event = fresh
             self._fill_table()
             self.query_one(ActivityPanel).configure(None, fresh)
+            self._schedule_refit()  # fresh titles may change the flex width
 
     # -- actions ------------------------------------------------------------------
 

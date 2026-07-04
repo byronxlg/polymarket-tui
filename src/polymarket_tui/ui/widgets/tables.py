@@ -49,16 +49,19 @@ POSITIONS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
 
 
 def setup_positions_columns(
-    table: VimDataTable, flag_column: bool = False, tier: Tier = "full"
+    table: VimDataTable,
+    flag_column: bool = False,
+    tier: Tier = "full",
+    columns: list | None = None,
 ) -> None:
-    for key, label, width in POSITIONS_TIER_COLUMNS[tier]:
+    for key, label, width in columns or POSITIONS_TIER_COLUMNS[tier]:
         table.add_column(label, width=width, key=key)
     if flag_column and tier == "full":
         table.add_column("", width=20, key="flag")
 
 
-def position_row(pos: Position, tier: Tier = "full") -> list:
-    columns = POSITIONS_TIER_COLUMNS[tier]
+def position_row(pos: Position, tier: Tier = "full", columns: list | None = None) -> list:
+    columns = columns or POSITIONS_TIER_COLUMNS[tier]
     widths = {key: width for key, _, width in columns}
     cells = {
         "market": fmt.trunc(pos.title, widths["market"]),
@@ -109,13 +112,15 @@ def setup_activity_columns(
     market_width: int = 46,
     size_width: int = 10,
     tier: Tier = "full",
+    columns: list | None = None,
 ) -> None:
     """Columns for a trade/activity history table (portfolio History, trader Activity)."""
-    columns = (
-        _activity_full_columns(market_width, size_width)
-        if tier == "full"
-        else ACTIVITY_TIER_COLUMNS[tier]
-    )
+    if columns is None:
+        columns = (
+            _activity_full_columns(market_width, size_width)
+            if tier == "full"
+            else ACTIVITY_TIER_COLUMNS[tier]
+        )
     for key, label, width in columns:
         table.add_column(label, width=width, key=key)
 
@@ -126,10 +131,14 @@ def activity_row(
     market_width: int = 46,
     compact_size: bool = True,
     tier: Tier = "full",
+    columns: list | None = None,
 ) -> list:
-    columns = (
-        _activity_full_columns(market_width, 10) if tier == "full" else ACTIVITY_TIER_COLUMNS[tier]
-    )
+    if columns is None:
+        columns = (
+            _activity_full_columns(market_width, 10)
+            if tier == "full"
+            else ACTIVITY_TIER_COLUMNS[tier]
+        )
     widths = {key: width for key, _, width in columns}
     if not item.size:
         size = "-"
