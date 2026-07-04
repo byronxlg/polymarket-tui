@@ -7,13 +7,13 @@ market discovery, live order books, charts, trading, and portfolio management.
 
 | Doc | Contents |
 |---|---|
+| [design-principles.md](design-principles.md) | UX and code principles distilled from building the app |
 | [ADR-001-tech-stack.md](ADR-001-tech-stack.md) | Tech stack decision: Python + Textual + py-clob-client-v2 |
 | [architecture.md](architecture.md) | Layers, async model, data flow, project layout |
-| [api-reference.md](api-reference.md) | All four API surfaces: Gamma, CLOB REST, Data-API, CLOB WebSocket. Endpoint shapes verified against the live API 2026-07-03 |
-| [ui-spec.md](ui-spec.md) | Screens, layouts, widgets, keybindings, navigation model |
-| [trading.md](trading.md) | Order entry, validation pipeline, confirmation flow, safety rails |
-| [config-and-auth.md](config-and-auth.md) | Doppler setup, credential bootstrap, read-only mode |
-| [roadmap.md](roadmap.md) | Milestones M0-M4 with acceptance criteria |
+| [api-reference.md](api-reference.md) | All four API surfaces with live-verified shapes and quirks |
+| [trading.md](trading.md) | Order entry, warn-only validation, confirmation, audit |
+| [config-and-auth.md](config-and-auth.md) | Credentials file, capability modes, auth bootstrap |
+| [roadmap.md](roadmap.md) | Shipped milestones and remaining work |
 
 ## Scope summary
 

@@ -5,75 +5,53 @@ The only part of the app that moves money. Correctness and explicitness beat con
 ## Principles
 
 1. **Every order passes the same validation pipeline** - no fast path.
-2. **Every order is confirmed in a modal** showing exactly what will be signed. No
-   "don't ask again" option in v1.
+2. **Every order is confirmed** with an explicit `y` keypress on an armed
+   confirm strip showing exactly what will be signed.
 3. **Decimal everywhere.** Prices and sizes are `decimal.Decimal` from input to
    `OrderArgs`. Floats appear nowhere in order math.
-4. **Live-fire switch.** `POLYMARKET_EXECUTION_LIVE=1` required to actually post orders.
-   Without it the app runs in dry-run: full pipeline, confirm modal, then logs the
-   would-be order instead of posting (matches the shared-data-feeds convention).
+4. **Live-fire switch.** LIVE mode (auth-screen toggle with confirmation, or
+   `POLYMARKET_EXECUTION_LIVE=1`) is required to actually post. Otherwise
+   dry-run: the full pipeline runs and the order is signed (proving the
+   EIP-712 path) but never posted. LIVE is never persisted across sessions.
 
 ## Order form
 
-Fields and behavior (Market screen, bottom-right panel):
+Inline panel below the live order book (b/s opens it; the book stays visible):
 
-| Field | Values | Notes |
-|---|---|---|
-| Side | BUY / SELL | `b`/`s` shortcuts preset it |
-| Outcome | YES / NO | defaults to book currently displayed |
-| Type | LIMIT / MARKET | MARKET = marketable limit + FAK (no native market orders) |
-| TIF | GTC / GTD / FOK / FAK | LIMIT default GTC; GTD reveals an expiry input |
-| Price | decimal, in cents or dollars | disabled for MARKET (auto: best ask/bid crossed by 1 tick, shown grayed) |
-| Size | shares | `m` fills max affordable (BUY) or full position (SELL) |
-
-Live-computed display lines:
-
-- BUY: `cost = price * size`, `to win = size * (1 - price) + cost` -> shown as
-  `Cost $12.30 -> pays $100.00 if YES`
-- SELL: `proceeds = price * size`
-- Slippage line for MARKET: walks the book snapshot to estimate average fill price and
-  worst-case price at the crossed limit.
+- Two fields only: price (cents, focused first, tick-rounded mid prefill) and
+  size (shares, or a percentage of the held position when selling).
+- Empty price = market order (marketable limit at the touch, FAK).
+- b/s/space flip the side from anywhere in the panel; up/down bump by one
+  tick/share, shift for ten; ctrl+g cycles TIF (GTC/FOK/FAK).
+- A bold summary line (side muted, outcome colored, price cyan) plus
+  cost/payout re-render on every keystroke.
 
 ## Validation pipeline (`services/orders.py`)
 
-Runs on Review; each check yields pass / warn / block:
+Policy: **the app never blocks an order the exchange would accept.** Hard
+blocks exist only for orders that cannot succeed - they mirror exchange
+rejections. Everything judgment-shaped is at most a rare yellow warning.
 
-| # | Check | Source | Outcome |
-|---|---|---|---|
-| 1 | Market open (`active && !closed`, not past endDate) | Gamma | block |
-| 2 | Tick size: price % `orderPriceMinTickSize` == 0 | Gamma (fallback: CLOB tick-size endpoint) | block, with auto-round suggestion |
-| 3 | Min size: size >= `orderMinSize` (usually 5) | Gamma | block |
-| 4 | Price in (0, 1) exclusive | - | block |
-| 5 | Balance: BUY needs `cost <= usdc_balance`; SELL needs `size <= position size` | CLOB balance / data-api position | block |
-| 6 | Price sanity: warn if limit deviates > 2% from midpoint; block > 10% unless user re-confirms with typed `yes` | live book | warn/block |
-| 7 | Crossed-market awareness: BUY limit >= best ask -> "will fill immediately at ask" notice | live book | warn |
-| 8 | Fat-finger notional: warn if cost > 25% of balance; typed confirm if > $500 (configurable) | - | warn |
-| 9 | Duplicate guard: identical order (token, side, price, size) placed < 10s ago | session log | block |
+| Check | Source | Outcome |
+|---|---|---|
+| Market open (`active && !closed`, not past endDate) | Gamma | block |
+| Tick size: price % `orderPriceMinTickSize` == 0 | Gamma | block, with nearest-valid suggestion |
+| Min size: size >= `orderMinSize` (usually 5) | Gamma | block |
+| Price in (0, 1) exclusive | - | block |
+| Balance: BUY needs `cost <= usdc_balance`; SELL needs `size <= position` | CLOB / data-api | block |
+| Price > 10% off midpoint (limit orders) | live book | warn |
+| Notional > PMTUI_MAX_NOTIONAL | settings | warn |
+| Identical order placed < 10s ago | session log | warn |
 
-Warnings render in the confirm modal in yellow; blocks prevent the modal opening and focus
-the offending field with the reason.
+Warnings render inline in the order panel in yellow and never prevent the
+confirm step; blocks list the reason and keep the panel in edit state.
 
-## Confirm modal
+## Confirm step
 
-```
-+--------------------------------------------------------------+
-|  REVIEW ORDER                              [dry-run mode]    |
-|                                                              |
-|  BUY 100 YES  @ 12.3c  (LIMIT, GTC)                          |
-|  Will Spain win the 2026 FIFA World Cup?                     |
-|                                                              |
-|  Cost            $12.30                                      |
-|  Payout if YES   $100.00  (+$87.70)                          |
-|  Midpoint        12.25c   (deviation +0.4%)                  |
-|  Balance after   $111.15                                     |
-|                                                              |
-|  ! will partially fill immediately: 900 available at 12.3c   |
-|                                                              |
-|          [ Place order (enter) ]   [ Cancel (esc) ]          |
-+--------------------------------------------------------------+
-```
-
-Enter posts; esc returns to the form with values intact.
+Enter runs the pipeline; if nothing blocks, a reverse-video strip arms in the
+panel: `DRY-RUN  BUY 10 YES @ 33.4c (limit GTC)  y place  esc edit`. `y`
+places (the panel becomes focusable only at this point so a queued keypress
+cannot fire it); esc/left steps back to editing.
 
 ## Placement and result handling
 
@@ -94,15 +72,16 @@ Map response to UX:
 After any placement: invalidate balance + positions caches; append to the session order
 log (in-memory + JSONL at `~/.local/share/polymarket-tui/orders.jsonl` for audit).
 
-Fills arrive authoritatively on the user WS channel (`trade` messages with status
-MATCHED -> MINED -> CONFIRMED); the open-orders table and toasts key off those, not off
-optimistic local state.
+Fills will arrive authoritatively on the user WS channel once M2 lands;
+today the open-orders tab refetches on demand.
 
 ## Cancels
 
-- Single: `x` on an open order -> small confirm (`enter` confirms) -> `client.cancel(id)`.
-- All-in-market: from Market screen, `X` -> confirm listing the affected orders.
-- Cancel-all: Portfolio only, requires typing `cancel all`. Never triggered by a single key.
+`x` on an open order (portfolio, orders tab) -> confirm modal -> cancel via
+`cancel_order(OrderPayload)`. Cancels obey the same live gate as placement
+(DRY mode never posts a cancel), are audited to the JSONL log, and the
+response's `canceled`/`not_canceled` maps are checked - a 200 response is
+not success.
 
 ## Error mapping
 

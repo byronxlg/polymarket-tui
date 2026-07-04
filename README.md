@@ -1,45 +1,83 @@
 # polymarket-tui
 
-Terminal client for Polymarket: browse, order books, price charts, search,
-watchlist, portfolio, and order placement (dry-run by default).
+A fast, keyboard-driven terminal client for [Polymarket](https://polymarket.com):
+browse markets, watch live order books and trades, chart prices, track your
+portfolio and P&L, follow traders, and place orders - without leaving the
+terminal.
 
-## Run
+Built with Python 3.12 and [Textual](https://textual.textualize.io/).
+
+## Install & run
+
+Requires [uv](https://docs.astral.sh/uv/).
 
 ```sh
+git clone https://github.com/byronxlg/polymarket-tui
+cd polymarket-tui
+uv sync
 uv run polymarket-tui
 ```
 
-Press A to authenticate: enter your funder address (and private key for
-trading). Applied credentials are saved to
-~/.config/polymarket-tui/credentials.toml (chmod 600); POLYMARKET_* env vars
-override the file when set.
+No credentials needed to browse: markets, books, charts, trades, comments,
+and any trader's public positions all work read-only.
 
-Capability modes: RO (no creds), OBS (funder only - positions and P&L),
-DRY (key+funder - orders signed but never posted), LIVE (DRY + the in-app
-live toggle or POLYMARKET_EXECUTION_LIVE=1). Live mode is never persisted;
-every session starts DRY. Every placed/cancelled order is appended to
-~/.local/share/polymarket-tui/orders.jsonl.
+## Account setup
+
+Press `A` in the app:
+
+- **Funder address only** -> observer mode: your positions, P&L, activity.
+  This is the wallet address shown in the Polymarket UI.
+- **Funder + private key** -> trading mode. The key is the Polygon key that
+  controls your Polymarket wallet (signature type 1 for the standard proxy
+  wallet). Applied credentials are saved to
+  `~/.config/polymarket-tui/credentials.toml` (chmod 600, plaintext - treat
+  the file like the key itself). `POLYMARKET_*` env vars override the file.
+
+**Orders are dry-run by default**: fully validated and signed but never
+posted. Live posting requires the explicit LIVE toggle on the auth screen
+(confirmed per session, never persisted) or `POLYMARKET_EXECUTION_LIVE=1`.
+Every placed/cancelled order is appended to
+`~/.local/share/polymarket-tui/orders.jsonl`.
+
+Deposits, withdrawals, token approvals, and redemption of resolved positions
+are on-chain operations this client does not perform - use the website.
 
 ## Keys
 
-Core: arrows move (up also enters what is above - category bar, chart,
-search box), right/enter open, left/escape back, tab cycles the screen's
-selector (category / timeframe / pane), space is the contextual toggle
-(star events on lists, flip YES/NO book, show rules). / search, p portfolio,
-w watchlist, H home, A auth, ? full key reference, q quit.
+One scheme everywhere - press `?` in the app for the full reference:
 
-Market pages mirror the event page: outcome rows on the left drive the order
-book rail on the right; the chart sits in a strip below (a/c swap in live
-trades / comments). b/s open inline order entry under the book (price in
-cents, empty = market order, up/down tick, enter review, y place).
+- **arrows** move; `up`/`down` flow into adjacent panels (category bar,
+  chart inspect, search box); `right`/`enter` open; `left`/`esc` step out
+  one level (order panel -> expanded view -> screen -> previous screen)
+- **tab** cycles the screen's selector: category (home), chart timeframe
+  (event/market), pane (portfolio), results mode (search)
+- **space** is the contextual toggle: star an event, follow a trader, flip
+  the YES/NO book, flip BUY/SELL while ordering, show rules
+- Market pages: `b`/`s` order entry under the live book (price in cents,
+  empty = market order, up/down = tick), `y`/`n` book side, `a` expand the
+  live trades rail (right opens the trader), `c` comments, `e` parent event
+- `/` search (markets and traders), `p` portfolio, `w` watchlist, `A` auth,
+  `q` quit
 
-Search (/) covers markets and traders; follow traders with space and find
-them under the watchlist's Traders tab, including their public positions
-and activity.
+## Data sources
 
-Order book auto-refreshes every 3 seconds.
+Public Polymarket APIs: `gamma-api.polymarket.com` (markets, events, search,
+comments), `clob.polymarket.com` (order books, price history, orders),
+`data-api.polymarket.com` (positions, trades, activity),
+`user-pnl-api.polymarket.com` (profit history). Trading uses
+`py-clob-client-v2` for CLOB V2 order signing.
 
-## Design docs
+## Docs
 
-`docs/README.md` indexes the full design: architecture, API reference (verified
-against the live APIs), UI spec, trading design, config/auth, roadmap.
+- `docs/design-principles.md` - the UX/code principles this app follows
+- `docs/architecture.md` - layers, async model, caching
+- `docs/api-reference.md` - the four API surfaces, verified shapes, quirks
+- `docs/trading.md` - the money path: validation, confirmation, audit
+- `docs/config-and-auth.md` - credentials, capability modes
+- `docs/roadmap.md` - shipped / remaining
+
+## Disclaimer
+
+Unofficial client, not affiliated with Polymarket. It can place real orders
+with real money when you explicitly enable LIVE mode; you are responsible
+for your trades. No warranty.
