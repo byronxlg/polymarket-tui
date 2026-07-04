@@ -28,9 +28,14 @@ selector (category / timeframe / pane), space is the contextual toggle
 (star events on lists, flip YES/NO book, show rules). / search, p portfolio,
 w watchlist, H home, A auth, ? full key reference, q quit.
 
-Market extras: b/s inline order entry under the live book (price in cents,
-empty = market order, up/down tick, enter review, y place), y/n jump to a
-book side, a live trades, c comments, R related markets.
+Market pages mirror the event page: outcome rows on the left drive the order
+book rail on the right; the chart sits in a strip below (a/c swap in live
+trades / comments). b/s open inline order entry under the book (price in
+cents, empty = market order, up/down tick, enter review, y place).
+
+Search (/) covers markets and traders; follow traders with space and find
+them under the watchlist's Traders tab, including their public positions
+and activity.
 
 Order book auto-refreshes every 3 seconds.
 

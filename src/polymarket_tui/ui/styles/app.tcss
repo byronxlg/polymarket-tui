@@ -67,29 +67,33 @@ PriceChartPanel {
     height: 1fr;
 }
 
-/* Market screen */
+/* Market screen mirrors the event page: outcome table | book rail, chart strip below */
 #market-body {
-    layout: horizontal;
     height: 1fr;
 }
 
-#outcome-strip {
-    height: 1;
-    padding: 0 1;
+#outcomes-table {
+    width: 1fr;
+    height: 1fr;
 }
 
-/* Market screen: book + order entry lead on the left, chart is context */
 #book-pane {
-    width: 44%;
+    width: 48;
     min-width: 44;
     border: solid $panel-lighten-2;
     padding: 0 1;
 }
 
-#chart-pane {
-    width: 1fr;
+#market-chart-strip {
+    height: 30%;
+    min-height: 10;
     border: solid $panel-lighten-2;
     padding: 0 1;
+}
+
+#market-chart-strip ActivityPanel {
+    height: 1fr;
+    border-top: none;
 }
 
 #interval-tabs {
@@ -131,6 +135,15 @@ PriceChartPanel {
 #search-input {
     dock: top;
     margin: 0 0 1 0;
+}
+
+#traders-title {
+    height: 1;
+}
+
+#traders-table {
+    height: auto;
+    max-height: 8;
 }
 
 /* Help */

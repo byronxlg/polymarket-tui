@@ -56,6 +56,21 @@ class ActivityItem(BaseModel):
         return datetime.fromtimestamp(self.timestamp, tz=UTC)
 
 
+class Profile(BaseModel):
+    """Public trader profile from gamma public-search."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    name: str = ""
+    pseudonym: str = ""
+    proxy_wallet: str = Field(default="", alias="proxyWallet")
+    bio: str | None = None
+
+    @property
+    def display_name(self) -> str:
+        return self.name or self.pseudonym or self.proxy_wallet[:10]
+
+
 class OpenOrder(BaseModel):
     """Shape of py-clob-client-v2 get_open_orders entries (dicts)."""
 

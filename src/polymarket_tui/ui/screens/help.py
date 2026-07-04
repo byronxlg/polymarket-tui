@@ -26,8 +26,9 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 | tab / shift+tab | cycle the screen's selector (category / timeframe / pane) |
 | space | the contextual toggle (see below) |
 
-space by screen: star an event (home, search, watchlist, related),
-flip the YES/NO book (market), show/hide rules (event).
+space by screen: star an event or follow a trader (home, search,
+watchlist, related), flip the YES/NO book (market), show/hide rules
+(event), follow/unfollow (trader profile).
 
 ## Going places
 
@@ -48,7 +49,7 @@ flip the YES/NO book (market), show/hide rules (event).
 | o | home | cycle sort (24h volume / liquidity / ending / newest) |
 | b / s | market | order entry below the live book (BUY / SELL) |
 | y / n | market | jump straight to the YES / NO book |
-| a / c | market | live trades feed / comments below the chart |
+| a / c | market | live trades feed / comments (swap into the chart strip) |
 | R | event, market | related markets (series siblings for dailies) |
 | x | portfolio open-orders tab | cancel the highlighted order |
 | r | anywhere | refresh |
@@ -71,6 +72,10 @@ for big steps), the legend shows values at the crosshair, up/down/esc exit.
 
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.
+
+Markets and traders share the search screen (/): arrow down past the last
+event to reach the trader results; enter opens a public profile with their
+positions and activity; the watchlist (w) keeps Events and Traders tabs.
 
 Data: gamma-api.polymarket.com, clob.polymarket.com, data-api.polymarket.com.
 """

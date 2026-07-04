@@ -108,10 +108,23 @@ class GammaClient:
         data = await self._get("/tags", {"limit": 100, "order": "id"})
         return [Tag.model_validate(t) for t in data]
 
-    async def search(self, query: str, limit_per_type: int = 10) -> list[Event]:
+    async def search(self, query: str, limit_per_type: int = 10) -> tuple[list[Event], list]:
+        """Full-text search: (events, profiles)."""
+        from polymarket_tui.models.portfolio import Profile
+
         data = await self._get(
             "/public-search",
-            {"q": query, "limit_per_type": limit_per_type, "events_status": "active"},
+            {
+                "q": query,
+                "limit_per_type": limit_per_type,
+                "events_status": "active",
+                "search_profiles": "true",
+            },
         )
-        events = data.get("events") or []
-        return [Event.model_validate(e) for e in events]
+        events = [Event.model_validate(e) for e in (data.get("events") or [])]
+        profiles = [
+            p
+            for p in (Profile.model_validate(pr) for pr in (data.get("profiles") or []))
+            if p.proxy_wallet
+        ]
+        return events, profiles

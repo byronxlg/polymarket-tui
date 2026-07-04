@@ -16,8 +16,10 @@ from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
+from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
+from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 BOOK_POLL_SECONDS = 3.0
 
@@ -30,7 +32,6 @@ class MarketScreen(Screen):
         Binding("space", "toggle_outcome", "yes/no"),
         Binding("y", "select_outcome(0)", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
-        Binding("up", "inspect_chart", "inspect", show=False),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_activity('trades')", "activity"),
@@ -53,21 +54,20 @@ class MarketScreen(Screen):
     def compose(self) -> ComposeResult:
         yield AppHeader("market")
         yield Static(self._title_line(), classes="screen-title", id="market-title")
-        yield Static(id="outcome-strip")
-        with Vertical(id="market-body-wrap"):
-            with Horizontal(id="market-body"):
-                with Vertical(id="book-pane"):
-                    yield Static(self._book_header(), id="book-title")
-                    scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
-                    scroll.can_focus = False
-                    yield scroll
-                    yield OrderPanel(id="order-panel")
-                with Vertical(id="chart-pane"):
-                    tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
-                    tabs.can_focus = False
-                    yield tabs
-                    yield PriceChartPanel(id="price-chart")
-                    yield ActivityPanel(id="activity-panel")
+        with Horizontal(id="market-body"):
+            yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
+            with Vertical(id="book-pane"):
+                yield Static(self._book_header(), id="book-title")
+                scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
+                scroll.can_focus = False
+                yield scroll
+                yield OrderPanel(id="order-panel")
+        with Vertical(id="market-chart-strip"):
+            tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
+            tabs.can_focus = False
+            yield tabs
+            yield PriceChartPanel(id="price-chart")
+            yield ActivityPanel(id="activity-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
         yield Footer()
 
@@ -89,34 +89,48 @@ class MarketScreen(Screen):
             bits.append(self._event.title.strip()[:30])
         return "  |  ".join(bits)
 
-    def _render_outcome_strip(self) -> None:
-        """Both outcomes at a glance, like the multi-outcome event table."""
+    def _fill_outcomes(self) -> None:
+        """Outcome rows exactly like the event page; the cursor is the selector."""
         m = self._market
-        out = Text()
+        table = self.query_one("#outcomes-table", VimDataTable)
+        table.clear()
         yes = m.yes_price
         change = m.one_day_price_change
+        spread = m.spread
         for idx, label in enumerate((m.outcomes or ["Yes", "No"])[:2]):
             price = yes if idx == 0 else (None if yes is None else 1 - yes)
             bid = m.best_bid if idx == 0 else (None if m.best_ask is None else 1 - m.best_ask)
             ask = m.best_ask if idx == 0 else (None if m.best_bid is None else 1 - m.best_bid)
             delta = change if idx == 0 else (None if change is None else -change)
-            active = idx == self._outcome_index
-            style = "bold green" if idx == 0 else "bold red"
-            out.append(" > " if active else "   ", style="bold" if active else "dim")
-            out.append(f"{label:<4}", style=style if active else "dim " + style)
-            out.append(f" {fmt.cents(price):>6}", style="bold cyan" if active else "dim")
-            if delta is not None and abs(delta) > 0.0005:
-                out.append(
-                    f" {fmt.cents(delta, signed=True):>7}",
-                    style=("green" if delta > 0 else "red") if active else "dim",
-                )
-            else:
-                out.append(" " * 8)
-            detail = f"  bid {fmt.cents(bid)}  ask {fmt.cents(ask)}"
-            out.append(detail, style="" if active else "dim")
-            if idx == 0:
-                out.append("      ")
-        self.query_one("#outcome-strip", Static).update(out)
+            table.add_row(
+                Text(label, style="bold green" if idx == 0 else "bold red"),
+                Text(fmt.cents(price), style="bold cyan"),
+                change_text(delta),
+                Text(fmt.cents(bid), style="green"),
+                Text(fmt.cents(ask), style="red"),
+                fmt.cents(spread),
+                fmt.money(m.volume_24hr),
+                key=str(idx),
+            )
+
+    def on_data_table_row_highlighted(self, event) -> None:
+        if event.data_table.id != "outcomes-table" or event.cursor_row is None:
+            return
+        self._apply_outcome(event.cursor_row)
+
+    def _apply_outcome(self, index: int) -> None:
+        if index == self._outcome_index:
+            return
+        self._outcome_index = index
+        self._book = None  # stale: belongs to the other outcome until load_book returns
+        self.query_one(OrderPanel).set_outcome(self._outcome_index)
+        self.query_one("#book-title", Static).update(self._book_header())
+        self.query_one(BookPanel).update("loading book...")
+        self.load_book()
+        self.load_history()
+
+    def on_vim_data_table_bottom_reached(self, message) -> None:
+        self.action_inspect_chart()
 
     def _book_header(self) -> str:
         return f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)"
@@ -139,7 +153,16 @@ class MarketScreen(Screen):
 
     def on_mount(self) -> None:
         self.title = "market"
-        self._render_outcome_strip()
+        table = self.query_one("#outcomes-table", VimDataTable)
+        table.add_column("Outcome", width=24, key="outcome")
+        table.add_column("Price", width=7, key="price")
+        table.add_column("24h", width=7, key="change")
+        table.add_column("Bid", width=7, key="bid")
+        table.add_column("Ask", width=7, key="ask")
+        table.add_column("Spread", width=7, key="spread")
+        table.add_column("Vol 24h", width=9, key="vol")
+        self._fill_outcomes()
+        table.focus()
         self.query_one(ActivityPanel).configure(self._market, self._event)
         self.load_book()
         self.load_history()
@@ -211,18 +234,10 @@ class MarketScreen(Screen):
     # -- actions ----------------------------------------------------------------
 
     def action_select_outcome(self, index: int) -> None:
-        if index != self._outcome_index:
-            self.action_toggle_outcome()
+        self.query_one("#outcomes-table", VimDataTable).move_cursor(row=index)
 
     def action_toggle_outcome(self) -> None:
-        self._outcome_index = 1 - self._outcome_index
-        self._render_outcome_strip()
-        self._book = None  # stale: belongs to the other outcome until load_book returns
-        self.query_one(OrderPanel).set_outcome(self._outcome_index)
-        self.query_one("#book-title", Static).update(self._book_header())
-        self.query_one(BookPanel).update("loading book...")
-        self.load_book()
-        self.load_history()
+        self.action_select_outcome(1 - self._outcome_index)
 
     def action_set_interval_key(self, key: str) -> None:
         self._interval = key
@@ -247,10 +262,17 @@ class MarketScreen(Screen):
         self.load_history()
 
     def action_inspect_chart(self) -> None:
-        self.query_one(PriceChartPanel).enter_inspect()
+        if self.query_one(PriceChartPanel).display:
+            self.query_one(PriceChartPanel).enter_inspect(
+                return_focus=self.query_one("#outcomes-table", VimDataTable)
+            )
 
     def action_toggle_activity(self, mode: str) -> None:
-        self.query_one(ActivityPanel).toggle(mode)
+        panel = self.query_one(ActivityPanel)
+        panel.toggle(mode)
+        showing_feed = panel.mode is not None
+        self.query_one("#interval-tabs", Tabs).display = not showing_feed
+        self.query_one(PriceChartPanel).display = not showing_feed
 
     def action_related(self) -> None:
         if self._event is None:
