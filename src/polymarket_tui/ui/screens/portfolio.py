@@ -207,6 +207,18 @@ class PortfolioScreen(Screen):
             self._orders = await self.app.portfolio.open_orders()
         except Exception as exc:
             self.notify(f"open orders unavailable: {exc}", severity="warning")
+            # On the reconciliation path the user is waiting on a verdict; a stuck
+            # "Checking..." banner is worse than an honest "could not check".
+            if self.app.reconcile_target is not None:
+                banner = self.query_one("#reconcile-banner", Static)
+                banner.add_class("active")
+                banner.update(
+                    Text(
+                        f"COULD NOT CHECK - open orders unavailable ({exc}). Retry with r; "
+                        f"do not re-place {self.app.reconcile_target.summary} until confirmed.",
+                        style="bold yellow",
+                    )
+                )
             return
         table.clear()
         titles = await self._order_titles(self._orders)
@@ -398,17 +410,27 @@ class PortfolioScreen(Screen):
 
         def _done(confirmed: bool | None) -> None:
             if confirmed:
-                self.cancel_order_worker(order.id)
+                self._start_cancel(order.id)
 
         self.app.push_screen(ConfirmModal("CANCEL ORDER", body, "cancel order"), _done)
 
-    @work(exclusive=True, group="cancel")
-    async def cancel_order_worker(self, order_id: str) -> None:
-        result = await self.app.orders.cancel(order_id)
-        if result.ok and result.dry_run:
-            self.notify("DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6)
-        elif result.ok:
-            self.notify("Order cancelled")
-        else:
-            self.notify(f"Cancel failed: {result.error}", severity="error", timeout=8)
-        self.load_orders()
+    def _start_cancel(self, order_id: str) -> None:
+        # App-lifetime worker: navigating off the screen must not drop an in-flight
+        # cancel's result (mirrors the placement path in order_panel).
+        app = self.app
+        screen = self
+
+        async def _cancel_and_report() -> None:
+            result = await app.orders.cancel(order_id)
+            if result.ok and result.dry_run:
+                app.notify(
+                    "DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6
+                )
+            elif result.ok:
+                app.notify("Order cancelled")
+            else:
+                app.notify(f"Cancel failed: {result.error}", severity="error", timeout=8)
+            if screen.is_mounted:
+                screen.load_orders()
+
+        app.run_worker(_cancel_and_report(), group="cancel-order", exclusive=False)

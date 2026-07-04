@@ -1,7 +1,10 @@
 """Authenticated CLOB access: balance, open orders, and (later) order placement.
 
 py-clob-client-v2 is synchronous; every call goes through asyncio.to_thread.
-The client is bootstrapped lazily on first use and cached.
+The client is bootstrapped lazily on first use and cached. The client wraps a
+single requests.Session, which is not thread-safe, so all calls are serialized
+through a lock - concurrent workers (a portfolio refresh while an order posts)
+must not touch the shared session at the same time.
 """
 
 from __future__ import annotations
@@ -20,7 +23,8 @@ class AuthedClobClient:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._client = None
-        self._lock = asyncio.Lock()
+        self._lock = asyncio.Lock()  # guards lazy bootstrap
+        self._call_lock = asyncio.Lock()  # serializes the non-thread-safe client
         self.auth_failed: str | None = None
 
     async def _get_client(self):
@@ -39,27 +43,30 @@ class AuthedClobClient:
         from py_clob_client_v2 import AssetType, BalanceAllowanceParams
 
         client = await self._get_client()
-        ba = await asyncio.to_thread(
-            client.get_balance_allowance,
-            BalanceAllowanceParams(
-                asset_type=AssetType.COLLATERAL,
-                signature_type=self._settings.polymarket_signature_type,
-            ),
-        )
+        async with self._call_lock:
+            ba = await asyncio.to_thread(
+                client.get_balance_allowance,
+                BalanceAllowanceParams(
+                    asset_type=AssetType.COLLATERAL,
+                    signature_type=self._settings.polymarket_signature_type,
+                ),
+            )
         return int(ba["balance"]) / 1_000_000
 
     async def open_orders(self) -> list[OpenOrder]:
         from py_clob_client_v2 import OpenOrderParams
 
         client = await self._get_client()
-        raw = await asyncio.to_thread(client.get_open_orders, OpenOrderParams())
+        async with self._call_lock:
+            raw = await asyncio.to_thread(client.get_open_orders, OpenOrderParams())
         return [OpenOrder.model_validate(o) for o in raw]
 
     async def cancel_order(self, order_id: str) -> dict:
         from py_clob_client_v2 import OrderPayload
 
         client = await self._get_client()
-        return await asyncio.to_thread(client.cancel_order, OrderPayload(orderID=order_id))
+        async with self._call_lock:
+            return await asyncio.to_thread(client.cancel_order, OrderPayload(orderID=order_id))
 
     async def create_and_post_order(self, order_args, order_type) -> dict:
         """Sign and post. Caller (OrderService) owns validation and the live gate."""
@@ -69,9 +76,11 @@ class AuthedClobClient:
             signed = client.create_order(order_args)
             return client.post_order(signed, order_type)
 
-        return await asyncio.to_thread(_run)
+        async with self._call_lock:
+            return await asyncio.to_thread(_run)
 
     async def sign_order(self, order_args) -> object:
         """Sign without posting - used by dry-run to prove the signing path."""
         client = await self._get_client()
-        return await asyncio.to_thread(client.create_order, order_args)
+        async with self._call_lock:
+            return await asyncio.to_thread(client.create_order, order_args)

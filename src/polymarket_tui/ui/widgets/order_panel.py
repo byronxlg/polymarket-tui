@@ -109,10 +109,11 @@ class SizeInput(_SideSwitchingInput):
         if raw.endswith("%"):
             return  # percentages are typed, not bumped
         try:
-            current = int(float(raw)) if raw else 0
-        except ValueError:
+            current = Decimal(raw) if raw else Decimal(0)
+        except InvalidOperation:
             return
-        self.value = str(max(1, current + direction))
+        # Preserve any fractional shares the user typed (e.g. 12.5 -> 13.5).
+        self.value = str(max(Decimal(1), current + direction))
 
 
 class OrderPanel(Vertical):
@@ -299,7 +300,8 @@ class OrderPanel(Vertical):
                 pct = Decimal(raw_size[:-1])
             except InvalidOperation:
                 return None, "size %?"
-            size = Decimal(int(Decimal(str(self._position_size)) * pct / 100))
+            # Keep fractional precision: 100% must fully close a fractional position.
+            size = Decimal(str(self._position_size)) * pct / 100
         else:
             try:
                 size = Decimal(raw_size)
@@ -449,6 +451,15 @@ class OrderPanel(Vertical):
 
     # -- review & place ---------------------------------------------------------------
 
+    def _input_signature(self) -> tuple:
+        """Snapshot of everything a draft depends on, to detect edits mid-review."""
+        return (
+            self.query_one("#op-price", Input).value.strip(),
+            self.query_one("#op-size", Input).value.strip(),
+            self._side,
+            self._tif,
+        )
+
     @work(exclusive=True, group="op-review")
     async def run_review(self) -> None:
         issues_widget = self.query_one("#op-issues", Static)
@@ -456,6 +467,7 @@ class OrderPanel(Vertical):
         if draft is None:
             issues_widget.update(Text(error, style="red"))
             return
+        signature = self._input_signature()
         app = self.app
         try:
             cash = await app.portfolio.usdc_balance()
@@ -469,6 +481,13 @@ class OrderPanel(Vertical):
                 position = pos.size if pos else 0.0
             except Exception:
                 position = None
+
+        # Guard against edits during the awaits above: if the price/size/side/tif
+        # changed, or the panel closed, do not arm a confirmation on the stale
+        # draft - the user must press enter again to review the current values.
+        if not self.is_open or self._input_signature() != signature:
+            self._set_confirming(None)
+            return
 
         issues = app.orders.validate(draft, self._screen_book(), cash, position)
         blocks = [i for i in issues if i.level is IssueLevel.BLOCK]
@@ -489,6 +508,7 @@ class OrderPanel(Vertical):
             return
         draft = self._confirming
         app = self.app
+        screen = self.screen  # the market screen, for a post-fill position refresh
         self._set_confirming(None)
 
         async def _place_and_report() -> None:
@@ -498,6 +518,10 @@ class OrderPanel(Vertical):
             elif result.ok:
                 app.portfolio.invalidate()
                 app.refresh_account_status()
+                # Refresh the market screen's YOUR POSITION strip so the fill shows
+                # without leaving and re-entering the screen.
+                if getattr(screen, "is_mounted", False) and hasattr(screen, "load_position"):
+                    screen.load_position()
                 app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
             elif result.status_unknown:
                 # The post may have landed; never auto-retry. Offer to reconcile.

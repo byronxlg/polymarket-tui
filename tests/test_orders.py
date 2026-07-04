@@ -125,6 +125,14 @@ class TestValidation:
         issues = service.validate(draft, make_book(), None, position_size=50.0)
         assert [i for i in issues if i.level is IssueLevel.BLOCK] == []
 
+    def test_sell_with_unknown_position_does_not_block(self, service):
+        # position_size=None means holdings failed to load; must not hard-block a
+        # sell the exchange would accept (issue #8, mirrors the BUY cash guard).
+        draft = make_draft(side=Side.SELL, size=Decimal("50"), price=Decimal("0.330"))
+        issues = service.validate(draft, make_book(), 100.0, position_size=None)
+        assert [i for i in issues if i.level is IssueLevel.BLOCK] == []
+        assert "hold" not in messages(issues)
+
     def test_price_far_from_mid_warns_never_blocks(self, service):
         # mid = 33c; 40c is >10% off -> advisory only, the user decides
         issues = service.validate(make_draft(price=Decimal("0.40")), make_book(), 100.0, None)
@@ -230,6 +238,47 @@ class TestCancel:
         service = OrderService(Settings(), authed=None)
         result = await service.cancel("0xabc")
         assert not result.ok
+
+
+class FakeSigner:
+    """Signs (dry-run) without posting; records whether posting was attempted."""
+
+    def __init__(self) -> None:
+        self.posted = False
+
+    async def sign_order(self, order_args) -> object:
+        return object()
+
+    async def create_and_post_order(self, order_args, order_type) -> dict:
+        self.posted = True
+        return {"success": True, "status": "matched", "orderID": "0x1"}
+
+
+class TestPlace:
+    @pytest.mark.asyncio
+    async def test_dry_run_does_not_post_or_seed_duplicate_guard(self):
+        # A dry run signs but places nothing, so it must not seed the duplicate
+        # fingerprint (issue #8) - a later genuine attempt shouldn't warn.
+        authed = FakeSigner()
+        service = OrderService(Settings(polymarket_execution_live=False), authed)
+        result = await service.place(make_draft())
+        assert result.ok and result.dry_run
+        assert authed.posted is False
+        assert service._recent == []
+
+    @pytest.mark.asyncio
+    async def test_live_post_seeds_duplicate_guard(self):
+        authed = FakeSigner()
+        live = Settings(
+            polymarket_execution_live=True,
+            polymarket_funder="0xf",
+            polymarket_private_key="deadbeef" * 8,
+        )
+        service = OrderService(live, authed)
+        result = await service.place(make_draft())
+        assert result.ok and not result.dry_run
+        assert authed.posted is True
+        assert len(service._recent) == 1
 
 
 class TestHelpers:

@@ -224,8 +224,10 @@ class OrderService:
                         f"Costs ${draft.notional:,.2f} but cash is ${cash_balance:,.2f}.",
                     )
                 )
-        if draft.side is Side.SELL:
-            held = Decimal(str(position_size or 0))
+        if draft.side is Side.SELL and position_size is not None:
+            # Unknown holdings (positions failed to load) must not hard-block a
+            # sell the exchange would accept - mirror the BUY cash guard above.
+            held = Decimal(str(position_size))
             if draft.size > held:
                 issues.append(
                     Issue(IssueLevel.BLOCK, f"Selling {draft.size:,.0f} but you hold {held:,.0f}.")
@@ -283,11 +285,9 @@ class OrderService:
         order_type = OrderType.FAK if draft.is_market_order else getattr(OrderType, draft.tif.value)
         live = self._settings.mode is Mode.TRADER_LIVE
 
-        fingerprint = f"{draft.token_id}|{draft.side}|{draft.price}|{draft.size}"
-        self._recent.append((time.monotonic(), fingerprint))
-
         if not live:
-            # Dry run: sign (proves the whole signing path) but never post.
+            # Dry run: sign (proves the whole signing path) but never post. Nothing
+            # is placed, so do not seed the duplicate-order fingerprint.
             try:
                 await self._authed.sign_order(order_args)
             except Exception as exc:
@@ -297,6 +297,11 @@ class OrderService:
             result = PlaceResult(ok=True, dry_run=True, status="dry-run (signed, not posted)")
             self._audit(draft, result)
             return result
+
+        # Record the attempt only now: a live post may land (even on timeout), so
+        # a subsequent identical order within the window is worth warning about.
+        fingerprint = f"{draft.token_id}|{draft.side}|{draft.price}|{draft.size}"
+        self._recent.append((time.monotonic(), fingerprint))
 
         try:
             resp = await self._authed.create_and_post_order(order_args, order_type)
