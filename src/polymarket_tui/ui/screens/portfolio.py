@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
@@ -13,7 +15,6 @@ from polymarket_tui.core import fmt
 from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
 from polymarket_tui.models.portfolio import OpenOrder, Position
 from polymarket_tui.ui.widgets.app_header import AppHeader
-from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     activity_row,
@@ -40,9 +41,10 @@ class PositionsTable(VimDataTable):
 
 class PortfolioScreen(Screen):
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "back", "back"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "prev_pane", "prev tab", show=False),
+        Binding("y", "confirm_cancel", "confirm cancel", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
@@ -50,6 +52,7 @@ class PortfolioScreen(Screen):
         yield AppHeader("portfolio")
         yield Static("loading balances...", id="balance-line", classes="screen-title")
         yield Static(id="reconcile-banner")
+        yield Static(id="cancel-strip")
         with TabbedContent(id="portfolio-tabs"):
             with TabPane("Positions", id="pane-positions"):
                 yield PositionsTable(cursor_type="row", zebra_stripes=True, id="positions-table")
@@ -64,6 +67,9 @@ class PortfolioScreen(Screen):
         self.title = "portfolio"
         self._orders: list[OpenOrder] = []
         self._positions: list[Position] = []
+        self._pending_cancel: OpenOrder | None = None
+        self._cancel_armed_at = 0.0
+        self.query_one("#cancel-strip", Static).display = False
 
         positions = self.query_one("#positions-table", PositionsTable)
         setup_positions_columns(positions, flag_column=True)
@@ -349,6 +355,8 @@ class PortfolioScreen(Screen):
         self.notify(f"{note} {url}{suffix}", timeout=6)
 
     def action_cancel_order(self) -> None:
+        """x arms an inline confirm strip (no modal); y within the strip cancels.
+        The arming delay mirrors ConfirmModal: queued keys can't confirm."""
         if self._active_pane() != "pane-orders":
             return
         table = self.query_one("#orders-table", VimDataTable)
@@ -358,15 +366,41 @@ class PortfolioScreen(Screen):
         order = next((o for o in self._orders if o.id == str(row_key.value)), None)
         if order is None:
             return
-        body = Text()
-        body.append(f"{order.side} {order.remaining:,.0f} @ {fmt.cents(order.price)}\n")
-        body.append(f"order {order.id[:18]}…", style="dim")
+        self._pending_cancel = order
+        self._cancel_armed_at = time.monotonic() + 0.35
+        strip = self.query_one("#cancel-strip", Static)
+        text = Text()
+        text.append(" CANCEL ", style="bold reverse red")
+        text.append(f" {order.side} {order.remaining:,.0f} {order.outcome}"
+                    f" @ {fmt.cents(order.price)}   ")
+        text.append("y", style="bold")
+        text.append(" cancel order   ", style="dim")
+        text.append("esc", style="bold")
+        text.append(" keep", style="dim")
+        strip.update(text)
+        strip.display = True
 
-        def _done(confirmed: bool | None) -> None:
-            if confirmed:
-                self._start_cancel(order.id)
+    def _clear_pending_cancel(self) -> None:
+        if getattr(self, "_pending_cancel", None) is not None:
+            self._pending_cancel = None
+            self.query_one("#cancel-strip", Static).display = False
 
-        self.app.push_screen(ConfirmModal("CANCEL ORDER", body, "cancel order"), _done)
+    def action_confirm_cancel(self) -> None:
+        order = getattr(self, "_pending_cancel", None)
+        if order is None or time.monotonic() < self._cancel_armed_at:
+            return
+        self._clear_pending_cancel()
+        self._start_cancel(order.id)
+
+    def action_back(self) -> None:
+        if getattr(self, "_pending_cancel", None) is not None:
+            self._clear_pending_cancel()
+            return
+        self.app.pop_screen()
+
+    def on_data_table_row_highlighted(self, event) -> None:
+        # Moving the cursor retargets the row - a stale confirm must not linger.
+        self._clear_pending_cancel()
 
     def _start_cancel(self, order_id: str) -> None:
         # App-lifetime worker: navigating off the screen must not drop an in-flight

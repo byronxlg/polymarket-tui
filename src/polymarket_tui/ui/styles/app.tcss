@@ -181,6 +181,12 @@ PriceChartPanel {
     background: $panel;
 }
 
+#cancel-strip {
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+}
+
 /* Portfolio: tables size to their rows (scroll past the cap); the
    profit chart absorbs whatever height is left instead of a fixed strip
    floating under a void. */
