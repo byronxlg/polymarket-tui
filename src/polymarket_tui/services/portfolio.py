@@ -11,6 +11,7 @@ from polymarket_tui.models.portfolio import ActivityItem, OpenOrder, Position
 
 POSITIONS_TTL = 30.0
 VALUE_TTL = 60.0
+ORDERS_TTL = 15.0
 
 
 class PortfolioService:
@@ -26,6 +27,8 @@ class PortfolioService:
         self._value_at = 0.0
         self._balance: float | None = None
         self._balance_at = 0.0
+        self._orders: list[OpenOrder] = []
+        self._orders_at = 0.0
 
     @property
     def user(self) -> str:
@@ -35,6 +38,7 @@ class PortfolioService:
         self._positions_at = 0.0
         self._value_at = 0.0
         self._balance_at = 0.0
+        self._orders_at = 0.0
 
     async def positions(self, force: bool = False) -> list[Position]:
         if not self.user:
@@ -71,7 +75,19 @@ class PortfolioService:
             return []
         return await self._data.activity(self.user, limit=limit)
 
-    async def open_orders(self) -> list[OpenOrder]:
+    async def open_orders(self, force: bool = False) -> list[OpenOrder]:
         if self._authed is None:
             return []
-        return await self._authed.open_orders()
+        now = time.monotonic()
+        if force or now - self._orders_at > ORDERS_TTL:
+            self._orders = await self._authed.open_orders()
+            self._orders_at = now
+        return self._orders
+
+    def orders_for_assets(self, token_ids: set[str]) -> list[OpenOrder]:
+        """Cached view - callers await open_orders() first to (re)fill it."""
+        return [o for o in self._orders if o.asset_id in token_ids]
+
+    def order_condition_ids(self) -> set[str]:
+        """Condition ids with at least one resting order (cached view)."""
+        return {o.market for o in self._orders if o.market}

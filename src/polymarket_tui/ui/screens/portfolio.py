@@ -158,7 +158,7 @@ class PortfolioScreen(Screen):
     async def load_orders(self) -> None:
         table = self.query_one("#orders-table", VimDataTable)
         try:
-            self._orders = await self.app.portfolio.open_orders()
+            self._orders = await self.app.portfolio.open_orders(force=True)
         except Exception as exc:
             self.notify(f"open orders unavailable: {exc}", severity="warning")
             # On the reconciliation path the user is waiting on a verdict; a stuck

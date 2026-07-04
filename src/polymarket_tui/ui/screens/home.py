@@ -85,6 +85,20 @@ class HomePane(TierAware, Vertical):
         self.load_events()
         self.tier_ready()
 
+    async def _ordered_slugs(self, events: list) -> set[str]:
+        """Slugs of listed events holding one of your resting orders."""
+        app = self.app
+        if not app.settings.can_auth:
+            return set()
+        try:
+            await app.portfolio.open_orders()
+        except Exception:
+            return set()
+        cond = app.portfolio.order_condition_ids()
+        if not cond:
+            return set()
+        return {e.slug for e in events if any(m.condition_id in cond for m in e.markets)}
+
     def on_tier_changed(self, tier: Tier) -> None:
         self.table.apply_tier(tier)
 
@@ -123,7 +137,8 @@ class HomePane(TierAware, Vertical):
             for e in events
             if e.top_market is not None and (e.end_date is None or e.end_date > now)
         ]
-        self.table.set_events(events, set(app.watchlist.slugs), clear=not append)
+        ordered = await self._ordered_slugs(events)
+        self.table.set_events(events, set(app.watchlist.slugs), clear=not append, ordered=ordered)
         if not append:
             browser = self.query_one(EventsBrowser)
             browser.preview.show_event(events[0] if events else None)

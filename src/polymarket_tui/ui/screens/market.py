@@ -121,6 +121,7 @@ class MarketPane(TierAware, Vertical):
             with Vertical(id="market-left"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
+                yield Static(id="orders-note")
                 with Vertical(id="trades-rail"):
                     yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
                     yield TradesTable(compact=False, id="trades-table")
@@ -307,6 +308,7 @@ class MarketPane(TierAware, Vertical):
             self.query_one(BookPanel).update("loading book...")
         self.load_book()
         self.load_history()
+        self.load_own_orders()
 
     def on_vim_data_table_bottom_reached(self, message) -> None:
         self.action_inspect_chart()
@@ -370,7 +372,9 @@ class MarketPane(TierAware, Vertical):
         self.load_book()
         self.load_history()
         self.load_position()
+        self.load_own_orders()
         self.set_interval(BOOK_POLL_SECONDS, self.load_book)
+        self.set_interval(10.0, self.load_own_orders)
         self._start_channel()
         # Refresh the live/stale/polling badge even when no frames arrive.
         self.set_interval(2.0, self._refresh_book_badge)
@@ -447,6 +451,38 @@ class MarketPane(TierAware, Vertical):
             pnl_style = "green" if p.cash_pnl > 0 else "red" if p.cash_pnl < 0 else "dim"
             out.append(f"{p.cash_pnl:+,.2f} ({p.percent_pnl:+.0f}%)", style=pnl_style)
         line.update(out)
+
+    @work(exclusive=True, group="own-orders")
+    async def load_own_orders(self) -> None:
+        """Star the book levels that hold one of your resting orders."""
+        app = self.app
+        if not app.settings.can_auth:
+            return
+        try:
+            await app.portfolio.open_orders()
+        except Exception:
+            return
+        token = self._token_id
+        if token is None:
+            return
+        mine = app.portfolio.orders_for_assets({token})
+        self.query_one(BookPanel).set_own_prices({o.price for o in mine})
+        market_orders = app.portfolio.orders_for_assets(
+            {t for t in self._market.clob_token_ids if t}
+        )
+        self._own_order_count = len(market_orders)
+        self._refresh_position_orders_note()
+
+    def _refresh_position_orders_note(self) -> None:
+        count = getattr(self, "_own_order_count", 0)
+        note = self.query_one("#orders-note", Static)
+        if count:
+            note.update(
+                Text(f" {count} resting order{'s' if count != 1 else ''} (x cancels in portfolio)",
+                     style="yellow")
+            )
+        else:
+            note.update(Text(""))
 
     @property
     def _token_id(self) -> str | None:

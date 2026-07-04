@@ -142,6 +142,25 @@ class EventPane(TierAware, Vertical):
         webbrowser.open(url)
         self.notify(f"Opened {url}", timeout=3)
 
+    @property
+    def _ordered_condition_ids(self) -> set[str]:
+        app = self.app
+        return app.portfolio.order_condition_ids() if app.settings.can_auth else set()
+
+    @work(exclusive=True, group="own-orders")
+    async def load_own_orders(self) -> None:
+        """Refresh the cached open orders, then re-mark the outcome rows."""
+        try:
+            await self.app.portfolio.open_orders()
+        except Exception:
+            return
+        if self._ordered_condition_ids:
+            table = self.query_one(DataTable)
+            cursor = table.cursor_row
+            self._fill_table()
+            if cursor is not None and table.row_count:
+                table.move_cursor(row=min(cursor, table.row_count - 1))
+
     def on_mount(self) -> None:
         self.query_one("#rules-panel", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
@@ -152,6 +171,8 @@ class EventPane(TierAware, Vertical):
         self.query_one(ActivityPanel).configure(None, self._event)
         self.load_chart()
         self.refresh_event()
+        self.load_own_orders()
+        self.set_interval(15.0, self.load_own_orders)
         self.tier_ready()
         self._schedule_refit()
 
@@ -196,9 +217,18 @@ class EventPane(TierAware, Vertical):
         table.clear()
         columns = self._columns_spec
         outcome_width = dict((k, w) for k, _, w in columns)["outcome"]
+        ordered = self._ordered_condition_ids
         for market in self._event.active_markets:
+            # Constant-width flag prefix so titles don't shift when a resting
+            # order appears ('o' = you have an open order on this outcome).
+            title = fmt.trunc(market.display_title, outcome_width - 2)
+            if market.condition_id in ordered:
+                outcome_cell = Text("o ", style="bold cyan")
+            else:
+                outcome_cell = Text("  ")
+            outcome_cell.append(title)
             cells = {
-                "outcome": fmt.trunc(market.display_title, outcome_width),
+                "outcome": outcome_cell,
                 "price": Text(fmt.cents(market.yes_price), style="bold cyan"),
                 "change": change_text(market.one_day_price_change),
                 "bid": Text(fmt.cents(market.best_bid), style="green"),

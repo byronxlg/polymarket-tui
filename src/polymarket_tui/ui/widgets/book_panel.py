@@ -17,6 +17,15 @@ BAR_WIDTH = 14
 class BookPanel(Static):
     def __init__(self, **kwargs) -> None:
         super().__init__("loading book...", **kwargs)
+        self._own_prices: set[float] = set()
+        self._book: OrderBook | None = None
+
+    def set_own_prices(self, prices: set[float]) -> None:
+        """Price levels holding one of your resting orders (marked with *)."""
+        if prices != self._own_prices:
+            self._own_prices = set(prices)
+            if self._book is not None:
+                self.update_book(self._book)
 
     def show_error(self, message: str) -> None:
         self.update(Text(message, style="dim"))
@@ -31,10 +40,14 @@ class BookPanel(Static):
         line.append(" " * (BAR_WIDTH - filled))
         line.append("#" * filled, style=style)
         line.append(f" {fmt.cents(level.price):>7}", style=style)
-        line.append(f" {fmt.compact_size(level.size):>10}\n")
+        line.append(f" {fmt.compact_size(level.size):>10}")
+        if any(abs(level.price - p) < 1e-9 for p in self._own_prices):
+            line.append(" *", style="bold yellow")
+        line.append("\n")
         return line
 
     def update_book(self, book: OrderBook) -> None:
+        self._book = book
         asks = sorted(book.asks, key=lambda lvl: lvl.price)[:DEPTH]
         bids = sorted(book.bids, key=lambda lvl: lvl.price, reverse=True)[:DEPTH]
         max_size = max((lvl.size for lvl in asks + bids), default=0.0)

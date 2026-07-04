@@ -1,0 +1,10 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["search", ["/", "lowest temperature in new york"], 5],
+    ["event", ["Enter"], 6],
+    ["market_ordered", ["Down", "Down", "Down", "Down", "Enter"], 7],
+    ["book_no", ["Space"], 3]
+  ]
+}
