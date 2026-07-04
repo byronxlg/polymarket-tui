@@ -47,6 +47,7 @@ class UserPane(TierAware, Vertical):
         self._activity: list[ActivityItem] = []
         # Effective (positions, activity) column tiers after width fitting.
         self._table_tiers: tuple[Tier, Tier] = ("full", "full")
+        self.drill_key = ("user", address)
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title", id="user-title")

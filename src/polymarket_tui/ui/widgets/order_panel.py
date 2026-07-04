@@ -117,16 +117,18 @@ class SizeInput(_SideSwitchingInput):
 
 
 class OrderPanel(Vertical):
+    # These shadow the market pane's same-key bindings while the panel has
+    # focus, so the still-relevant ones must stay visible in the footer.
     BINDINGS = [
-        Binding("escape", "close_or_back", "close", show=False),
-        Binding("tab", "next_field", "next field", show=False),
+        Binding("escape", "close_or_back", "close order"),
+        Binding("tab", "next_field", "field"),
         Binding("shift+tab", "next_field", "prev field", show=False),
         Binding("ctrl+g", "cycle_tif", "tif", show=False),
         Binding("y", "confirm_yes", "place", show=False),
         Binding("n", "confirm_no", "edit", show=False),
         Binding("b", "side('BUY')", "buy", show=False),
         Binding("s", "side('SELL')", "sell", show=False),
-        Binding("space", "flip_side", "flip side", show=False),
+        Binding("space", "flip_side", "buy/sell"),
     ]
 
     DEFAULT_CSS = """
@@ -365,7 +367,10 @@ class OrderPanel(Vertical):
             out.append(f"{outcomes[self._outcome_index]}  ", style=self._outcome_style)
             out.append(error, style="dim")
             summary.update(out)
-            hint = Text("enter: next/review  esc: close  up/down step (shift x10)", style="dim")
+            hint = Text(
+                "enter: next/review  esc: close  up/down: step (shift x10)  b/s/space: side",
+                style="dim",
+            )
             if self._side is Side.SELL and self._position_size:
                 hint.append(
                     f"   held {self._position_size:,.0f} - size 50% sells half", style="yellow"

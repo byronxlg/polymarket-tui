@@ -61,8 +61,21 @@ class NavHost(Screen):
 
     # -- drill / back ---------------------------------------------------------
 
-    def drill(self, pane: Widget, crumb: str) -> None:
-        """Open `pane` as the 70% child of the currently focused pane."""
+    def drill(self, pane: Widget, crumb: str, reuse: bool = True) -> None:
+        """Open `pane` as the 70% child of the currently focused pane.
+
+        If the focused pane's child is already the same destination
+        (matching drill_key), focus it instead of tearing it down and
+        remounting - re-selecting an open row must not cause a redraw.
+        """
+        key = getattr(pane, "drill_key", None)
+        if reuse and key is not None and self._focus + 1 < len(self._panes):
+            existing = self._panes[self._focus + 1]
+            if getattr(existing, "drill_key", None) == key:
+                self._focus += 1
+                self._left = self._focus - 1
+                self._reflow()
+                return
         # Drop any stale deeper panes left over from a previous drill.
         for stale in self._panes[self._focus + 1 :]:
             stale.remove()

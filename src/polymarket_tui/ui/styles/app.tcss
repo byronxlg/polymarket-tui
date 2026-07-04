@@ -233,7 +233,13 @@ PriceChartPanel {
     width: 70%;
 }
 
+/* The focused pane reads at full strength; the other slot is muted context. */
+.nav-pane {
+    opacity: 55%;
+}
+
 .nav-pane.focused {
+    opacity: 100%;
     border-left: solid $primary;
 }
 

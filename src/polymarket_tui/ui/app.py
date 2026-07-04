@@ -178,14 +178,23 @@ class PolymarketApp(App):
         base = self.screen_stack[0]
         return base if isinstance(base, NavHost) else None
 
-    def _drill(self, pane, crumb: str) -> None:
-        """Open `pane` as a drill child in NavHost, popping any overlay first."""
+    def _drill(self, pane, crumb: str, reuse: bool = True) -> None:
+        """Open `pane` as a drill child in NavHost, popping any overlay first.
+
+        Opens that originate from an overlay screen (watchlist, search,
+        portfolio) are unrelated to whatever drill trail was open before -
+        reset to the root first so the parent pane and breadcrumb don't show
+        a stale, unrelated context next to the new pane.
+        """
         host = self._nav_host()
         if host is None:
             return
+        from_overlay = len(self.screen_stack) > 1
         while len(self.screen_stack) > 1:
             self.pop_screen()
-        host.drill(pane, crumb)
+        if from_overlay:
+            host.reset_to_root()
+        host.drill(pane, crumb, reuse=reuse)
 
     def open_event(self, event: Event) -> None:
         """Open an event; binary events go straight to the market pane."""
@@ -197,7 +206,12 @@ class PolymarketApp(App):
     def open_market(
         self, market: Market, event: Event | None = None, order_side: str | None = None
     ) -> None:
-        self._drill(MarketPane(market, event, order_side=order_side), market.display_title)
+        # A pending order side must reach a fresh pane - skip child reuse then.
+        self._drill(
+            MarketPane(market, event, order_side=order_side),
+            market.display_title,
+            reuse=order_side is None,
+        )
 
     def open_related(self, event: Event) -> None:
         self._drill(RelatedPane(event), "related")

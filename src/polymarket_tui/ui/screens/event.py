@@ -65,6 +65,7 @@ class EventPane(TierAware, Vertical):
         Binding("R", "related", "related", key_display="R"),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
+        Binding("O", "open_web", "web", key_display="O"),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
@@ -74,6 +75,7 @@ class EventPane(TierAware, Vertical):
         self._show_info = False
         self._interval = "1D"
         self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
+        self.drill_key = ("event", event.slug)
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title")
@@ -129,6 +131,13 @@ class EventPane(TierAware, Vertical):
 
     def action_related(self) -> None:
         self.app.open_related(self._event)
+
+    def action_open_web(self) -> None:
+        import webbrowser
+
+        url = f"https://polymarket.com/event/{self._event.slug}"
+        webbrowser.open(url)
+        self.notify(f"Opened {url}", timeout=3)
 
     def on_mount(self) -> None:
         self.query_one("#rules-panel", Static).display = False

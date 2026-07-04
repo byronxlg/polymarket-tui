@@ -84,6 +84,7 @@ class MarketPane(TierAware, Vertical):
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", show=False, key_display="R"),
+        Binding("O", "open_web", "web", key_display="O"),
         Binding("e", "open_event", "event", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
@@ -106,6 +107,7 @@ class MarketPane(TierAware, Vertical):
         self._pending_order_side = order_side  # open the order panel once the book arrives
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
         self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
+        self.drill_key = ("market", market.slug)
         # True while a tier rebuild is restoring the cursor; row-highlight
         # events are ignored until the cursor lands on _outcome_index so the
         # rebuild can't flip the selected outcome (and reload book/history).
@@ -591,6 +593,18 @@ class MarketPane(TierAware, Vertical):
             self.notify("No event context for this market", severity="warning")
             return
         self.app.open_related(self._event)
+
+    def action_open_web(self) -> None:
+        import webbrowser
+
+        event_slug = self._market.event_slug or (self._event.slug if self._event else None)
+        if event_slug:
+            url = f"https://polymarket.com/event/{event_slug}/{self._market.slug}"
+        else:
+            # polymarket.com redirects /market/<slug> to the event page.
+            url = f"https://polymarket.com/market/{self._market.slug}"
+        webbrowser.open(url)
+        self.notify(f"Opened {url}", timeout=3)
 
     def action_order(self, side: str) -> None:
         app = self.app

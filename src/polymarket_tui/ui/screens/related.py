@@ -31,6 +31,7 @@ class RelatedPane(TierAware, Vertical):
     def __init__(self, event: Event, **kwargs) -> None:
         super().__init__(**kwargs)
         self._event = event
+        self.drill_key = ("related", event.slug)
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title")
