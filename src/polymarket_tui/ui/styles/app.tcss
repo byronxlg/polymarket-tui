@@ -204,45 +204,34 @@ PriceChartPanel {
     padding: 0 1;
 }
 
-/* Miller columns (sliding drill navigation with 30/70 split) */
-#col-tags {
-    height: 3;
+/* NavHost: 30/70 sliding drill split hosting the real screen bodies. */
+#nav-viewport {
+    height: 1fr;
 }
 
-#miller-crumbs {
+#nav-crumbs {
     height: 1;
     padding: 0 1;
     background: $panel;
     color: $text;
 }
 
-#miller-viewport {
-    height: 1fr;
-}
-
-.miller-col {
+.nav-pane {
     width: 1fr;
-    border: solid $panel-lighten-2;
-    padding: 0 1;
+    border-left: solid $panel-lighten-2;
 }
 
-/* Drill split: parent shrinks to 30%, the pane opened on right = 70%. */
-.miller-col.col-parent {
+/* Parent shrinks to 30%, the pane opened on right = 70%. */
+.nav-pane.col-parent {
     width: 30%;
 }
 
-.miller-col.col-child {
+.nav-pane.col-child {
     width: 70%;
 }
 
-.miller-col.focused {
-    border: solid $primary;
-}
-
-.miller-head {
-    height: 1;
-    color: $text-muted;
-    text-style: bold;
+.nav-pane.focused {
+    border-left: solid $primary;
 }
 
 /* Help */

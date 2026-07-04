@@ -18,8 +18,8 @@ from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
 from polymarket_tui.ui.screens.event import EventScreen
 from polymarket_tui.ui.screens.help import HelpScreen
-from polymarket_tui.ui.screens.home import HomeScreen
 from polymarket_tui.ui.screens.market import MarketScreen
+from polymarket_tui.ui.screens.nav_host import NavHost
 from polymarket_tui.ui.screens.portfolio import PortfolioScreen
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.watchlist import WatchlistScreen
@@ -60,8 +60,8 @@ class PolymarketApp(App):
         # A status-unknown live post to reconcile against Open Orders (issue #3).
         self.reconcile_target: ReconcileTarget | None = None
 
-    def get_default_screen(self) -> HomeScreen:
-        return HomeScreen()
+    def get_default_screen(self) -> NavHost:
+        return NavHost()
 
     def on_mount(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
@@ -188,6 +188,9 @@ class PolymarketApp(App):
     def action_home(self) -> None:
         while len(self.screen_stack) > 1:
             self.pop_screen()
+        base = self.screen_stack[0]
+        if isinstance(base, NavHost):
+            base.reset_to_root()
 
     def action_nav_back(self) -> None:
         # Screens may consume "back" to step out one level (close a panel,

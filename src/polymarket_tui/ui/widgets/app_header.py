@@ -31,6 +31,10 @@ class AppHeader(Static):
         self.set_interval(0.05, self._tick)
         self._tick()
 
+    def set_title(self, title: str) -> None:
+        self._title = title
+        self._tick()
+
     def _tick(self) -> None:
         offset = getattr(self.app, "ntp_offset", None)
         now = datetime.fromtimestamp(time.time() + (offset or 0.0)).astimezone()
