@@ -12,6 +12,18 @@ from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.widgets.event_table import EventsTable
 
 PREVIEW_OUTCOMES = 18
+BAR_W = 8
+
+
+def prob_bar(price: float | None, width: int = BAR_W) -> Text:
+    """Small probability bar: filled cells proportional to price (0-1)."""
+    out = Text()
+    if price is None:
+        return out.append(" " * width)
+    filled = round(max(0.0, min(1.0, price)) * width)
+    out.append("\u2588" * filled, style="rgb(0,110,160)")
+    out.append("\u00b7" * (width - filled), style="grey23")
+    return out
 
 
 class MarketPreview(Static):
@@ -37,11 +49,13 @@ class MarketPreview(Static):
             # Full question - the panel wraps and scrolls, no need to cut it.
             out.append(market.question.strip() + "\n", style="dim")
         out.append("\n")
-        out.append(f"{'YES':<8}", style="bold green")
-        out.append(f"{fmt.cents(market.yes_price):>8}\n", style="bold cyan")
         no_price = None if market.yes_price is None else 1 - market.yes_price
-        out.append(f"{'NO':<8}", style="bold red")
-        out.append(f"{fmt.cents(no_price):>8}\n\n", style="bold cyan")
+        yes_no = (("YES", "bold green", market.yes_price), ("NO", "bold red", no_price))
+        for label, style, price in yes_no:
+            out.append(f"{label:<5}", style=style)
+            out.append_text(prob_bar(price))
+            out.append(f"{fmt.cents(price):>8}\n", style="bold cyan")
+        out.append("\n")
 
         rows = [
             ("bid", fmt.cents(market.best_bid)),
@@ -82,8 +96,8 @@ class EventPreview(Static):
             self.update(Text("", style="dim"))
             return
         w = max(20, self.size.width or 44)
-        # Outcome rows: the name column fills what price (7) + change (8) leave.
-        name_w = max(12, w - 16)
+        # Outcome rows: name fills what the bar + price + change columns leave.
+        name_w = max(12, w - 16 - BAR_W - 1)
         out = Text()
         out.append(fmt.trunc(event.title, w) + "\n", style="bold")
         meta = []
@@ -101,6 +115,7 @@ class EventPreview(Static):
         for market in markets[:PREVIEW_OUTCOMES]:
             price = market.yes_price
             out.append(f"{fmt.trunc(market.display_title, name_w):<{name_w + 1}}", style="")
+            out.append_text(prob_bar(price))
             out.append(f"{fmt.cents(price):>7}", style="bold cyan")
             change = market.one_day_price_change
             if change:
