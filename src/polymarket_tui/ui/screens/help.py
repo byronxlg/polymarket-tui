@@ -27,8 +27,11 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 | space | the contextual toggle (see below) |
 
 space by screen: star an event or follow a trader (home, search,
-watchlist, related), flip the YES/NO book (market), show/hide rules
-(event), follow/unfollow (trader profile).
+watchlist, related), flip the YES/NO book (market), toggle BUY/SELL
+(order panel), show/hide rules (event), follow/unfollow (trader profile).
+
+left always steps out one level: order panel -> market -> previous screen;
+expanded trades collapse before the screen closes.
 
 ## Going places
 
@@ -49,7 +52,8 @@ watchlist, related), flip the YES/NO book (market), show/hide rules
 | o | home | cycle sort (24h volume / liquidity / ending / newest) |
 | b / s | market, event | order entry below the live book (BUY / SELL) |
 | y / n | market | jump straight to the YES / NO book |
-| a / c | market | switch the lean feed: live trades / comments (again hides) |
+| a | market | expand/collapse the live trades rail (right opens the trader) |
+| c | market | comments in the chart strip |
 | e | market | open the parent event |
 | R | event, market | related markets (series siblings for dailies) |
 | x | portfolio open-orders tab | cancel the highlighted order |
@@ -57,8 +61,9 @@ watchlist, related), flip the YES/NO book (market), show/hide rules
 
 ## Order entry
 
-right/enter on an outcome row also opens the buy form. b/s switch the
-side at any time, even while typing in the fields.
+right/enter on an outcome row opens the buy form; left (at the start of a
+field) or escape closes it. b/s/space switch the side at any time, even
+while typing in the fields.
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
 price empty for a market order at the touch. up/down bump by one tick or

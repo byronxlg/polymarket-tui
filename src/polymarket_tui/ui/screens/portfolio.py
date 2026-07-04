@@ -16,12 +16,8 @@ from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 from polymarket_tui.ui.widgets.linechart import render_chart
+from polymarket_tui.ui.widgets.tables import position_row, setup_positions_columns
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
-
-
-def pnl_text(cash: float, pct: float) -> Text:
-    style = "green" if cash > 0 else "red" if cash < 0 else "dim"
-    return Text(f"{cash:+,.2f} {pct:+.0f}%", style=style)
 
 
 class OrdersTable(VimDataTable):
@@ -59,14 +55,7 @@ class PortfolioScreen(Screen):
         self._orders: list[OpenOrder] = []
 
         positions = self.query_one("#positions-table", VimDataTable)
-        positions.add_column("Market", width=44, key="market")
-        positions.add_column("Outcome", width=12, key="outcome")
-        positions.add_column("Size", width=8, key="size")
-        positions.add_column("Avg", width=7, key="avg")
-        positions.add_column("Cur", width=7, key="cur")
-        positions.add_column("Value", width=10, key="value")
-        positions.add_column("P&L", width=16, key="pnl")
-        positions.add_column("", width=20, key="flag")
+        setup_positions_columns(positions, flag_column=True)
 
         orders = self.query_one("#orders-table", OrdersTable)
         orders.add_column("Market", width=44, key="market")
@@ -181,13 +170,7 @@ class PortfolioScreen(Screen):
             if pos.size < 0.01:
                 continue
             table.add_row(
-                fmt.trunc(pos.title, 44),
-                fmt.trunc(pos.outcome, 12),
-                f"{pos.size:,.0f}",
-                fmt.cents(pos.avg_price),
-                fmt.cents(pos.cur_price),
-                fmt.money(pos.current_value),
-                pnl_text(pos.cash_pnl, pos.percent_pnl),
+                *position_row(pos),
                 self._resolution_flag(pos),
                 key=f"{pos.slug}|{pos.asset}",
             )

@@ -10,8 +10,8 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
-from polymarket_tui.ui.screens.portfolio import pnl_text
 from polymarket_tui.ui.widgets.app_header import AppHeader
+from polymarket_tui.ui.widgets.tables import position_row, setup_positions_columns
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
@@ -46,13 +46,7 @@ class UserScreen(Screen):
     def on_mount(self) -> None:
         self.title = "trader"
         positions = self.query_one("#user-positions", VimDataTable)
-        positions.add_column("Market", width=46, key="market")
-        positions.add_column("Outcome", width=12, key="outcome")
-        positions.add_column("Size", width=10, key="size")
-        positions.add_column("Avg", width=7, key="avg")
-        positions.add_column("Cur", width=7, key="cur")
-        positions.add_column("Value", width=10, key="value")
-        positions.add_column("P&L", width=16, key="pnl")
+        setup_positions_columns(positions)
 
         activity = self.query_one("#user-activity", VimDataTable)
         activity.add_column("When", width=13, key="when")
@@ -90,16 +84,7 @@ class UserScreen(Screen):
         for pos in sorted(positions, key=lambda p: p.current_value, reverse=True):
             if pos.size < 0.01:
                 continue
-            positions_table.add_row(
-                fmt.trunc(pos.title, 46),
-                fmt.trunc(pos.outcome, 12),
-                fmt.compact_size(pos.size),
-                fmt.cents(pos.avg_price),
-                fmt.cents(pos.cur_price),
-                fmt.money(pos.current_value),
-                pnl_text(pos.cash_pnl, pos.percent_pnl),
-                key=f"{pos.slug}|{pos.asset}",
-            )
+            positions_table.add_row(*position_row(pos), key=f"{pos.slug}|{pos.asset}")
 
         activity_table = self.query_one("#user-activity", VimDataTable)
         try:

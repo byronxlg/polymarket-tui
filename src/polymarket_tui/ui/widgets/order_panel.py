@@ -34,9 +34,9 @@ TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
 
 
 class SideKey(Message):
-    """b/s pressed inside an order field - flip the order side."""
+    """b/s/space pressed inside an order field: pick or toggle (None) the side."""
 
-    def __init__(self, side: Side) -> None:
+    def __init__(self, side: Side | None) -> None:
         super().__init__()
         self.side = side
 
@@ -55,7 +55,22 @@ class _SideSwitchingInput(Input):
             event.prevent_default()
             self.post_message(SideKey(Side.SELL))
             return
+        if event.character == " ":
+            # space = the contextual toggle: flip BUY/SELL while ordering
+            event.stop()
+            event.prevent_default()
+            self.post_message(SideKey(None))
+            return
+        if event.key == "left" and self.cursor_position == 0:
+            # left at the start of the field steps out: close the panel
+            event.stop()
+            event.prevent_default()
+            self.post_message(self.CloseRequested())
+            return
         await super()._on_key(event)
+
+    class CloseRequested(Message):
+        pass
 
 
 class PriceInput(_SideSwitchingInput):
@@ -108,6 +123,7 @@ class OrderPanel(Vertical):
         Binding("n", "confirm_no", "edit", show=False),
         Binding("b", "side('BUY')", "buy", show=False),
         Binding("s", "side('SELL')", "sell", show=False),
+        Binding("space", "flip_side", "flip side", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -391,11 +407,20 @@ class OrderPanel(Vertical):
         self._set_confirming(None)
         self._refresh_summary()
 
+    def on__side_switching_input_close_requested(self, event) -> None:
+        self.close()
+
     def on_side_key(self, event: SideKey) -> None:
-        self.set_side(event.side)
+        if event.side is None:
+            self.set_side(Side.SELL if self._side is Side.BUY else Side.BUY)
+        else:
+            self.set_side(event.side)
 
     def action_side(self, side: str) -> None:
         self.set_side(Side(side))
+
+    def action_flip_side(self) -> None:
+        self.set_side(Side.SELL if self._side is Side.BUY else Side.BUY)
 
     def on_price_input_bumped(self, event: PriceInput.Bumped) -> None:
         self.bump_price(event.direction)

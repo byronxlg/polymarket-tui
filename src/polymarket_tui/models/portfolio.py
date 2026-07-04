@@ -46,6 +46,7 @@ class ActivityItem(BaseModel):
     timestamp: int = 0
     name: str = ""
     pseudonym: str = ""
+    proxy_wallet: str = Field(default="", alias="proxyWallet")
 
     @property
     def trader(self) -> str:

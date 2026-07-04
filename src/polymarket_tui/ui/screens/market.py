@@ -19,6 +19,8 @@ from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
+from polymarket_tui.ui.widgets.trader_overview import TraderOverview
+from polymarket_tui.ui.widgets.trades_table import TradesTable
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 BOOK_POLL_SECONDS = 3.0
@@ -28,13 +30,13 @@ class MarketScreen(Screen):
     AUTO_FOCUS = None  # the order panel's inputs must not grab focus while hidden
 
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_outcome", "yes/no"),
         Binding("y", "select_outcome(0)", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
-        Binding("a", "toggle_activity('trades')", "activity"),
+        Binding("a", "toggle_trades", "trades"),
         Binding("c", "toggle_activity('comments')", "comments"),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
@@ -56,6 +58,7 @@ class MarketScreen(Screen):
         self._interval = "1H"  # matches the initially-active interval tab
         self._history: list = []
         self._book = None
+        self._trades_expanded = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
 
     def compose(self) -> ComposeResult:
@@ -65,18 +68,26 @@ class MarketScreen(Screen):
             with Vertical(id="market-left"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
-                yield ActivityPanel(id="activity-panel")
             with Vertical(id="book-pane"):
                 yield Static(self._book_header(), id="book-title")
                 scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
                 scroll.can_focus = False
                 yield scroll
                 yield OrderPanel(id="order-panel")
+            with Vertical(id="trades-rail"):
+                yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
+                yield TradesTable(compact=True, id="trades-table")
+            overview = VerticalScroll(
+                TraderOverview(id="market-trader-overview"), id="market-overview-pane"
+            )
+            overview.can_focus = False
+            yield overview
         with Vertical(id="market-chart-strip"):
             tabs = Tabs(*(Tab(k, id=f"iv-{k}") for k in INTERVALS), id="interval-tabs")
             tabs.can_focus = False
             yield tabs
             yield PriceChartPanel(id="price-chart")
+            yield ActivityPanel(id="comments-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
         yield Footer()
 
@@ -123,6 +134,10 @@ class MarketScreen(Screen):
             )
 
     def on_data_table_row_highlighted(self, event) -> None:
+        if event.data_table.id == "trades-table":
+            if self._trades_expanded:
+                self._refresh_trade_overview()
+            return
         if event.data_table.id != "outcomes-table" or event.cursor_row is None:
             return
         self._apply_outcome(event.cursor_row)
@@ -130,6 +145,12 @@ class MarketScreen(Screen):
     def on_data_table_row_selected(self, event) -> None:
         if event.data_table.id == "outcomes-table":
             self.action_order("BUY")
+        elif event.data_table.id == "trades-table":
+            trader = self.query_one(TradesTable).trader_at_cursor()
+            if trader is not None:
+                from polymarket_tui.ui.screens.user import UserScreen
+
+                self.app.push_screen(UserScreen(*trader))
 
     def _apply_outcome(self, index: int) -> None:
         if index == self._outcome_index:
@@ -164,6 +185,10 @@ class MarketScreen(Screen):
 
     # -- lifecycle ----------------------------------------------------------
 
+    def on_resize(self) -> None:
+        if not self._trades_expanded:
+            self.query_one("#trades-rail").display = self.size.width >= 170
+
     def on_mount(self) -> None:
         self.title = "market"
         table = self.query_one("#outcomes-table", VimDataTable)
@@ -176,9 +201,9 @@ class MarketScreen(Screen):
         table.add_column("Vol 24h", width=9, key="vol")
         self._fill_outcomes()
         table.focus()
-        panel = self.query_one(ActivityPanel)
-        panel.configure(self._market, self._event)
-        panel.toggle("trades")  # lean live feed on by default
+        self.query_one(ActivityPanel).configure(self._market, self._event)
+        self.load_trades()
+        self.set_interval(5.0, self.load_trades)
         self.load_book()
         self.load_history()
         self.load_position()
@@ -295,8 +320,66 @@ class MarketScreen(Screen):
                 return_focus=self.query_one("#outcomes-table", VimDataTable)
             )
 
+    @work(exclusive=True, group="trades")
+    async def load_trades(self) -> None:
+        if not self._market.condition_id:
+            return
+        try:
+            limit = 60 if self._trades_expanded else 30
+            trades = await self.app.data.market_trades(self._market.condition_id, limit=limit)
+        except Exception:
+            return
+        self.query_one(TradesTable).set_trades(trades)
+
+    def action_toggle_trades(self) -> None:
+        self._set_trades_expanded(not self._trades_expanded)
+
+    def _set_trades_expanded(self, expanded: bool) -> None:
+        self._trades_expanded = expanded
+        self.query_one("#market-left").display = not expanded
+        self.query_one("#book-pane").display = not expanded
+        self.query_one("#market-overview-pane").display = expanded
+        rail = self.query_one("#trades-rail")
+        rail.set_class(expanded, "expanded")
+        table = self.query_one(TradesTable)
+        table.compact = not expanded
+        table.build_columns()
+        title = (
+            " TRADES - right/enter opens trader, left collapses"
+            if expanded
+            else " TRADES (a expands)"
+        )
+        self.query_one("#trades-title", Static).update(title)
+        self.load_trades()
+        if expanded:
+            table.focus()
+            self._refresh_trade_overview()
+        else:
+            self.query_one("#outcomes-table", VimDataTable).focus()
+
+    def _refresh_trade_overview(self) -> None:
+        trader = self.query_one(TradesTable).trader_at_cursor()
+        if trader is not None:
+            self.query_one(TraderOverview).show_trader(*trader)
+
+    def handle_back(self) -> bool:
+        """left/escape step out one level before leaving the screen."""
+        panel = self.query_one(OrderPanel)
+        if panel.is_open:
+            panel.close()
+            return True
+        if self._trades_expanded:
+            self._set_trades_expanded(False)
+            return True
+        return False
+
     def action_toggle_activity(self, mode: str) -> None:
-        self.query_one(ActivityPanel).toggle(mode)
+        """c toggles comments into the chart strip; chart hides while shown."""
+        panel = self.query_one(ActivityPanel)
+        panel.toggle(mode)
+        showing = panel.mode is not None
+        self.query_one("#interval-tabs", Tabs).display = not showing
+        self.query_one(PriceChartPanel).display = not showing
 
     def action_open_event(self) -> None:
         if self._event is not None:

@@ -175,5 +175,10 @@ class PolymarketApp(App):
             self.pop_screen()
 
     def action_nav_back(self) -> None:
+        # Screens may consume "back" to step out one level (close a panel,
+        # collapse an expanded view) before the screen itself pops.
+        handler = getattr(self.screen, "handle_back", None)
+        if handler is not None and handler():
+            return
         if len(self.screen_stack) > 1:
             self.pop_screen()

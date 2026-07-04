@@ -17,10 +17,10 @@ from textual.widgets import Footer, Input, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import Profile
-from polymarket_tui.ui.screens.portfolio import pnl_text
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
+from polymarket_tui.ui.widgets.trader_overview import TraderOverview
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 DEBOUNCE_SECONDS = 0.35
@@ -65,7 +65,9 @@ class SearchScreen(Screen):
         yield EventsBrowser(id="search-browser")
         with Horizontal(id="traders-block"):
             yield VimDataTable(cursor_type="row", zebra_stripes=True, id="traders-table")
-            overview = VerticalScroll(Static(id="trader-overview"), id="trader-overview-pane")
+            overview = VerticalScroll(
+                TraderOverview(id="trader-overview"), id="trader-overview-pane"
+            )
             overview.can_focus = False
             yield overview
         yield Footer()
@@ -181,40 +183,9 @@ class SearchScreen(Screen):
     def _refresh_trader_overview(self) -> None:
         profile = self._highlighted_profile()
         if profile is not None:
-            self.load_trader_overview(profile)
-
-    @work(exclusive=True, group="trader-overview")
-    async def load_trader_overview(self, profile: Profile) -> None:
-        """Hovered/highlighted trader: value + top positions in the side pane."""
-        pane = self.query_one("#trader-overview", Static)
-        out = Text()
-        out.append(profile.display_name + "\n", style="bold")
-        out.append(f"{profile.proxy_wallet[:8]}...{profile.proxy_wallet[-6:]}\n", style="dim")
-        if profile.bio:
-            out.append(fmt.trunc(profile.bio, 120) + "\n", style="dim")
-        pane.update(out)
-        try:
-            value = await self.app.data.portfolio_value(profile.proxy_wallet)
-            positions = await self.app.data.positions(profile.proxy_wallet, limit=50)
-        except Exception:
-            out.append("\n(positions unavailable)", style="dim")
-            pane.update(out)
-            return
-        out.append("\npositions ", style="dim")
-        out.append(f"${value or 0:,.2f}\n\n", style="bold")
-        top = sorted(
-            (p for p in positions if p.size >= 0.01),
-            key=lambda p: p.current_value,
-            reverse=True,
-        )
-        for pos in top[:8]:
-            out.append(f"{fmt.trunc(pos.title, 24):<25}", style="")
-            out.append(f"{fmt.money(pos.current_value):>8} ")
-            out.append_text(pnl_text(pos.cash_pnl, pos.percent_pnl))
-            out.append("\n")
-        if not top:
-            out.append("no open positions\n", style="dim")
-        pane.update(out)
+            self.query_one(TraderOverview).show_trader(
+                profile.proxy_wallet, profile.display_name, profile.bio
+            )
 
     # -- star ----------------------------------------------------------------------
 

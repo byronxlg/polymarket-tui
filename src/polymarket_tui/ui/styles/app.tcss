@@ -101,9 +101,35 @@ PriceChartPanel {
     margin-top: 1;
 }
 
-#market-left ActivityPanel {
+#trades-rail {
+    width: 30;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+}
+
+#trades-rail.expanded {
+    width: 1fr;
+}
+
+#trades-rail #trades-title {
+    height: 1;
+}
+
+#trades-rail TradesTable {
     height: 1fr;
-    margin-top: 1;
+}
+
+#market-overview-pane {
+    width: 46;
+    max-width: 40%;
+    border: solid $panel-lighten-2;
+    padding: 0 1;
+    display: none;
+}
+
+#market-chart-strip ActivityPanel {
+    height: 1fr;
+    border-top: none;
 }
 
 #interval-tabs {
