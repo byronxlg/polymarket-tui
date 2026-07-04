@@ -138,7 +138,8 @@ PriceChartPanel {
     display: none;
 }
 
-#market-chart-strip ActivityPanel {
+#market-chart-strip ActivityPanel,
+#event-chart-pane ActivityPanel {
     height: 1fr;
     border-top: none;
 }

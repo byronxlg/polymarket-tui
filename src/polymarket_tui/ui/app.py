@@ -27,7 +27,7 @@ from polymarket_tui.ui.screens.portfolio import PortfolioScreen
 from polymarket_tui.ui.screens.related import RelatedPane
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.user import UserPane
-from polymarket_tui.ui.screens.watchlist import WatchlistScreen
+from polymarket_tui.ui.screens.watchlist import WatchlistPane
 
 
 class PolymarketApp(App):
@@ -229,7 +229,16 @@ class PolymarketApp(App):
         self._push_unless_current(SearchScreen, SearchScreen)
 
     def action_watchlist(self) -> None:
-        self._push_unless_current(WatchlistScreen, WatchlistScreen)
+        """'w': switch the drill root to the watchlist (same top level as Home)."""
+        host = self._nav_host()
+        if host is None:
+            return
+        while len(self.screen_stack) > 1:
+            self.pop_screen()
+        if isinstance(host.root_pane, WatchlistPane):
+            host.reset_to_root()
+        else:
+            host.set_root(WatchlistPane(), "Watched")
 
     def reconfigure(self, settings: Settings) -> None:
         """Swap credentials at runtime (auth screen). Rebuilds the authed stack."""
@@ -273,7 +282,7 @@ class PolymarketApp(App):
             self.pop_screen()
         base = self.screen_stack[0]
         if isinstance(base, NavHost):
-            base.reset_to_root()
+            base.go_home()
 
     def action_nav_back(self) -> None:
         # Screens may consume "back" to step out one level (close a panel,

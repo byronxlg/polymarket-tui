@@ -55,7 +55,8 @@ class ActivityPanel(VerticalScroll):
     def on_mount(self) -> None:
         self.set_interval(TRADES_POLL_SECONDS, self._poll)
 
-    def configure(self, market: Market, event: Event | None) -> None:
+    def configure(self, market: Market | None, event: Event | None) -> None:
+        """market may be None on the event pane - comments are event-level."""
         self._market = market
         self._event = event
 

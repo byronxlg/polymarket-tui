@@ -19,6 +19,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
@@ -60,6 +61,7 @@ class EventPane(TierAware, Vertical):
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_info", "rules"),
+        Binding("c", "toggle_activity('comments')", "comments"),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("R", "related", "related", key_display="R"),
@@ -93,6 +95,7 @@ class EventPane(TierAware, Vertical):
             tabs.can_focus = False
             yield tabs
             yield PriceChartPanel(id="event-chart")
+            yield ActivityPanel(id="event-comments-panel")
 
     def focus_inner(self) -> None:
         self.query_one("#markets-table", DataTable).focus()
@@ -146,6 +149,7 @@ class EventPane(TierAware, Vertical):
         self._build_columns()
         self.query_one(DataTable).focus()
         self._fill_table()
+        self.query_one(ActivityPanel).configure(None, self._event)
         self.load_chart()
         self.refresh_event()
         self.tier_ready()
@@ -247,6 +251,7 @@ class EventPane(TierAware, Vertical):
         if fresh is not None:
             self._event = fresh
             self._fill_table()
+            self.query_one(ActivityPanel).configure(None, fresh)
 
     # -- actions ------------------------------------------------------------------
 
@@ -294,6 +299,14 @@ class EventPane(TierAware, Vertical):
             out.append("RULES\n\n", style="bold")
             out.append(self._event.description.strip() or "(no description)")
             rules.update(out)
+
+    def action_toggle_activity(self, mode: str) -> None:
+        """c toggles comments into the chart strip; chart hides while shown."""
+        panel = self.query_one(ActivityPanel)
+        panel.toggle(mode)
+        showing = panel.mode is not None
+        self.query_one("#interval-tabs", Tabs).display = not showing
+        self.query_one(PriceChartPanel).display = not showing
 
     def action_refresh(self) -> None:
         self.refresh_event()

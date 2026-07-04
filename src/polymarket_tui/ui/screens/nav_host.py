@@ -119,10 +119,36 @@ class NavHost(Screen):
             # At the root with a child open: collapse back to full-width root.
             self.reset_to_root()
             return True
+        if not isinstance(self._panes[0], HomePane):
+            # An alternate root (watchlist) steps out to the home root.
+            self.go_home()
+            return True
         return True  # truly at the root
 
+    @property
+    def root_pane(self) -> Widget:
+        return self._panes[0]
+
+    def set_root(self, pane: Widget, crumb: str) -> None:
+        """Replace the whole drill stack with a new root pane ('w', 'H')."""
+        for stale in self._panes:
+            stale.remove()
+        pane.add_class("nav-pane")
+        self.query_one("#nav-viewport").mount(pane)
+        self._panes = [pane]
+        self._crumbs = [crumb]
+        self._focus = self._left = 0
+        self._reflow()
+
+    def go_home(self) -> None:
+        """'H': collapse to the home root, restoring it if another root is up."""
+        if isinstance(self._panes[0], HomePane):
+            self.reset_to_root()
+        else:
+            self.set_root(HomePane(), "Home")
+
     def reset_to_root(self) -> None:
-        """Collapse the drill stack back to the root pane (used by 'home')."""
+        """Collapse the drill stack back to the root pane."""
         for stale in self._panes[1:]:
             stale.remove()
         del self._panes[1:]
