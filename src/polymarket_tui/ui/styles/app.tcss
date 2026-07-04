@@ -222,6 +222,15 @@ PriceChartPanel {
     padding: 0 1;
 }
 
+/* Drill split: parent shrinks to 30%, the pane opened on right = 70%. */
+.miller-col.col-parent {
+    width: 30%;
+}
+
+.miller-col.col-child {
+    width: 70%;
+}
+
 .miller-col.focused {
     border: solid $primary;
 }

@@ -177,9 +177,16 @@ class ColumnsScreen(Screen):
     # -- render ---------------------------------------------------------------
 
     def _reflow(self) -> None:
+        # When a child is open, the parent shrinks to 30% (kept visible for
+        # context) and the just-opened child takes 70%. A lone root pane fills
+        # the width.
+        child_open = self._left + 1 <= self._open
         for i, wrap in enumerate(self._wrap):
-            wrap.display = i in (self._left, self._left + 1) and i <= self._open
+            visible = i in (self._left, self._left + 1) and i <= self._open
+            wrap.display = visible
             wrap.set_class(i == self._focus, "focused")
+            wrap.set_class(visible and child_open and i == self._left, "col-parent")
+            wrap.set_class(visible and i == self._left + 1, "col-child")
         self._update_crumbs()
         self.call_after_refresh(self._wrap[self._focus].focus_inner)
 
