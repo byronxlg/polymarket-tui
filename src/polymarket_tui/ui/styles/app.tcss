@@ -198,16 +198,27 @@ PriceChartPanel {
 #pnl-pane {
     height: 1fr;
     min-height: 8;
-    border: solid $panel-lighten-2;
-    padding: 0 1;
 }
 
-#pnl-title {
-    height: 1;
+/* Trader profile: tabs hug their rows, profit history takes the rest */
+#user-tabs {
+    height: auto;
+    max-height: 60%;
 }
 
-#pnl-chart {
+#user-tabs ContentSwitcher {
+    height: auto;
+    max-height: 100%;
+}
+
+#user-tabs DataTable {
+    height: auto;
+    max-height: 100%;
+}
+
+#user-pnl {
     height: 1fr;
+    min-height: 8;
 }
 
 /* Search */

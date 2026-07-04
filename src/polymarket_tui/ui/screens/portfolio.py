@@ -6,17 +6,15 @@ from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
-from polymarket_tui.models.market import PricePoint
 from polymarket_tui.models.portfolio import OpenOrder, Position
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
-from polymarket_tui.ui.widgets.linechart import render_chart
+from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     activity_row,
     position_row,
@@ -59,9 +57,7 @@ class PortfolioScreen(Screen):
                 yield OrdersTable(cursor_type="row", zebra_stripes=True, id="orders-table")
             with TabPane("History", id="pane-history"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="history-table")
-        with Vertical(id="pnl-pane"):
-            yield Static(id="pnl-title")
-            yield Static(id="pnl-chart")
+        yield PnlStrip(id="pnl-pane")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -109,51 +105,8 @@ class PortfolioScreen(Screen):
         self.load_history()
         self.load_pnl()
 
-    def on_resize(self) -> None:
-        self._draw_pnl()
-
-    @work(exclusive=True, group="pnl")
-    async def load_pnl(self) -> None:
-        try:
-            self._pnl = await self.app.data.user_pnl(self.app.portfolio.user)
-        except Exception:
-            self._pnl = []
-        title = self.query_one("#pnl-title", Static)
-        if len(self._pnl) >= 2:
-            latest, first = self._pnl[-1].p, self._pnl[0].p
-            delta = latest - first
-            style = "green" if delta >= 0 else "red"
-            text = Text()
-            text.append("ALL-TIME PROFIT  ", style="bold")
-            text.append(f"${latest:,.2f}", style="bold")
-            text.append(f"   {delta:+,.2f}", style=style)
-            text.append(" last 30d", style="dim")
-            title.update(text)
-        else:
-            title.update(Text("ALL-TIME PROFIT  (no history yet)", style="dim"))
-        self._draw_pnl()
-
-    def _draw_pnl(self) -> None:
-        chart = self.query_one("#pnl-chart", Static)
-        points = getattr(self, "_pnl", [])
-        if len(points) < 2:
-            chart.update(Text(""))
-            return
-        size = chart.size
-        if size.width < 12 or size.height < 4:
-            return
-        # render_chart plots p*100, so feed dollars/100 to label the axis in dollars.
-        scaled = [PricePoint(t=pt.t, p=pt.p / 100) for pt in points]
-        color = (46, 204, 113) if points[-1].p >= points[0].p else (231, 76, 60)
-        chart.update(
-            render_chart(
-                [(scaled, color)],
-                width=size.width,
-                height=size.height + 1,  # no separate axis row budgeted; keep compact
-                time_format="%b %d",
-                clamp=None,
-            )
-        )
+    def load_pnl(self) -> None:
+        self.query_one("#pnl-pane", PnlStrip).show_user(self.app.portfolio.user)
 
     @work(exclusive=True, group="balances")
     async def load_balances(self) -> None:
