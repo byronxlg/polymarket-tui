@@ -14,6 +14,7 @@ from textual.widgets import Static, TabbedContent, TabPane
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import ActivityItem, Position
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     ACTIVITY_TIER_COLUMNS,
     POSITIONS_TIER_COLUMNS,
@@ -57,6 +58,7 @@ class UserPane(TierAware, Vertical):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="user-positions")
             with TabPane("Activity", id="pane-user-activity"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="user-activity")
+        yield PnlStrip(id="user-pnl")
 
     def focus_inner(self) -> None:
         self.query_one("#user-positions", VimDataTable).focus()
@@ -73,6 +75,7 @@ class UserPane(TierAware, Vertical):
             tabs.can_focus = False
         self.query_one("#user-positions", VimDataTable).focus()
         self.load_user()
+        self.query_one(PnlStrip).show_user(self._address)
         self.tier_ready()
         self._schedule_refit()
 

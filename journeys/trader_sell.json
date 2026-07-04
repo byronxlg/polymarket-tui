@@ -1,0 +1,19 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["portfolio", ["p"], 5],
+    ["position_market", ["Enter"], 8],
+    ["sell_open", ["s"], 2],
+    ["sell_review", ["Tab", "5", "Enter"], 2],
+    ["sell_closed", ["Escape", "Escape"], 1],
+    ["back_portfolio", ["Escape"], 2],
+    ["home", ["H"], 4],
+    ["market", ["Down", "Down", "Down", "Down", "Down", "Enter", "Down", "Down", "Enter"], 8],
+    ["trades_exp", ["a"], 3],
+    ["trader_open", ["Enter"], 6],
+    ["trader_follow", ["Space"], 2],
+    ["trader_back", ["Escape"], 2],
+    ["watchlist_traders", ["Escape", "Escape", "w", "Tab"], 4]
+  ]
+}
