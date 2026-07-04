@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
@@ -11,8 +13,9 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
+from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
-from polymarket_tui.models.market import Event, Market
+from polymarket_tui.models.market import Event, Market, OrderBook
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.book_panel import BookPanel
@@ -60,6 +63,7 @@ class MarketScreen(Screen):
         self._book = None
         self._trades_expanded = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
+        self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
 
     def compose(self) -> ComposeResult:
         yield AppHeader("market")
@@ -159,15 +163,34 @@ class MarketScreen(Screen):
         self._book = None  # stale: belongs to the other outcome until load_book returns
         self.query_one(OrderPanel).set_outcome(self._outcome_index)
         self.query_one("#book-title", Static).update(self._book_header())
-        self.query_one(BookPanel).update("loading book...")
+        # We subscribe to both tokens, so the flipped outcome's live book is
+        # usually already available - render it instantly instead of "loading".
+        live = self._channel.book(self._token_id) if self._channel else None
+        if live is not None:
+            self._book = live
+            self.query_one(BookPanel).update_book(live)
+        else:
+            self.query_one(BookPanel).update("loading book...")
         self.load_book()
         self.load_history()
 
     def on_vim_data_table_bottom_reached(self, message) -> None:
         self.action_inspect_chart()
 
-    def _book_header(self) -> str:
-        return f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)"
+    def _book_header(self) -> Text:
+        """Book title with a live-feed badge: LIVE when the socket is healthy,
+        else a stale/polling note so the user knows the book is REST-refreshed.
+        Returned as Text (not markup) so the badge can't be parsed as a tag."""
+        head = Text(f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)")
+        if self._channel is not None:
+            badge = {
+                "live": ("  LIVE", "bold green"),
+                "stale": ("  STALE (polling)", "yellow"),
+                "down": ("  polling", "dim"),
+            }.get(self._channel.status())
+            if badge:
+                head.append(badge[0], style=badge[1])
+        return head
 
     def _info_line(self) -> str:
         m = self._market
@@ -180,7 +203,7 @@ class MarketScreen(Screen):
             bits.append(f"tick {m.order_price_min_tick_size}")
         if m.order_min_size:
             bits.append(f"min size {m.order_min_size:.0f}")
-        bits.append(f"book refresh {BOOK_POLL_SECONDS:.0f}s")
+        bits.append(f"book: live ws (fallback {BOOK_POLL_SECONDS:.0f}s REST)")
         return "  |  ".join(bits)
 
     # -- lifecycle ----------------------------------------------------------
@@ -208,6 +231,49 @@ class MarketScreen(Screen):
         self.load_history()
         self.load_position()
         self.set_interval(BOOK_POLL_SECONDS, self.load_book)
+        self._start_channel()
+        # Refresh the live/stale/polling badge even when no frames arrive.
+        self.set_interval(2.0, self._refresh_book_badge)
+
+    def _start_channel(self) -> None:
+        tokens = [t for t in self._market.clob_token_ids if t]
+        if not tokens:
+            return
+        self._channel = MarketChannel(tokens, self._on_ws_update)
+        self._channel.start()
+
+    async def on_unmount(self) -> None:
+        if self._channel is not None:
+            await self._channel.stop()
+
+    def _on_ws_update(self, kind: str, asset_id: str) -> None:
+        """Called on the event loop when a market frame is applied."""
+        if self._channel is None or asset_id != self._token_id:
+            return
+        if kind in ("book", "price_change"):
+            book = self._channel.book(asset_id)
+            if book is not None:
+                self._book = book
+                self.query_one(BookPanel).update_book(book)
+                self._refresh_book_badge()
+                self._refresh_outcome_prices(asset_id, book)
+
+    def _refresh_book_badge(self) -> None:
+        with contextlib.suppress(Exception):
+            self.query_one("#book-title", Static).update(self._book_header())
+
+    def _refresh_outcome_prices(self, asset_id: str, book: OrderBook) -> None:
+        """Keep the outcome table's bid/ask in step with the live book."""
+        if self._token_id != asset_id:
+            return
+        table = self.query_one("#outcomes-table", VimDataTable)
+        bb = book.best_bid.price if book.best_bid else None
+        ba = book.best_ask.price if book.best_ask else None
+        with contextlib.suppress(Exception):
+            if bb is not None:
+                table.update_cell(str(self._outcome_index), "bid", fmt.cents(bb))
+            if ba is not None:
+                table.update_cell(str(self._outcome_index), "ask", fmt.cents(ba))
 
     @work(exclusive=True, group="position")
     async def load_position(self) -> None:
@@ -255,6 +321,12 @@ class MarketScreen(Screen):
         if token is None:
             panel.show_error("no order book (missing token id)")
             return
+        # When the websocket is live it owns the book; REST is the fallback that
+        # keeps things fresh while the socket is down or stale (issue #1).
+        if self._channel is not None and self._channel.status() == "live":
+            self._refresh_book_badge()
+            self._maybe_open_pending_order()
+            return
         try:
             book = await self.app.clob.order_book(token)
         except Exception as exc:
@@ -262,6 +334,10 @@ class MarketScreen(Screen):
             return
         self._book = book
         panel.update_book(book)
+        self._refresh_book_badge()
+        self._maybe_open_pending_order()
+
+    def _maybe_open_pending_order(self) -> None:
         if self._pending_order_side is not None:
             side, self._pending_order_side = self._pending_order_side, None
             self.action_order(side)
