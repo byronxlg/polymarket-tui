@@ -11,8 +11,9 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
+from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
 from polymarket_tui.models.market import PricePoint
-from polymarket_tui.models.portfolio import OpenOrder
+from polymarket_tui.models.portfolio import OpenOrder, Position
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 from polymarket_tui.ui.widgets.linechart import render_chart
@@ -32,6 +33,13 @@ class OrdersTable(VimDataTable):
     BINDINGS = [Binding("x", "screen.cancel_order", "cancel order")]
 
 
+class PositionsTable(VimDataTable):
+    """Positions table: the open-on-web binding lives here so the footer only
+    advertises it while this table is focused (won positions redeem on the web)."""
+
+    BINDINGS = [Binding("o", "screen.open_on_web", "open on web")]
+
+
 class PortfolioScreen(Screen):
     BINDINGS = [
         Binding("escape", "app.pop_screen", "back"),
@@ -45,7 +53,7 @@ class PortfolioScreen(Screen):
         yield Static("loading balances...", id="balance-line", classes="screen-title")
         with TabbedContent(id="portfolio-tabs"):
             with TabPane("Positions", id="pane-positions"):
-                yield VimDataTable(cursor_type="row", zebra_stripes=True, id="positions-table")
+                yield PositionsTable(cursor_type="row", zebra_stripes=True, id="positions-table")
             with TabPane("Open orders", id="pane-orders"):
                 yield OrdersTable(cursor_type="row", zebra_stripes=True, id="orders-table")
             with TabPane("History", id="pane-history"):
@@ -58,8 +66,9 @@ class PortfolioScreen(Screen):
     def on_mount(self) -> None:
         self.title = "portfolio"
         self._orders: list[OpenOrder] = []
+        self._positions: list[Position] = []
 
-        positions = self.query_one("#positions-table", VimDataTable)
+        positions = self.query_one("#positions-table", PositionsTable)
         setup_positions_columns(positions, flag_column=True)
 
         orders = self.query_one("#orders-table", OrdersTable)
@@ -163,6 +172,7 @@ class PortfolioScreen(Screen):
         except Exception as exc:
             self.notify(f"positions unavailable: {exc}", severity="error")
             return
+        self._positions = positions
         table.clear()
         for pos in sorted(positions, key=lambda p: p.current_value, reverse=True):
             if pos.size < 0.01:
@@ -295,6 +305,27 @@ class PortfolioScreen(Screen):
             self.notify("Market is no longer listed (resolved)", severity="warning")
             return
         self.app.open_market(market)
+
+    def action_open_on_web(self) -> None:
+        """Open the selected position's polymarket.com page (redeem won positions
+        there; resolved markets that drop out of the in-app lookup still open)."""
+        if self._active_pane() != "pane-positions":
+            return
+        table = self.query_one("#positions-table", PositionsTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+        row_key = table.coordinate_to_cell_key((table.cursor_row, 0)).row_key
+        slug, _, asset = str(row_key.value).partition("|")
+        pos = next((p for p in self._positions if p.asset == asset), None)
+        url = market_url(pos.event_slug if pos else "", slug)
+        if not url:
+            self.notify("No web URL for this position", severity="warning")
+            return
+        opened = open_in_browser(url)
+        copied = copy_to_clipboard(url)
+        note = "Opened" if opened else "Copied" if copied else "URL"
+        suffix = "  (copied)" if copied and opened else ""
+        self.notify(f"{note} {url}{suffix}", timeout=6)
 
     def action_cancel_order(self) -> None:
         if self._active_pane() != "pane-orders":
