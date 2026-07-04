@@ -16,6 +16,7 @@ from textual.containers import Vertical
 from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
+from polymarket_tui.state import cache
 from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -82,8 +83,25 @@ class HomePane(TierAware, Vertical):
         self.query_one(Tabs).can_focus = False
         self.table.apply_tier(self.tier)
         self.table.focus()
+        self._show_cached()
         self.load_events()
         self.tier_ready()
+
+    def _cache_key(self) -> str:
+        return f"home:{self._tag_slug or 'trending'}:{SORT_ORDERS[self._sort_index]}"
+
+    def _show_cached(self) -> None:
+        """Last session's list, instantly - the live fetch replaces it."""
+        events = cache.load_events(self._cache_key())
+        if not events:
+            return
+        self.table.set_events(events, set(self.app.watchlist.slugs), clear=True)
+        browser = self.query_one(EventsBrowser)
+        browser.preview.show_event(events[0] if events else None)
+        status = Text()
+        status.append(" cached list from your last session ", style="yellow")
+        status.append(" refreshing...", style="dim")
+        self.query_one("#status-line", Static).update(status)
 
     async def _ordered_slugs(self, events: list) -> set[str]:
         """Slugs of listed events holding one of your resting orders."""
@@ -142,6 +160,8 @@ class HomePane(TierAware, Vertical):
         if not append:
             browser = self.query_one(EventsBrowser)
             browser.preview.show_event(events[0] if events else None)
+            cache.save_events(self._cache_key(), events)
+            self.query_one("#status-line", Static).update(self._status_line())
         self._loading = False
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
