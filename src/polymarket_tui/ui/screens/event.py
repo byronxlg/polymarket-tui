@@ -104,7 +104,7 @@ class EventPane(TierAware, Vertical):
         e = self._event
         parts = [e.title.strip()]
         if e.volume_24hr:
-            parts.append(f"vol24h {fmt.money(e.volume_24hr)}")
+            parts.append(f"vol24h {fmt.vol(e.volume_24hr)}")
         if e.end_date:
             parts.append(f"ends {fmt.end_date(e.end_date)}")
         series = e.primary_series
@@ -204,7 +204,7 @@ class EventPane(TierAware, Vertical):
                 "bid": Text(fmt.cents(market.best_bid), style="green"),
                 "ask": Text(fmt.cents(market.best_ask), style="red"),
                 "spread": fmt.cents(market.spread),
-                "vol": fmt.money(market.volume_24hr),
+                "vol": fmt.vol(market.volume_24hr),
             }
             table.add_row(*(cells[key] for key, _, _ in columns), key=market.slug)
         markets = self._event.active_markets
