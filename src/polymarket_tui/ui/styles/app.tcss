@@ -168,12 +168,26 @@ PriceChartPanel {
     background: $panel;
 }
 
-/* Portfolio profit strip */
+/* Portfolio: tables size to their rows (scroll past the cap); the
+   profit chart absorbs whatever height is left instead of a fixed strip
+   floating under a void. */
 #portfolio-tabs {
-    height: 1fr;
+    height: auto;
+    max-height: 60%;
 }
+
+#portfolio-tabs ContentSwitcher {
+    height: auto;
+    max-height: 100%;
+}
+
+#portfolio-tabs DataTable {
+    height: auto;
+    max-height: 100%;
+}
+
 #pnl-pane {
-    height: 30%;
+    height: 1fr;
     min-height: 8;
     border: solid $panel-lighten-2;
     padding: 0 1;

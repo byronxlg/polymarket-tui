@@ -28,7 +28,8 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), flip the YES/NO book (market), toggle BUY/SELL
-(order panel), show/hide rules (event), follow/unfollow (trader profile).
+(order panel), show/hide rules (event; on market it's i), follow/unfollow
+(trader profile).
 
 left always steps out one level: order panel -> market -> previous screen;
 expanded trades collapse before the screen closes.
@@ -52,7 +53,8 @@ expanded trades collapse before the screen closes.
 | o | home | cycle sort (24h volume / liquidity / ending / newest) |
 | b / s | market, event | order entry below the live book (BUY / SELL) |
 | y / n | market | jump straight to the YES / NO book |
-| a | market | expand/collapse the live trades rail (right opens the trader) |
+| a | market | expand the inline trades to full width (right opens the trader) |
+| i | market | show/hide the rules rail (auto-shown on wide terminals) |
 | c | market | comments in the chart strip |
 | e | market | open the parent event |
 | R | event, market | related markets (series siblings for dailies) |

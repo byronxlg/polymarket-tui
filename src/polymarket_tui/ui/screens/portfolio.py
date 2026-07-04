@@ -124,12 +124,13 @@ class PortfolioScreen(Screen):
             delta = latest - first
             style = "green" if delta >= 0 else "red"
             text = Text()
-            text.append("PROFIT 30d  ", style="bold")
-            text.append(f"${latest:,.2f} all-time", style="bold")
-            text.append(f"  {delta:+,.2f} this window", style=style)
+            text.append("ALL-TIME PROFIT  ", style="bold")
+            text.append(f"${latest:,.2f}", style="bold")
+            text.append(f"   {delta:+,.2f}", style=style)
+            text.append(" last 30d", style="dim")
             title.update(text)
         else:
-            title.update(Text("PROFIT 30d  (no history)", style="dim"))
+            title.update(Text("ALL-TIME PROFIT  (no history yet)", style="dim"))
         self._draw_pnl()
 
     def _draw_pnl(self) -> None:
