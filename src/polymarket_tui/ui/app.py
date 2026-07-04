@@ -18,7 +18,7 @@ from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
 from polymarket_tui.ui.screens.event import EventPane, EventScreen
 from polymarket_tui.ui.screens.help import HelpScreen
-from polymarket_tui.ui.screens.market import MarketScreen
+from polymarket_tui.ui.screens.market import MarketPane, MarketScreen
 from polymarket_tui.ui.screens.nav_host import NavHost
 from polymarket_tui.ui.screens.portfolio import PortfolioScreen
 from polymarket_tui.ui.screens.search import SearchScreen
@@ -140,10 +140,9 @@ class PolymarketApp(App):
         return True
 
     def open_event(self, event: Event) -> None:
-        """Open an event; binary events go straight to the market screen."""
+        """Open an event; binary events go straight to the market pane."""
         if event.is_binary and event.top_market is not None:
-            # Binary events reroute to a MarketPane in Stage 3; push for now.
-            self.push_screen(MarketScreen(event.top_market, event))
+            self.open_market(event.top_market, event)
             return
         if not self._drill(EventPane(event), event.title):
             self.push_screen(EventScreen(event))
@@ -151,7 +150,9 @@ class PolymarketApp(App):
     def open_market(
         self, market: Market, event: Event | None = None, order_side: str | None = None
     ) -> None:
-        self.push_screen(MarketScreen(market, event, order_side=order_side))
+        pane = MarketPane(market, event, order_side=order_side)
+        if not self._drill(pane, market.display_title):
+            self.push_screen(MarketScreen(market, event, order_side=order_side))
 
     # -- global actions ------------------------------------------------------
 

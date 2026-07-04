@@ -221,7 +221,14 @@ class OrderPanel(Vertical):
             widget = self.query_one(field, Input)
             widget.value = ""
             widget.disabled = True
-        self.screen.set_focus(None)
+        # Return focus to the market pane's outcome table. Clearing focus (as
+        # before) is fine when the pane is a Screen, but MarketPane is a widget
+        # whose key bindings only fire while it (or a child) holds focus.
+        pane = self._market_pane()
+        if pane is not None:
+            pane.focus_inner()
+        else:
+            self.screen.set_focus(None)
 
     def set_side(self, side: Side) -> None:
         if side is self._side:
@@ -259,8 +266,21 @@ class OrderPanel(Vertical):
 
     # -- draft ------------------------------------------------------------------
 
+    def _market_pane(self):
+        """The MarketPane that owns this order panel and the live book.
+
+        Resolved by walking ancestors for the `is_market_pane` marker rather
+        than self.screen (which is the NavHost when the pane is hosted in the
+        drill split) and rather than importing MarketPane (import cycle)."""
+        node = self.parent
+        while node is not None:
+            if getattr(node, "is_market_pane", False):
+                return node
+            node = node.parent
+        return None
+
     def _screen_book(self) -> OrderBook | None:
-        return getattr(self.screen, "_book", None)
+        return getattr(self._market_pane(), "_book", None)
 
     def _current_draft(self) -> tuple[OrderDraft | None, str]:
         market = self._market
@@ -508,7 +528,7 @@ class OrderPanel(Vertical):
             return
         draft = self._confirming
         app = self.app
-        screen = self.screen  # the market screen, for a post-fill position refresh
+        pane = self._market_pane()  # the market pane, for a post-fill position refresh
         self._set_confirming(None)
 
         async def _place_and_report() -> None:
@@ -518,10 +538,10 @@ class OrderPanel(Vertical):
             elif result.ok:
                 app.portfolio.invalidate()
                 app.refresh_account_status()
-                # Refresh the market screen's YOUR POSITION strip so the fill shows
-                # without leaving and re-entering the screen.
-                if getattr(screen, "is_mounted", False) and hasattr(screen, "load_position"):
-                    screen.load_position()
+                # Refresh the market pane's YOUR POSITION strip so the fill shows
+                # without leaving and re-entering it.
+                if getattr(pane, "is_mounted", False) and hasattr(pane, "load_position"):
+                    pane.load_position()
                 app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
             elif result.status_unknown:
                 # The post may have landed; never auto-retry. Offer to reconcile.
