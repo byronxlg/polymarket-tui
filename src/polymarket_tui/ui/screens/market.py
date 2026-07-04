@@ -80,6 +80,7 @@ class MarketPane(TierAware, Vertical):
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_trades", "trades"),
+        Binding("i", "toggle_rules", "rules"),
         Binding("c", "toggle_activity('comments')", "comments"),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
@@ -104,6 +105,7 @@ class MarketPane(TierAware, Vertical):
         self._history: list = []
         self._book = None
         self._trades_expanded = False
+        self._rules_visible = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
         self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
@@ -119,15 +121,22 @@ class MarketPane(TierAware, Vertical):
             with Vertical(id="market-left"):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
+                with Vertical(id="trades-rail"):
+                    yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
+                    yield TradesTable(compact=False, id="trades-table")
             with Vertical(id="book-pane"):
                 yield Static(self._book_header(), id="book-title")
                 scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
                 scroll.can_focus = False
                 yield scroll
                 yield OrderPanel(id="order-panel")
-            with Vertical(id="trades-rail"):
-                yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
-                yield TradesTable(compact=True, id="trades-table")
+            with Vertical(id="rules-rail"):
+                yield Static(" RULES", classes="screen-title")
+                rules = VerticalScroll(
+                    Static(self._rules_text(), id="rules-text"), id="rules-scroll"
+                )
+                rules.can_focus = False
+                yield rules
             overview = VerticalScroll(
                 TraderOverview(id="market-trader-overview"), id="market-overview-pane"
             )
@@ -182,6 +191,7 @@ class MarketPane(TierAware, Vertical):
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
+        self._refit_trades()
         table = self.query_one("#outcomes-table", VimDataTable)
         width = table.size.width
         if width <= 0 or not table.columns:
@@ -196,6 +206,18 @@ class MarketPane(TierAware, Vertical):
         self._fill_outcomes()
         table.move_cursor(row=self._outcome_index)
 
+    def _refit_trades(self) -> None:
+        """Slim trade columns when the inline rail can't fit the full set."""
+        trades = self.query_one(TradesTable)
+        width = trades.size.width
+        if width <= 0:
+            return
+        want_compact = not self._trades_expanded and width < 64
+        if trades.compact != want_compact:
+            trades.compact = want_compact
+            trades.build_columns()
+            self.load_trades()
+
     def _apply_visibility(self) -> None:
         """Panel visibility as one function of tier + trades state.
 
@@ -208,12 +230,18 @@ class MarketPane(TierAware, Vertical):
             return  # not composed yet (early resize)
         compact = self.tier == "compact"
         expanded = self._trades_expanded and not compact
-        self.query_one("#market-left").display = not expanded
+        self.query_one("#outcomes-table").display = not expanded
+        self.query_one("#position-line").display = not expanded
         self.query_one("#book-pane").display = not compact and not expanded
         self.query_one("#market-overview-pane").display = expanded
+        self.query_one("#rules-rail").display = (
+            not compact
+            and not expanded
+            and (self._rules_visible or self.size.width >= 170)
+        )
         rail = self.query_one("#trades-rail")
         rail.set_class(expanded, "expanded")
-        rail.display = expanded or (not compact and self.size.width >= 170)
+        rail.display = expanded or not compact
         self.query_one("#market-chart-strip").display = not compact
         self.query_one("#market-info").display = not compact
 
@@ -297,6 +325,14 @@ class MarketPane(TierAware, Vertical):
             if badge:
                 head.append(badge[0], style=badge[1])
         return head
+
+    def _rules_text(self) -> Text:
+        desc = (self._market.description or "").strip()
+        if not desc and self._event is not None:
+            desc = (self._event.description or "").strip()
+        if not desc:
+            return Text("no rules provided", style="dim")
+        return Text(desc, style="dim")
 
     def _info_line(self) -> str:
         m = self._market
@@ -511,6 +547,11 @@ class MarketPane(TierAware, Vertical):
             return
         self.query_one(TradesTable).set_trades(trades)
 
+    def action_toggle_rules(self) -> None:
+        self._rules_visible = not self._rules_visible
+        self._apply_visibility()
+        self._schedule_refit()
+
     def action_toggle_trades(self) -> None:
         self._set_trades_expanded(not self._trades_expanded)
 
@@ -518,8 +559,6 @@ class MarketPane(TierAware, Vertical):
         self._trades_expanded = expanded
         self._apply_visibility()
         table = self.query_one(TradesTable)
-        table.compact = not expanded
-        table.build_columns()
         title = (
             " TRADES - right/enter opens trader, left collapses"
             if expanded

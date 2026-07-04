@@ -56,7 +56,10 @@ def render_chart(
     if not all_values:
         return Text("")
     lo_y, hi_y = min(all_values), max(all_values)
-    pad = max((hi_y - lo_y) * 0.10, (10 - (hi_y - lo_y)) / 2, 0.5)
+    # Scale to the data (like the web chart). A fixed minimum window would
+    # squash penny markets into a sliver; a small floor keeps one flat line
+    # from filling the whole plot with noise.
+    pad = max((hi_y - lo_y) * 0.12, 0.6)
     lo_y, hi_y = lo_y - pad, hi_y + pad
     if clamp is not None:
         lo_y, hi_y = max(clamp[0], lo_y), min(clamp[1], hi_y)
