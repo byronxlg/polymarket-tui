@@ -1,0 +1,11 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["event", ["Down", "Down", "Down", "Down", "Down", "Enter"], 5],
+    ["market", ["Down", "Down", "Enter"], 6],
+    ["trades", ["a"], 4],
+    ["comments", ["c"], 4],
+    ["related", ["R"], 4]
+  ]
+}

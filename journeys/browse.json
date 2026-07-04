@@ -1,0 +1,26 @@
+{
+  "size": [200, 50],
+  "boot_wait": 14,
+  "steps": [
+    ["home", [], 1],
+    ["home_row5", ["Down", "Down", "Down", "Down", "Down"], 1],
+    ["event_drill", ["Enter"], 5],
+    ["event_row2", ["Down", "Down"], 2],
+    ["market_drill", ["Enter"], 6],
+    ["market_full", ["Right"], 4],
+    ["market_no", ["Space"], 2],
+    ["order_buy", ["b"], 2],
+    ["order_price_up", ["Up", "Up", "Up"], 1],
+    ["order_tab_size", ["Tab"], 1],
+    ["order_size", ["1", "0"], 1],
+    ["order_review", ["Enter"], 2],
+    ["order_escape", ["Escape", "Escape"], 1],
+    ["trades", ["a"], 3],
+    ["comments", ["c"], 3],
+    ["comments_off", ["c"], 1],
+    ["related", ["R"], 4],
+    ["back_market", ["Escape"], 2],
+    ["back_event", ["Escape"], 2],
+    ["back_home", ["Escape"], 2]
+  ]
+}

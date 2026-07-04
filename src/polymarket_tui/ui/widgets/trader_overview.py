@@ -33,12 +33,12 @@ class TraderOverview(Static):
             return  # already showing (or loading) this trader
         self._address, self._name, self._bio = address, name, bio
         self._value, self._top, self._status = None, None, ""
-        self._render()
+        self._refresh_overview()
         self._load(address)
 
     def on_resize(self) -> None:
         if self._address is not None:
-            self._render()
+            self._refresh_overview()
 
     @work(exclusive=True, group="trader-overview")
     async def _load(self, address: str) -> None:
@@ -58,9 +58,9 @@ class TraderOverview(Static):
                 key=lambda p: p.current_value,
                 reverse=True,
             )[:TOP_POSITIONS]
-        self._render()
+        self._refresh_overview()
 
-    def _render(self) -> None:
+    def _refresh_overview(self) -> None:
         w = max(24, self.size.width or 44)
         out = Text()
         out.append(self._name + "\n", style="bold")
