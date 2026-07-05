@@ -13,6 +13,7 @@ from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import ActivityItem, Position
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
@@ -113,6 +114,8 @@ class UserPane(TierAware, Vertical):
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
+        if not alive(self):
+            return  # call_after_refresh can fire after the pane is torn down
         width = self.size.width - 2  # border + slack
         if width <= 0:
             return
@@ -159,7 +162,7 @@ class UserPane(TierAware, Vertical):
         app = self.app
         try:
             value = await app.data.portfolio_value(self._address)
-            if value is not None:
+            if value is not None and alive(self):
                 title = self.query_one("#user-title", Static)
                 title.update(self._title_line() + f"  |  positions {fmt.money(value)}")
         except Exception:
@@ -174,6 +177,8 @@ class UserPane(TierAware, Vertical):
             self._activity = await app.data.activity(self._address, limit=60)
         except Exception:
             self._activity = []
+        if not alive(self):
+            return  # pane torn down while we fetched
         self._render_tables()
         self._schedule_refit()  # loaded titles set the flex column width
 

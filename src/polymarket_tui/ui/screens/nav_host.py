@@ -92,7 +92,7 @@ class NavHost(Screen):
                 return
         # Drop any stale deeper panes left over from a previous drill.
         for stale in self._panes[self._focus + 1 :]:
-            stale.remove()
+            self._discard(stale)
         del self._panes[self._focus + 1 :]
         del self._crumbs[self._focus + 1 :]
         pane.add_class("nav-pane")
@@ -138,10 +138,25 @@ class NavHost(Screen):
     def root_pane(self) -> Widget:
         return self._panes[0]
 
+    def _discard(self, stale: Widget) -> None:
+        """Remove a pane: flag it dead, cancel its loaders, then remove.
+
+        The flag (checked via ui.liveness.alive) is stamped synchronously
+        because removal is async - a worker tail or call_after_refresh
+        callback can otherwise fire while the pane is mounted but its
+        children are already pruned, and panic the app on query_one
+        (root swaps mid-load crashed Home, Portfolio and Event panes)."""
+        stale._nav_discarded = True
+        self.app.workers.cancel_node(stale)
+        for child in stale.query("*"):
+            child._nav_discarded = True
+            self.app.workers.cancel_node(child)
+        stale.remove()
+
     def set_root(self, pane: Widget, crumb: str) -> None:
         """Replace the whole drill stack with a new root pane ('w', 'H')."""
         for stale in self._panes:
-            stale.remove()
+            self._discard(stale)
         pane.add_class("nav-pane")
         self.query_one("#nav-viewport").mount(pane)
         self._panes = [pane]
@@ -159,7 +174,7 @@ class NavHost(Screen):
     def reset_to_root(self) -> None:
         """Collapse the drill stack back to the root pane."""
         for stale in self._panes[1:]:
-            stale.remove()
+            self._discard(stale)
         del self._panes[1:]
         del self._crumbs[1:]
         self._focus = self._left = 0

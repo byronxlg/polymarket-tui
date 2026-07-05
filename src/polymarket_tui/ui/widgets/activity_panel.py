@@ -15,6 +15,7 @@ from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
 
 TRADES_POLL_SECONDS = 5.0
@@ -94,8 +95,11 @@ class ActivityPanel(VerticalScroll):
         try:
             trades = await self.app.data.market_trades(self._market.condition_id)
         except Exception as exc:
-            body.update(Text(f"trades unavailable: {exc}", style="dim"))
+            if alive(self):
+                body.update(Text(f"trades unavailable: {exc}", style="dim"))
             return
+        if not alive(self):
+            return  # host pane torn down while we fetched
         out = Text()
         out.append(
             f"LIVE TRADES  (refreshes {TRADES_POLL_SECONDS:.0f}s, a to hide)\n", style="bold"
@@ -119,8 +123,11 @@ class ActivityPanel(VerticalScroll):
         try:
             comments = await self.app.gamma.comments(self._event.id)
         except Exception as exc:
-            body.update(Text(f"comments unavailable: {exc}", style="dim"))
+            if alive(self):
+                body.update(Text(f"comments unavailable: {exc}", style="dim"))
             return
+        if not alive(self):
+            return  # host pane torn down while we fetched
         out = Text()
         out.append("COMMENTS  (newest first, c to hide)\n", style="bold")
         for comment in comments:
