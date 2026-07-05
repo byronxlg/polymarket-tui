@@ -1,0 +1,21 @@
+{
+  "size": [200, 50], "boot_wait": 16,
+  "command": "HOME=$(scripts/journey_env.sh authed-dry) .venv/bin/polymarket-tui; sleep 300",
+  "steps": [
+    ["event", ["Enter"], 6],
+    ["market", ["Enter"], 7],
+    ["outcome_no", ["n"], 2],
+    ["outcome_yes", ["y"], 2],
+    ["panel_size_focus", ["Space"], 2],
+    ["size_15", ["1", "5"], 1],
+    ["field_price", ["Tab"], 1],
+    ["tick_down3", ["Down", "Down", "Down"], 1],
+    ["enter_to_size", ["Enter"], 1],
+    ["review", ["Enter"], 2],
+    ["edit_back", ["n"], 1],
+    ["stray_y_rejected", ["y"], 1],
+    ["review2", ["Enter"], 2],
+    ["place_dry", ["y"], 4],
+    ["out", ["Escape", "Escape"], 1]
+  ]
+}

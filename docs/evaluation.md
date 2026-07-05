@@ -17,6 +17,10 @@ The harness renders the real running app to PNG images for review.
 - `journeys/*.json` - step scripts: `[name, [keys...], wait_seconds]`.
   Keys use tmux send-keys names (Down, Enter, Escape, Space, literal
   chars). Journeys assume live API data has loaded (`boot_wait`).
+- `scripts/journey_env.sh <anon|authed-dry>` - prepares an isolated HOME
+  so a journey can never trade for real; journey JSONs launch the app
+  through it via their `command` field. The persona journey catalog and
+  its grading log live in docs/user-journeys.md.
 
 ## Review discipline
 

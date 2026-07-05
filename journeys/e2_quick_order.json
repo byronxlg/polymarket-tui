@@ -1,0 +1,12 @@
+{
+  "size": [200, 50], "boot_wait": 16,
+  "command": "HOME=$(scripts/journey_env.sh authed-dry) .venv/bin/polymarket-tui; sleep 300",
+  "steps": [
+    ["home_row2", ["Down"], 1],
+    ["quick_buy", ["b"], 8],
+    ["panel_state", [], 2],
+    ["close", ["Escape"], 1],
+    ["quick_sell", ["s"], 6],
+    ["close2", ["Escape", "Escape"], 1]
+  ]
+}
