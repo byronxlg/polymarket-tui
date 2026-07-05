@@ -202,7 +202,7 @@ class MarketPane(TierAware, Vertical):
             when = fmt.end_date(m.end_date)
             bits.append(when if when == "ended" else f"ends {when}")
         if self._event and self._event.title.strip() != m.question.strip():
-            bits.append(self._event.title.strip())  # one-line Static crops at the edge
+            bits.append(self._event.title.strip())  # .screen-title wraps: full name shows
         return "  |  ".join(bits)
 
     def _build_outcome_columns(self) -> None:

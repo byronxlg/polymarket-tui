@@ -35,7 +35,9 @@ Toast {
 }
 
 .screen-title {
-    height: 1;
+    /* auto, not 1: identity lines must show the full market/event name,
+       wrapping at narrow widths - only table cells may truncate. */
+    height: auto;
     padding: 0 1;
     background: $panel;
     color: $text;
