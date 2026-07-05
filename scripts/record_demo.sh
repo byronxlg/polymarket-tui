@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Record the landing-page demo cast (asciinema) of the TUI.
 #
-# Produces src/polymarket_tui/web/static/demo.cast - a scripted tour of the
-# browse -> market -> book -> chart -> search flow. Runs the app under a throwaway
-# HOME so it starts anonymous/DRY (no wallet, no LIVE, public data only), then
-# trims dead time so playback is tight.
+# Produces site/assets/demo.cast - a scripted tour of the browse -> market ->
+# book -> chart -> search flow. Runs the app under a throwaway HOME so it starts
+# anonymous/DRY (no wallet, no LIVE, public data only), then trims dead time so
+# playback is tight.
 #
 # Requires: asciinema (uv tool install asciinema), tmux. Re-run any time the UI
-# changes to refresh the demo, then rebuild the page (see web/DEMO.md).
+# changes to refresh the demo, then reload the page (see site/README.md).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$ROOT/src/polymarket_tui/web/static/demo.cast"
+OUT="$ROOT/site/assets/demo.cast"
 RAW="$(mktemp -t pmtui-demo-XXXX).cast"
 REC_HOME="$(mktemp -d -t pmtui-home-XXXX)"
 SOCK="pmtui-rec"

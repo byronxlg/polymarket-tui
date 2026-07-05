@@ -37,26 +37,14 @@ Then run `polymarket-tui`.
 No credentials needed to browse: markets, books, charts, trades, comments,
 and any trader's public positions all work read-only.
 
-## Run it in the browser
+## Landing page
 
-The whole TUI can be served over the web behind a landing page - useful for
-demos or trying it without a local install:
-
-```sh
-uv run polymarket-tui-web          # serves http://localhost:8000
-```
-
-- `/` is a static landing page; its hero plays a recorded demo of the TUI
-  (asciinema, vendored - no external CDN). Regenerate it with
-  `bash scripts/record_demo.sh`. See `src/polymarket_tui/web/DEMO.md`.
-- `/app` streams the live, interactive TUI into the browser via
-  [textual-serve](https://github.com/Textualize/textual-serve) (xterm.js over
-  a websocket). Each browser tab spawns its own isolated app subprocess.
-
-Every browser session starts in DRY mode, exactly like the terminal app.
-Environment overrides: `PMTUI_WEB_HOST`, `PMTUI_WEB_PORT`,
-`PMTUI_WEB_PUBLIC_URL` (set the last one when serving behind a reverse proxy
-so the websocket URL is correct).
+A static landing page lives in [`site/`](site/) and deploys to GitHub Pages
+(https://byronxlg.github.io/polymarket-tui/). Its hero plays a recorded
+asciinema demo of the TUI - browse markets, open one, cursor the live book,
+chart, search. Preview it locally with `python3 -m http.server -d site 8000`,
+and regenerate the demo with `bash scripts/record_demo.sh`. See
+[`site/README.md`](site/README.md).
 
 ## Account setup
 

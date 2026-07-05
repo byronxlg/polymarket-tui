@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>polymarket-tui — Polymarket in your terminal</title>
-<meta name="description" content="A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio, and place orders without leaving the terminal. Launch it in your browser." />
+<meta name="description" content="A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio, and place orders without leaving the terminal." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
 <link rel="stylesheet" href="assets/asciinema-player.css" />
 <style>
@@ -30,6 +30,7 @@
   html { scroll-behavior: smooth; }
   body {
     margin: 0;
+    overflow-x: hidden;
     background: var(--bg);
     color: var(--ink);
     font-family: var(--mono);
@@ -99,7 +100,7 @@
   .assure .sep { opacity: .4; margin: 0 4px; }
 
   /* ---- terminal window ---- */
-  .term-shell { margin: 44px 0 8px; }
+  .term-shell { margin: 44px auto 8px; }
   .term {
     border: 1px solid var(--line-2); border-radius: var(--radius);
     background: var(--bg-soft); overflow: hidden;
@@ -114,7 +115,9 @@
   .lights .r { background: #f0645b; } .lights .y { background: #e0a63a; } .lights .g { background: #45c46a; }
   .term-title { margin: 0 auto; font-size: 12.5px; color: var(--ink-dim); transform: translateX(-24px); }
   .term-body { padding: 10px 6px 4px; }
-  .demo-player { width: 100%; }
+  .demo-player { width: 100%; max-width: 100%; overflow: hidden; }
+  .demo-player .ap-wrapper { justify-content: center; }
+  .demo-player .ap-player { max-width: 100%; }
   /* asciinema-player: kill its own border/radius (the .term shell provides it) */
   .demo-player .ap-player { background: transparent; }
   .term-caption { margin: 14px auto 0; max-width: 760px; text-align: center; font-size: 13px; color: var(--ink-dim); }
@@ -189,8 +192,7 @@
       <a href="#features">Features</a>
       <a href="#keys">Keys</a>
       <a href="#install">Install</a>
-      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
-      <a class="btn btn-primary" href="/app">Launch <span class="k">&#8594;</span></a>
+      <a class="btn btn-primary" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub <span class="k">&#8599;</span></a>
     </div>
   </div>
 </nav>
@@ -199,15 +201,15 @@
   <div class="wrap">
     <span class="eyebrow"><span class="dot"></span> Live against the real exchange</span>
     <h1>Polymarket, at the<br><span class="grad">speed of your keyboard</span></h1>
-    <p class="sub">A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio and P&amp;L, and place orders <b>without leaving the terminal</b>. Now running in your browser.</p>
+    <p class="sub">A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio and P&amp;L, and place orders <b>without leaving the terminal</b>.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="/app">&#9654;&nbsp; Launch in browser</a>
-      <a class="btn" href="#install">Install locally</a>
+      <a class="btn btn-primary" href="#install">&#9660;&nbsp; Install</a>
+      <a class="btn" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">View on GitHub &#8599;</a>
     </div>
     <p class="assure">
       <span>No signup to browse</span><span class="sep">/</span>
       <span>every session starts in <b style="color:var(--yellow)">DRY</b> mode</span><span class="sep">/</span>
-      <span>your own tab, your own session</span>
+      <span>open source</span>
     </p>
   </div>
 
@@ -222,7 +224,7 @@
       </div>
     </div>
     <p class="term-caption">A recorded session &mdash; browse markets, open one, cursor the live
-      order book, chart, search. <a href="/app">Launch the real thing &#8594;</a></p>
+      order book, chart, search. <a href="#install">Install it &#8594;</a></p>
   </div>
 </header>
 
@@ -266,7 +268,7 @@
     <h2>Run it your way</h2>
     <div class="split">
       <div>
-        <p class="lead" style="margin-bottom:0">Install the CLI locally, or just launch it in the browser, no install required.</p>
+        <p class="lead" style="margin-bottom:0">Install the CLI. Requires Python 3.12+ (the curl script installs <code>uv</code> for you if it is missing).</p>
         <div class="code">
           <div class="row"><span class="lbl">curl</span><pre id="c1"><span class="tok">curl</span> -sSL https://raw.githubusercontent.com/byronxlg/polymarket-tui/main/install.sh | <span class="tok">bash</span></pre><button class="copy" data-c="c1">copy</button></div>
           <div class="row"><span class="lbl">brew</span><pre id="c2"><span class="tok">brew</span> tap byronxlg/polymarket-tui https://github.com/byronxlg/polymarket-tui
@@ -276,10 +278,10 @@
         </div>
       </div>
       <div class="browser-note">
-        <div class="ic" style="font-size:22px;width:44px;height:44px;display:grid;place-items:center;border-radius:10px;background:rgba(69,196,106,0.1);border:1px solid rgba(69,196,106,0.25);margin-bottom:14px">&#127760;</div>
-        <h3>Or run it right here</h3>
-        <p>The full TUI, streamed to your browser over a terminal, no local setup. Each visitor gets an isolated session that starts in DRY mode.</p>
-        <a class="btn btn-primary" href="/app">&#9654;&nbsp; Launch in browser</a>
+        <div class="ic" style="font-size:22px;width:44px;height:44px;display:grid;place-items:center;border-radius:10px;background:rgba(69,196,106,0.1);border:1px solid rgba(69,196,106,0.25);margin-bottom:14px">&#128273;</div>
+        <h3>No account to browse</h3>
+        <p>Markets, books, charts, trades, and any trader's public positions all work read-only. Add a funder address to observe your portfolio, or a private key to trade - dry-run until you explicitly go LIVE.</p>
+        <a class="btn" href="https://github.com/byronxlg/polymarket-tui#account-setup" target="_blank" rel="noopener">Account setup &#8599;</a>
       </div>
     </div>
   </div>
@@ -298,7 +300,7 @@
     <div style="display:flex;gap:22px">
       <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
       <a href="https://polymarket.com" target="_blank" rel="noopener">Polymarket</a>
-      <a href="/app">Launch</a>
+      <a href="#install">Install</a>
     </div>
   </div>
 </footer>
@@ -310,8 +312,7 @@
     autoPlay: true,
     loop: true,
     controls: true,
-    fit: "width",
-    terminalFontSize: "small",
+    fit: "width",     // scale the terminal to the container width (never overflow)
     theme: "asciinema",
     poster: "npt:0:6",
     idleTimeLimit: 2,
