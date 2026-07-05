@@ -9,6 +9,7 @@ from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import BookLevel, OrderBook
+from polymarket_tui.ui.theme import AMBER, DOWN, UP
 
 DEPTH = 10
 # Solid block bars at full red/green glare; the fill stays muted while the
@@ -59,7 +60,7 @@ class BookPanel(Static):
         line.append(f" {fmt.cents(level.price):>7}", style=style)
         line.append(f" {fmt.compact_size(level.size):>10}")
         if any(abs(level.price - p) < 1e-9 for p in self._own_prices):
-            line.append(" *", style="bold yellow")
+            line.append(" *", style=f"bold {AMBER}")
         line.append("\n")
         return line
 
@@ -74,17 +75,17 @@ class BookPanel(Static):
         out.append(f"{'':>{bar_w}} {'price':>7} {'shares':>10}\n", style="bold dim")
 
         for level in reversed(asks):
-            out.append_text(self._level_line(level, max_size, "red", ASK_BAR, bar_w))
+            out.append_text(self._level_line(level, max_size, DOWN, ASK_BAR, bar_w))
 
         if book.midpoint is not None:
             out.append(
                 f"---- mid {fmt.cents(book.midpoint)}  spread {fmt.cents(book.spread)} ----\n",
-                style="bold yellow",
+                style=f"bold {AMBER}",
             )
         elif not asks and not bids:
             out.append("empty book\n", style="dim")
 
         for level in bids:
-            out.append_text(self._level_line(level, max_size, "green", BID_BAR, bar_w))
+            out.append_text(self._level_line(level, max_size, UP, BID_BAR, bar_w))
 
         self.update(out)

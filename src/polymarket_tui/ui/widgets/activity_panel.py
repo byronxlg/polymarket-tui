@@ -15,6 +15,7 @@ from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.ui.theme import BLUE, DOWN, UP
 
 TRADES_POLL_SECONDS = 5.0
 
@@ -101,9 +102,9 @@ class ActivityPanel(VerticalScroll):
         )
         for trade in trades:
             out.append(f"{trade.when.astimezone().strftime('%H:%M:%S')} ", style="dim")
-            out.append(f"{trade.side:<4}", style="green" if trade.side == "BUY" else "red")
+            out.append(f"{trade.side:<4}", style=UP if trade.side == "BUY" else DOWN)
             out.append(f" {trade.size:>8,.0f} {fmt.trunc(trade.outcome, 10):<10}")
-            out.append(f" @ {fmt.cents(trade.price):>6}", style="bold cyan")
+            out.append(f" @ {fmt.cents(trade.price):>6}", style="bold")
             out.append(f"  {fmt.money(trade.usdc_size):>9}" if trade.usdc_size else " " * 11)
             out.append(f"  {fmt.trunc(trade.trader, 20)}\n", style="dim")
         if not trades:
@@ -131,7 +132,7 @@ class ActivityPanel(VerticalScroll):
                 when = _ago(datetime.fromisoformat(created.replace("Z", "+00:00")))
             except ValueError:
                 pass
-            out.append(f"{fmt.trunc(name, 22)} ", style="bold cyan")
+            out.append(f"{fmt.trunc(name, 22)} ", style=BLUE)
             out.append(f"{when}\n", style="dim")
             text = (comment.get("body") or "").strip().replace("\n", " ")
             out.append(f"  {fmt.trunc(text, 400)}\n", style="")

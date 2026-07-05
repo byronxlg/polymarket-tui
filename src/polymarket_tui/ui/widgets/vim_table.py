@@ -13,6 +13,12 @@ from textual.widgets import DataTable
 
 
 class VimDataTable(DataTable):
+    def add_column(self, label, **kwargs):
+        # Uppercase headers everywhere (navy restyle); styling is CSS's job.
+        if isinstance(label, str):
+            label = label.upper()
+        return super().add_column(label, **kwargs)
+
     class TopReached(Message):
         """Up pressed while already on the first row - focus whatever is above."""
 

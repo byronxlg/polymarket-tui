@@ -61,6 +61,12 @@ pane must never render clipped columns.
 
 - Prices in cents everywhere, including inputs ('33.4' = 33.4c). No unit
   guessing.
+- One visual identity, defined in ui/theme.py: deep-navy surfaces, a single
+  blue accent, soft UP/DOWN green/red, AMBER for warnings/DRY. Widgets
+  import these constants; never use terminal ANSI color names ("green",
+  "bold cyan") - the look must not depend on the terminal's palette.
+- Prices are plain bold (white on the navy theme); table headers are quiet
+  uppercase muted labels; numeric columns right-aligned.
 - Outcome carries the strong color (Yes green / No red); side (BUY/SELL) is
   muted so the outcome reads first. P&L green/red. Ended/resolved dimmed.
 - Truncate with a visible ellipsis; state what flags mean in words

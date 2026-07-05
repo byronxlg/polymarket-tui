@@ -11,7 +11,27 @@ DataTable {
 }
 
 DataTable > .datatable--cursor {
-    background: $primary 30%;
+    background: $primary 25%;
+}
+
+/* Navy restyle: headers are quiet uppercase labels, not inverse bars */
+DataTable > .datatable--header {
+    background: $surface;
+    color: $text-muted;
+    text-style: none;
+}
+
+Footer {
+    background: $surface;
+}
+
+FooterKey {
+    background: $surface;
+    color: $text-muted;
+}
+
+Toast {
+    background: $panel;
 }
 
 .screen-title {
@@ -38,7 +58,10 @@ DataTable > .datatable--cursor {
 }
 
 #status-line {
+    width: 1fr;  /* full row so the centered sort text has room */
     height: 1;
+    color: $text-muted;
+    text-align: center;
 }
 
 /* Events browser: table + preview */
@@ -50,11 +73,12 @@ EventsBrowser EventsTable {
     width: 1fr;
 }
 
+/* Preview rail: a thin left rule instead of a full border box */
 #preview-pane {
     width: 46;
     max-width: 40%;
-    border: solid $panel-lighten-2;
-    padding: 0 1;
+    border-left: solid $panel-lighten-2;
+    padding: 0 2;
 }
 
 /* Event screen: table and preview size to their content; the chart

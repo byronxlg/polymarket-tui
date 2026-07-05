@@ -9,6 +9,7 @@ from textual.widgets import DataTable, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.ui.theme import BLUE, DOWN, UP
 from polymarket_tui.ui.widgets.event_table import EventsTable
 
 PREVIEW_OUTCOMES = 18
@@ -21,8 +22,8 @@ def prob_bar(price: float | None, width: int = BAR_W) -> Text:
     if price is None:
         return out.append(" " * width)
     filled = round(max(0.0, min(1.0, price)) * width)
-    out.append("\u2588" * filled, style="rgb(0,110,160)")
-    out.append("\u00b7" * (width - filled), style="grey23")
+    out.append("\u2588" * filled, style=BLUE)
+    out.append("\u00b7" * (width - filled), style="grey30")
     return out
 
 
@@ -50,11 +51,11 @@ class MarketPreview(Static):
             out.append(market.question.strip() + "\n", style="dim")
         out.append("\n")
         no_price = None if market.yes_price is None else 1 - market.yes_price
-        yes_no = (("YES", "bold green", market.yes_price), ("NO", "bold red", no_price))
+        yes_no = (("YES", f"bold {UP}", market.yes_price), ("NO", f"bold {DOWN}", no_price))
         for label, style, price in yes_no:
             out.append(f"{label:<5}", style=style)
             out.append_text(prob_bar(price))
-            out.append(f"{fmt.cents(price):>8}\n", style="bold cyan")
+            out.append(f"{fmt.cents(price):>8}\n", style="bold")
         out.append("\n")
 
         rows = [
@@ -120,11 +121,11 @@ class EventPreview(Static):
             out.append(f"{fmt.trunc(market.display_title, name_w):<{name_w + 1}}", style="")
             if bar_w:
                 out.append_text(prob_bar(price, bar_w))
-            out.append(f"{fmt.cents(price):>7}", style="bold cyan")
+            out.append(f"{fmt.cents(price):>7}", style="bold")
             change = market.one_day_price_change
             if change:
-                style = "green" if change > 0 else "red"
-                out.append(f" {fmt.cents(change, signed=True):>7}", style=style)
+                style = UP if change > 0 else DOWN
+                out.append(f" {change * 100:>+6.1f}", style=style)
             out.append("\n")
         if len(markets) > PREVIEW_OUTCOMES:
             out.append(f"... {len(markets) - PREVIEW_OUTCOMES} more\n", style="dim")

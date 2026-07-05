@@ -28,6 +28,7 @@ from polymarket_tui.ui.screens.related import RelatedPane
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.user import UserPane
 from polymarket_tui.ui.screens.watchlist import WatchlistPane
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, PMTUI_THEME, UP
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 
@@ -51,6 +52,8 @@ class PolymarketApp(App):
 
     def __init__(self) -> None:
         super().__init__()
+        self.register_theme(PMTUI_THEME)
+        self.theme = "pmtui"
         self.ntp_offset: float | None = None
         self.username: str | None = None
         self.account_status = Text("loading account...", style="dim")
@@ -145,7 +148,7 @@ class PolymarketApp(App):
     async def _refresh_account_status(self) -> None:
         """Build the header account strip: user, cash, portfolio value, mode."""
         settings = self.settings
-        mode_style = {"RO": "dim", "OBS": "cyan", "DRY": "yellow", "LIVE": "bold red"}
+        mode_style = {"RO": "dim", "OBS": BLUE, "DRY": AMBER, "LIVE": f"bold {DOWN}"}
         out = Text()
         if not settings.can_read_portfolio:
             out.append("not signed in - press A", style="dim")
@@ -164,11 +167,11 @@ class PolymarketApp(App):
                 cash = await self.portfolio.usdc_balance()
                 if cash is not None:
                     out.append("  cash ", style="dim")
-                    out.append(f"${cash:,.2f}")
+                    out.append(f"${cash:,.2f}", style=UP)
             value = await self.portfolio.portfolio_value()
             if value is not None:
                 out.append("  pf ", style="dim")
-                out.append(f"${value:,.2f}")
+                out.append(f"${value:,.2f}", style=UP)
         except Exception:
             out.append("  (balances unavailable)", style="dim")
         mode = settings.mode.value
@@ -301,7 +304,7 @@ class PolymarketApp(App):
             return
         body = Text()
         body.append("Orders and cancels will be posted to the exchange for real.\n")
-        body.append("Dry-run protection is OFF.", style="bold red")
+        body.append("Dry-run protection is OFF.", style=f"bold {DOWN}")
         body.append(" This choice is remembered across sessions.")
 
         def _confirmed(ok: bool | None) -> None:
