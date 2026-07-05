@@ -35,7 +35,7 @@ CATEGORIES: list[tuple[str, str]] = [
     ("Elections", "elections"),
 ]
 
-PAGE_SIZE = 50
+PAGE_SIZE = 100  # Gamma's per-request ceiling; one page fills any terminal
 
 SORT_LABELS = {
     "volume24hr": "24h volume",
@@ -70,6 +70,7 @@ class HomePane(TierAware, Vertical):
         self._sort_index = 0
         self._offset = 0
         self._loading = False
+        self._exhausted = False  # Gamma returned a short page: no more to fetch
 
     def compose(self) -> ComposeResult:
         yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="tag-bar")
@@ -147,6 +148,7 @@ class HomePane(TierAware, Vertical):
         self._loading = True
         if not append:
             self._offset = 0
+            self._exhausted = False
         order = SORT_ORDERS[self._sort_index]
         ascending = order == "endDate"
         try:
@@ -162,6 +164,12 @@ class HomePane(TierAware, Vertical):
             self.query_one("#status-line", Static).update(self._status_line())
             self._loading = False
             return
+        # Advance past the page just fetched; a short page means the end.
+        # Both track the RAW count - the ended-events filter below shrinks
+        # pages, and judging by filtered size would stop pagination early.
+        self._offset += PAGE_SIZE
+        if len(events) < PAGE_SIZE:
+            self._exhausted = True
         now = datetime.now(UTC)
         # Gamma still returns just-ended events as active; hide them like the
         # web trending list does (they read as noise next to live markets).
@@ -188,14 +196,17 @@ class HomePane(TierAware, Vertical):
         self._open_highlighted()
 
     def on_data_table_row_highlighted(self, event) -> None:
-        # Infinite scroll: fetch the next page when the cursor nears the bottom.
+        # Infinite scroll: fetch the next page when the cursor nears the
+        # bottom. No row-count floor: the ended-events filter shrinks pages,
+        # so a full table can hold fewer than PAGE_SIZE rows - _exhausted
+        # (not size) says whether Gamma has more.
         if (
             not self._loading
-            and self.table.row_count >= PAGE_SIZE
+            and not self._exhausted
+            and self.table.row_count > 0
             and event.cursor_row is not None
             and event.cursor_row >= self.table.row_count - 5
         ):
-            self._offset += PAGE_SIZE
             self.load_events(append=True)
 
     def _open_highlighted(self) -> None:
