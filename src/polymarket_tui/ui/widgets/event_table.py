@@ -176,7 +176,9 @@ class EventsTable(VimDataTable):
             self._events = []
         self._watched = set(watched)
         if ordered is not None:
-            self._ordered = set(ordered)
+            # Appended pages carry flags for their own events only - merge,
+            # or earlier rows would lose their resting-order flag on rebuild.
+            self._ordered = set(ordered) if clear else self._ordered | set(ordered)
         fresh = [e for e in events if e.slug not in self.events_by_slug]
         for event in fresh:
             self.events_by_slug[event.slug] = event
