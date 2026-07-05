@@ -27,9 +27,10 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 | space | the contextual toggle (see below) |
 
 space by screen: star an event or follow a trader (home, search,
-watchlist, related), flip the YES/NO book (market), toggle BUY/SELL
-(order panel), show/hide rules (event; on market it's i), follow/unfollow
-(trader profile).
+watchlist, related), open the buy form on a market outcome or order from
+the book level (market), toggle BUY/SELL (order panel), show/hide rules
+(event; on market it's i), follow/unfollow (trader profile). Pick the
+outcome with the arrows or y/n; right on an outcome flows into the book.
 
 left always steps out one level: order panel -> market -> previous screen;
 expanded trades collapse before the screen closes.
@@ -60,13 +61,14 @@ jumps straight into the market with the panel open |
 | c | market | comments in the chart strip |
 | e | market | open the parent event |
 | R | event, market | related markets (series siblings for dailies) |
-| x | portfolio open-orders tab | cancel the highlighted order |
+| space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
+| x | market book / portfolio orders | cancel your resting order (full details shown, y confirms) |
 | r | anywhere | refresh |
 
 ## Order entry
 
-right/enter on an outcome row opens the buy form; left (at the start of a
-field) or escape closes it. b/s/space switch the side at any time, even
+space or enter on an outcome row opens the buy form; left (at the start of
+a field) or escape closes it. b/s/space switch the side at any time, even
 while typing in the fields.
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
@@ -85,8 +87,10 @@ off mid, large notional, rapid duplicate - is at most a yellow warning.
 
 Charts sit below/beside the prices they explain - history is context, not
 the headline. On an event, down past the last outcome row enters chart
-inspect; on a market, up enters it. left/right scrub through time (shift
-for big steps), the legend shows values at the crosshair, up/down/esc exit.
+inspect: left/right scrub through time (shift for big steps), the legend
+shows values at the crosshair, up/down/esc exit. On a market, down past the
+last outcome row instead cursors into the order book (space orders from a
+level, x cancels a resting order there); the chart is display-only.
 
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.

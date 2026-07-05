@@ -1,0 +1,15 @@
+{
+  "size": [200, 50],
+  "boot_wait": 16,
+  "command": "HOME=/tmp/pmtui-verify .venv/bin/polymarket-tui; sleep 300",
+  "steps": [
+    ["market", ["Down", "Down", "Down", "Down", "Down", "Enter", "Down", "Down", "Enter"], 8],
+    ["enter_book", ["Down", "Down"], 2],
+    ["to_bid", ["Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down", "Down"], 2],
+    ["sell_prefill", ["Space"], 3],
+    ["order_closed", ["Escape"], 2],
+    ["reenter_book", ["Down"], 2],
+    ["cancel_no_order", ["x"], 2],
+    ["up_returns", ["Up"], 2]
+  ]
+}

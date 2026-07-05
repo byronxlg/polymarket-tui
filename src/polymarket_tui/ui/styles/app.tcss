@@ -151,6 +151,13 @@ PriceChartPanel {
     height: 1;
 }
 
+/* Full-detail cancel confirm on the market page (x on a book level). */
+#market-cancel-strip {
+    height: auto;
+    padding: 0 1;
+    background: $panel;
+}
+
 /* Trades rail (live context); 'a' expands it to full width */
 #trades-rail {
     width: 44;
@@ -211,7 +218,7 @@ PriceChartPanel {
 }
 
 #cancel-strip {
-    height: 1;
+    height: auto;
     padding: 0 1;
     background: $panel;
 }
