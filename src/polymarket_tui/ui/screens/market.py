@@ -471,7 +471,7 @@ class MarketPane(TierAware, Vertical):
         """Your holdings in this market, shown under the outcome table."""
         line = self.query_one("#position-line", Static)
         app = self.app
-        if not app.settings.can_read_portfolio:
+        if not app.settings.can_read_portfolio or app.settings.polymarket_hide_balances:
             line.update(Text(""))
             return
         try:

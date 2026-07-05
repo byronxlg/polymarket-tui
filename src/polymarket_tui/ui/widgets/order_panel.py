@@ -427,7 +427,11 @@ class OrderPanel(Vertical):
             out.append(error, style="dim")
             summary.update(out)
             hint = Text("up/down step \u00b7 space side \u00b7 enter review", style="dim")
-            if self._side is Side.SELL and self._position_size:
+            if (
+                self._side is Side.SELL
+                and self._position_size
+                and not self.app.settings.polymarket_hide_balances
+            ):
                 hint.append(
                     f"   held {self._position_size:,.0f} - size 50% sells half", style=AMBER
                 )

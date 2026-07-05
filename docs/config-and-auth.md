@@ -28,6 +28,7 @@ otherwise the credentials file, otherwise read-only mode.
 | `POLYMARKET_EXECUTION_LIVE` | default unset | `1` enables real order posting; otherwise dry-run |
 | `POLYMARKET_HOST` | default `https://clob.polymarket.com` | override for testing |
 | `PMTUI_MAX_NOTIONAL` | default `500` | typed-confirm threshold in trading.md check 8 |
+| `POLYMARKET_HIDE_BALANCES` | default unset | `1` masks own-account numbers on screen (header cash/pf, YOUR POSITION strip, held hint) for screen-sharing and demo recording; trading behavior unchanged |
 
 The Builders-Program attribution code is **hardcoded** as `BUILDER_CODE` in
 `core/config.py` and intentionally has no env var or config override - see trading.md.

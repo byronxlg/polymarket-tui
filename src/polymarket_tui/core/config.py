@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     polymarket_execution_live: bool = False
     polymarket_host: str = "https://clob.polymarket.com"
     pmtui_max_notional: float = 500.0
+    # Streamer/demo mode: mask the account numbers that would otherwise be
+    # on screen (header cash/pf, the market screen's YOUR POSITION strip,
+    # the order panel's held hint). Used when screen-sharing and by
+    # scripts/record_demo.sh so the public landing-page cast never carries
+    # real balances. Trading behavior is unchanged.
+    polymarket_hide_balances: bool = False
 
     @property
     def mode(self) -> Mode:
