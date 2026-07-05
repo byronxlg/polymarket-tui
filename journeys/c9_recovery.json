@@ -9,6 +9,7 @@
     ["esc2", ["Escape"], 2],
     ["esc3", ["Escape"], 2],
     ["esc4_home", ["Escape"], 2],
+    ["esc5_full_home", ["Escape"], 2],
     ["quit", ["q"], 2]
   ]
 }

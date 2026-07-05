@@ -81,6 +81,15 @@ class NavHost(Screen):
                 self._left = self._focus - 1
                 self._reflow()
                 return
+        if reuse and key is not None and self._focus > 0:
+            # Opening the pane we drilled in from (e.g. 'e' on a market whose
+            # parent is that same event): step focus back to it instead of
+            # nesting a duplicate deeper in the trail.
+            if getattr(self._panes[self._focus - 1], "drill_key", None) == key:
+                self._focus -= 1
+                self._left = min(self._left, self._focus)
+                self._reflow()
+                return
         # Drop any stale deeper panes left over from a previous drill.
         for stale in self._panes[self._focus + 1 :]:
             stale.remove()
