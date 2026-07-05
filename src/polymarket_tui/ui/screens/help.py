@@ -60,7 +60,8 @@ jumps straight into the market with the panel open |
 | c | market | comments in the chart strip |
 | e | market | open the parent event |
 | R | event, market | related markets (series siblings for dailies) |
-| x | portfolio open-orders tab | cancel the highlighted order |
+| space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
+| x | market book / portfolio orders | cancel your resting order (full details shown, y confirms) |
 | r | anywhere | refresh |
 
 ## Order entry
@@ -85,8 +86,10 @@ off mid, large notional, rapid duplicate - is at most a yellow warning.
 
 Charts sit below/beside the prices they explain - history is context, not
 the headline. On an event, down past the last outcome row enters chart
-inspect; on a market, up enters it. left/right scrub through time (shift
-for big steps), the legend shows values at the crosshair, up/down/esc exit.
+inspect: left/right scrub through time (shift for big steps), the legend
+shows values at the crosshair, up/down/esc exit. On a market, down past the
+last outcome row instead cursors into the order book (space orders from a
+level, x cancels a resting order there); the chart is display-only.
 
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.

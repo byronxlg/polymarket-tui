@@ -9,6 +9,8 @@ of the drill split. This is the money path - MarketPane owns the live book
 from __future__ import annotations
 
 import contextlib
+import time
+from decimal import Decimal
 
 from rich.text import Text
 from textual import work
@@ -26,6 +28,7 @@ from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier,
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
+from polymarket_tui.ui.widgets.order_details import order_detail_text
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
 from polymarket_tui.ui.widgets.trader_overview import TraderOverview
@@ -76,7 +79,7 @@ class MarketPane(TierAware, Vertical):
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_outcome", "yes/no"),
-        Binding("y", "select_outcome(0)", "yes", show=False),
+        Binding("y", "key_yes", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
         Binding("enter", "order('BUY')", "buy", priority=False),
         Binding("b", "order('BUY')", "buy", show=False),
@@ -116,6 +119,9 @@ class MarketPane(TierAware, Vertical):
         # events are ignored until the cursor lands on _outcome_index so the
         # rebuild can't flip the selected outcome (and reload book/history).
         self._syncing_cursor = False
+        # Cancel from the market page: x on a book level arms this, y confirms.
+        self._pending_cancel: list | None = None
+        self._cancel_armed_at = 0.0
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title", id="market-title")
@@ -126,6 +132,7 @@ class MarketPane(TierAware, Vertical):
                 yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
                 yield Static(id="orders-note")
+                yield Static(id="market-cancel-strip")
                 with Vertical(id="book-pane"):
                     yield Static(self._book_header(), id="book-title")
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
@@ -297,6 +304,8 @@ class MarketPane(TierAware, Vertical):
     def _apply_outcome(self, index: int) -> None:
         if index == self._outcome_index:
             return
+        # A resting order armed on the old outcome's book no longer applies.
+        self._clear_pending_cancel()
         self._outcome_index = index
         self._book = None  # stale: belongs to the other outcome until load_book returns
         self.query_one(OrderPanel).set_outcome(self._outcome_index)
@@ -314,13 +323,26 @@ class MarketPane(TierAware, Vertical):
         self.load_own_orders()
 
     def on_vim_data_table_bottom_reached(self, message) -> None:
-        self.action_inspect_chart()
+        # Down past the last outcome flows into the order book (cursor through
+        # the levels); the chart no longer captures focus on the market page.
+        if message.table.id == "outcomes-table":
+            self._focus_book()
+
+    def _focus_book(self) -> None:
+        book = self.query_one(BookPanel)
+        if self.tier == "compact" or not book.has_levels:
+            return
+        book.focus_top()
+        book.focus()
 
     def _book_header(self) -> Text:
         """Book title with a live-feed badge: LIVE when the socket is healthy,
         else a stale/polling note so the user knows the book is REST-refreshed.
         Returned as Text (not markup) so the badge can't be parsed as a tag."""
-        head = Text(f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)")
+        head = Text(
+            f"ORDER BOOK - {self._outcome_label().upper()}"
+            "  (down to browse - space: order  x: cancel)"
+        )
         if self._channel is not None:
             badge = {
                 "live": ("  LIVE", f"bold {UP}"),
@@ -361,6 +383,7 @@ class MarketPane(TierAware, Vertical):
             self._schedule_refit()
 
     def on_mount(self) -> None:
+        self.query_one("#market-cancel-strip", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         table = self.query_one("#outcomes-table", VimDataTable)
         self._columns_spec = list(OUTCOMES_TIER_COLUMNS[self.tier])
@@ -470,7 +493,7 @@ class MarketPane(TierAware, Vertical):
         if token is None:
             return
         mine = app.portfolio.orders_for_assets({token})
-        self.query_one(BookPanel).set_own_prices({o.price for o in mine})
+        self.query_one(BookPanel).set_own_orders(mine)
         market_orders = app.portfolio.orders_for_assets(
             {t for t in self._market.clob_token_ids if t}
         )
@@ -482,8 +505,11 @@ class MarketPane(TierAware, Vertical):
         note = self.query_one("#orders-note", Static)
         if count:
             note.update(
-                Text(f" {count} resting order{'s' if count != 1 else ''} (x cancels in portfolio)",
-                     style=AMBER)
+                Text(
+                    f" {count} resting order{'s' if count != 1 else ''}"
+                    " - down into the book, x on a starred (*) level cancels",
+                    style=AMBER,
+                )
             )
         else:
             note.update(Text(""))
@@ -570,11 +596,106 @@ class MarketPane(TierAware, Vertical):
         self.load_book()
         self.load_history()
 
-    def action_inspect_chart(self) -> None:
-        if self.query_one(PriceChartPanel).display:
-            self.query_one(PriceChartPanel).enter_inspect(
-                return_focus=self.query_one("#outcomes-table", VimDataTable)
+    # -- order book navigation & cancel -----------------------------------------
+
+    def on_book_panel_focus_above(self, message) -> None:
+        """up-at-top / left in the book returns to the outcome table."""
+        self._clear_pending_cancel()
+        self.query_one("#outcomes-table", VimDataTable).focus()
+
+    def on_book_panel_cursor_moved(self, message) -> None:
+        # Retargeting the cursor invalidates any armed cancel from another level.
+        self._clear_pending_cancel()
+
+    def on_book_panel_row_actioned(self, message) -> None:
+        """space on a book level: open the order panel prefilled from it."""
+        self._clear_pending_cancel()
+        app = self.app
+        if not app.settings.can_auth:
+            app.notify(
+                "Trading needs a private key + funder - press A to authenticate",
+                severity="warning",
             )
+            return
+        from polymarket_tui.services.orders import Side
+
+        self.query_one(OrderPanel).open(
+            self._market,
+            Side(message.side),
+            self._outcome_index,
+            self._book,
+            preset_price=Decimal(str(message.price)),
+            preset_size=Decimal(str(message.size)),
+        )
+
+    def on_book_panel_cancel_requested(self, message) -> None:
+        """x on a book level: arm a full-detail cancel confirm for order(s) there."""
+        orders = message.orders
+        if not orders:
+            self.notify("No resting order of yours at that level", severity="warning", timeout=3)
+            return
+        self._pending_cancel = orders
+        self._cancel_armed_at = time.monotonic() + 0.35
+        strip = self.query_one("#market-cancel-strip", Static)
+        strip.update(self._cancel_strip_text(orders))
+        strip.display = True
+
+    def _cancel_strip_text(self, orders: list) -> Text:
+        out = Text()
+        out.append(" CANCEL ", style=f"bold reverse {DOWN}")
+        if len(orders) > 1:
+            out.append(f" {len(orders)} orders at this level", style="bold")
+        out.append("\n")
+        for order in orders:
+            out.append_text(order_detail_text(order))
+            out.append("\n")
+        out.append("y", style="bold")
+        out.append(" confirm cancel   ", style="dim")
+        out.append("esc/left", style="bold")
+        out.append(" keep", style="dim")
+        return out
+
+    def _clear_pending_cancel(self) -> None:
+        if self._pending_cancel is not None:
+            self._pending_cancel = None
+            with contextlib.suppress(Exception):
+                self.query_one("#market-cancel-strip", Static).display = False
+
+    def action_key_yes(self) -> None:
+        """y confirms an armed cancel; otherwise it selects the YES outcome."""
+        if self._pending_cancel is not None:
+            if time.monotonic() < self._cancel_armed_at:
+                return
+            orders = self._pending_cancel
+            self._clear_pending_cancel()
+            for order in orders:
+                self._start_cancel(order.id)
+            return
+        self.action_select_outcome(0)
+
+    def _start_cancel(self, order_id: str) -> None:
+        # App-lifetime worker: navigating off the pane must not drop an in-flight
+        # cancel's result (mirrors the placement path in order_panel).
+        app = self.app
+        pane = self
+
+        async def _cancel_and_report() -> None:
+            result = await app.orders.cancel(order_id)
+            if result.ok and result.dry_run:
+                app.notify(
+                    "DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6
+                )
+            elif result.ok:
+                app.notify("Order cancelled")
+                app.portfolio.invalidate()
+                app.refresh_account_status()
+            else:
+                app.notify(f"Cancel failed: {result.error}", severity="error", timeout=8)
+            if pane.is_mounted:
+                pane.load_own_orders()
+                pane.load_position()
+
+        app.run_worker(_cancel_and_report(), group="cancel-order", exclusive=False)
 
     @work(exclusive=True, group="trades")
     async def load_trades(self) -> None:
@@ -619,9 +740,16 @@ class MarketPane(TierAware, Vertical):
 
     def handle_back(self) -> bool:
         """left/escape step out one level before leaving the pane."""
+        if self._pending_cancel is not None:
+            self._clear_pending_cancel()
+            return True
         panel = self.query_one(OrderPanel)
         if panel.is_open:
             panel.close()
+            return True
+        # In the order book, esc steps back to the outcome table before the pane.
+        if self.query_one(BookPanel).has_focus:
+            self.query_one("#outcomes-table", VimDataTable).focus()
             return True
         # At compact the trades view is suspended (not visible), so esc
         # should step out of the pane, not invisibly collapse it.
