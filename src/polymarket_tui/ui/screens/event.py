@@ -18,6 +18,7 @@ from textual.widgets import DataTable, Static, Tab, Tabs
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.theme import BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.event_table import change_text
@@ -75,7 +76,7 @@ class EventPane(TierAware, Vertical):
         super().__init__(**kwargs)
         self._event = event
         self._show_info = False
-        self._interval = "1D"
+        self._interval = "ALL"
         self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
         self.drill_key = ("event", event.slug)
 
@@ -223,16 +224,16 @@ class EventPane(TierAware, Vertical):
             # order appears ('o' = you have an open order on this outcome).
             title = fmt.trunc(market.display_title, outcome_width - 2)
             if market.condition_id in ordered:
-                outcome_cell = Text("o ", style="bold cyan")
+                outcome_cell = Text("o ", style=f"bold {BLUE}")
             else:
                 outcome_cell = Text("  ")
             outcome_cell.append(title)
             cells = {
                 "outcome": outcome_cell,
-                "price": Text(fmt.cents(market.yes_price), style="bold cyan"),
+                "price": Text(fmt.cents(market.yes_price), style="bold"),
                 "change": change_text(market.one_day_price_change),
-                "bid": Text(fmt.cents(market.best_bid), style="green"),
-                "ask": Text(fmt.cents(market.best_ask), style="red"),
+                "bid": Text(fmt.cents(market.best_bid), style=UP),
+                "ask": Text(fmt.cents(market.best_ask), style=DOWN),
                 "spread": fmt.cents(market.spread),
                 "vol": fmt.vol(market.volume_24hr),
             }

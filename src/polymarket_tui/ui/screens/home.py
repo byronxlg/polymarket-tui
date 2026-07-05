@@ -17,6 +17,7 @@ from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
 from polymarket_tui.state import cache
+from polymarket_tui.ui.theme import AMBER
 from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -75,10 +76,10 @@ class HomePane(TierAware, Vertical):
         yield EventsBrowser(id="home-browser")
 
     def _status_line(self) -> Text:
-        out = Text()
-        out.append(" sort ", style="dim")
+        out = Text(justify="center")
+        out.append("sort ", style="dim")
         out.append(SORT_LABELS[SORT_ORDERS[self._sort_index]], style="bold")
-        out.append("   o cycle sort   tab category", style="dim")
+        out.append("  \u00b7  o cycle sort  \u00b7  tab category", style="dim")
         return out
 
     def on_mount(self) -> None:
@@ -101,7 +102,7 @@ class HomePane(TierAware, Vertical):
         browser = self.query_one(EventsBrowser)
         browser.preview.show_event(events[0] if events else None)
         status = Text()
-        status.append(" cached list from your last session ", style="yellow")
+        status.append(" cached list from your last session ", style=AMBER)
         status.append(" refreshing...", style="dim")
         self.query_one("#status-line", Static).update(status)
 

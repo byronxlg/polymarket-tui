@@ -1,7 +1,7 @@
-"""One-line header: app/screen title left, millisecond clock right.
+"""One-line header: app/screen title left, clock right.
 
-The clock ticks at 20Hz and applies the app's NTP-measured offset, so it shows
-network-true time to within the terminal's refresh granularity.
+The clock applies the app's NTP-measured offset, so it shows network-true
+time (1Hz; the millisecond display was retired with the navy restyle).
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ class AppHeader(Static):
         self._title = title
 
     def on_mount(self) -> None:
-        self.set_interval(0.05, self._tick)
+        self.set_interval(0.5, self._tick)
         self._tick()
 
     def set_title(self, title: str) -> None:
@@ -38,7 +38,7 @@ class AppHeader(Static):
     def _tick(self) -> None:
         offset = getattr(self.app, "ntp_offset", None)
         now = datetime.fromtimestamp(time.time() + (offset or 0.0)).astimezone()
-        clock = now.strftime("%H:%M:%S") + f".{now.microsecond // 1000:03d}"
+        clock = now.strftime("%a %b %-d  %H:%M:%S")
         if offset is None:
             clock += " (sys)"
         account: Text = getattr(self.app, "account_status", Text(""))
@@ -52,5 +52,5 @@ class AppHeader(Static):
             out.append(" " * pad)
         out.append_text(account)
         out.append("   ")
-        out.append(clock + " ", style="bold cyan")
+        out.append(clock + " ", style="dim")
         self.update(out)

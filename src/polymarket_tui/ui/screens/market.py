@@ -21,6 +21,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
+from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.book_panel import BookPanel
@@ -102,7 +103,7 @@ class MarketPane(TierAware, Vertical):
         self._market = market
         self._event = event
         self._outcome_index = 0  # 0 = YES/first outcome, 1 = NO
-        self._interval = "1H"  # matches the initially-active interval tab
+        self._interval = "ALL"  # full history first; tab/shift+tab narrows
         self._history: list = []
         self._book = None
         self._trades_expanded = False
@@ -268,11 +269,11 @@ class MarketPane(TierAware, Vertical):
             ask = m.best_ask if idx == 0 else (None if m.best_bid is None else 1 - m.best_bid)
             delta = change if idx == 0 else (None if change is None else -change)
             cells = {
-                "outcome": Text(label, style="bold green" if idx == 0 else "bold red"),
-                "price": Text(fmt.cents(price), style="bold cyan"),
+                "outcome": Text(label, style=f"bold {UP}" if idx == 0 else f"bold {DOWN}"),
+                "price": Text(fmt.cents(price), style="bold"),
                 "change": change_text(delta),
-                "bid": Text(fmt.cents(bid), style="green"),
-                "ask": Text(fmt.cents(ask), style="red"),
+                "bid": Text(fmt.cents(bid), style=UP),
+                "ask": Text(fmt.cents(ask), style=DOWN),
                 "spread": fmt.cents(m.spread),
                 "vol": fmt.vol(m.volume_24hr),
             }
@@ -350,8 +351,8 @@ class MarketPane(TierAware, Vertical):
         head = Text(f"ORDER BOOK - {self._outcome_label().upper()}  (space to flip)")
         if self._channel is not None:
             badge = {
-                "live": ("  LIVE", "bold green"),
-                "stale": ("  STALE (polling)", "yellow"),
+                "live": ("  LIVE", f"bold {UP}"),
+                "stale": ("  STALE (polling)", AMBER),
                 "down": ("  polling", "dim"),
             }.get(self._channel.status())
             if badge:
@@ -388,6 +389,7 @@ class MarketPane(TierAware, Vertical):
             self._schedule_refit()
 
     def on_mount(self) -> None:
+        self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         table = self.query_one("#outcomes-table", VimDataTable)
         self._columns_spec = list(OUTCOMES_TIER_COLUMNS[self.tier])
         self._build_outcome_columns()
@@ -474,11 +476,11 @@ class MarketPane(TierAware, Vertical):
             out.append(f"{p.size:,.0f} ", style="bold")
             out.append(
                 f"{p.outcome} ",
-                style="bold green" if p.outcome.lower() == "yes" else "bold red",
+                style=f"bold {UP}" if p.outcome.lower() == "yes" else f"bold {DOWN}",
             )
             out.append(f"@ {fmt.cents(p.avg_price)} ", style="dim")
             out.append(f"now {fmt.cents(p.cur_price)}  ")
-            pnl_style = "green" if p.cash_pnl > 0 else "red" if p.cash_pnl < 0 else "dim"
+            pnl_style = UP if p.cash_pnl > 0 else DOWN if p.cash_pnl < 0 else "dim"
             out.append(f"{p.cash_pnl:+,.2f} ({p.percent_pnl:+.0f}%)", style=pnl_style)
         line.update(out)
 
@@ -509,7 +511,7 @@ class MarketPane(TierAware, Vertical):
         if count:
             note.update(
                 Text(f" {count} resting order{'s' if count != 1 else ''} (x cancels in portfolio)",
-                     style="yellow")
+                     style=AMBER)
             )
         else:
             note.update(Text(""))

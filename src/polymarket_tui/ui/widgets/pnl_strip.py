@@ -12,10 +12,12 @@ from textual.containers import Vertical
 from textual.widgets import Static
 
 from polymarket_tui.models.market import PricePoint
+from polymarket_tui.ui.theme import DOWN, UP
 from polymarket_tui.ui.widgets.linechart import render_chart
 
-GREEN = (46, 204, 113)
-RED = (231, 76, 60)
+# rgb tuples for the line chart, matching theme UP/DOWN
+GREEN = (63, 207, 142)
+RED = (248, 113, 122)
 
 
 class PnlStrip(Vertical):
@@ -61,7 +63,7 @@ class PnlStrip(Vertical):
         if len(points) >= 2:
             latest, first = points[-1].p, points[0].p
             delta = latest - first
-            style = "green" if delta >= 0 else "red"
+            style = UP if delta >= 0 else DOWN
             text = Text()
             text.append("ALL-TIME PROFIT  ", style="bold")
             text.append(f"${latest:,.2f}", style="bold")

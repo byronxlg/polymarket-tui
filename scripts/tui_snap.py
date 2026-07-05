@@ -16,7 +16,36 @@ import tempfile
 from pathlib import Path
 
 from rich.console import Console
+from rich.terminal_theme import TerminalTheme
 from rich.text import Text
+
+# Default fg/bg and ANSI palette for the export, matching ui/theme.py -
+# otherwise cells the capture leaves unstyled render on rich's default
+# background and read as per-line highlight boxes.
+PMTUI_TERMINAL_THEME = TerminalTheme(
+    (13, 19, 32),
+    (201, 212, 227),
+    [
+        (10, 14, 22),
+        (248, 113, 122),
+        (63, 207, 142),
+        (224, 175, 104),
+        (91, 142, 247),
+        (187, 154, 247),
+        (122, 162, 247),
+        (201, 212, 227),
+    ],
+    [
+        (86, 95, 137),
+        (248, 113, 122),
+        (63, 207, 142),
+        (224, 175, 104),
+        (91, 142, 247),
+        (187, 154, 247),
+        (122, 162, 247),
+        (255, 255, 255),
+    ],
+)
 
 
 def capture_pane(socket: str, target: str | None) -> tuple[str, int, int]:
@@ -36,7 +65,7 @@ def capture_pane(socket: str, target: str | None) -> tuple[str, int, int]:
 def ansi_to_png(ansi: str, width: int, out_path: Path, zoom: float) -> None:
     console = Console(record=True, width=width, file=open("/dev/null", "w"))
     console.print(Text.from_ansi(ansi), overflow="ignore", crop=False)
-    svg = console.export_svg(title="")
+    svg = console.export_svg(title="", theme=PMTUI_TERMINAL_THEME)
     with tempfile.NamedTemporaryFile(suffix=".svg", mode="w", delete=False) as f:
         f.write(svg)
         svg_path = f.name

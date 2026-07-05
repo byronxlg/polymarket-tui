@@ -17,8 +17,13 @@ from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import BookLevel, OrderBook
+from polymarket_tui.ui.theme import AMBER, DOWN, UP
 
 DEPTH = 10
+# Solid block bars at full red/green glare; the fill stays muted while the
+# price/size text keeps the strong side color.
+ASK_BAR = "rgb(125,52,47)"
+BID_BAR = "rgb(42,104,64)"
 MIN_BAR_WIDTH = 12
 MAX_BAR_WIDTH = 60
 FIXED_COLS = 24  # " price(7) shares(10)" + spacing + own-order marker
@@ -118,7 +123,13 @@ class BookPanel(Static):
         return max(MIN_BAR_WIDTH, min(MAX_BAR_WIDTH, width - FIXED_COLS))
 
     def _level_line(
-        self, level: BookLevel, max_size: float, style: str, bar_w: int, selected: bool
+        self,
+        level: BookLevel,
+        max_size: float,
+        style: str,
+        bar_style: str,
+        bar_w: int,
+        selected: bool,
     ) -> Text:
         # log scale so one whale level doesn't flatten every other bar to nothing
         filled = 0
@@ -126,16 +137,18 @@ class BookPanel(Static):
             ratio = math.log10(1 + level.size) / math.log10(1 + max_size)
             filled = max(1, int(round(bar_w * ratio)))
         # Selected row: explicit highlight background reads reliably in Textual
-        # (Rich `reverse` on a Static does not composite to a visible swap).
+        # (Rich `reverse` on a Static does not composite to a visible swap). The
+        # bar keeps its muted fill; the price keeps the strong side color.
         hi = " on rgb(38,64,102)" if selected else ""
-        bar_style = f"bold {style}{hi}" if selected else style
+        bar = f"bold {bar_style}{hi}" if selected else bar_style
+        text = f"bold {style}{hi}" if selected else style
         line = Text()
         line.append(" " * (bar_w - filled), style=hi.strip() or None)
-        line.append("█" * filled, style=bar_style)
-        line.append(f" {fmt.cents(level.price):>7}", style=bar_style)
+        line.append("█" * filled, style=bar)
+        line.append(f" {fmt.cents(level.price):>7}", style=text)
         line.append(f" {fmt.compact_size(level.size):>10}", style=hi.strip() or None)
         if any(abs(level.price - p) < 1e-9 for p in self._own_prices):
-            line.append(" *", style="bold yellow")
+            line.append(" *", style=f"bold {AMBER}")
         line.append("\n")
         return line
 
@@ -159,19 +172,23 @@ class BookPanel(Static):
 
         row = 0
         for level in reversed(asks):
-            out.append_text(self._level_line(level, max_size, "red", bar_w, row == cursor_idx))
+            out.append_text(
+                self._level_line(level, max_size, DOWN, ASK_BAR, bar_w, row == cursor_idx)
+            )
             row += 1
 
         if book.midpoint is not None:
             out.append(
                 f"---- mid {fmt.cents(book.midpoint)}  spread {fmt.cents(book.spread)} ----\n",
-                style="bold yellow",
+                style=f"bold {AMBER}",
             )
         elif not asks and not bids:
             out.append("empty book\n", style="dim")
 
         for level in bids:
-            out.append_text(self._level_line(level, max_size, "green", bar_w, row == cursor_idx))
+            out.append_text(
+                self._level_line(level, max_size, UP, BID_BAR, bar_w, row == cursor_idx)
+            )
             row += 1
 
         self.update(out)

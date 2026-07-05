@@ -19,6 +19,7 @@ from textual.widgets import Static, TabbedContent, TabPane
 from polymarket_tui.core import fmt
 from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
 from polymarket_tui.models.portfolio import OpenOrder, Position
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
@@ -268,8 +269,8 @@ class PortfolioPane(TierAware, Vertical):
         if not pos.redeemable:
             return ""
         if pos.cur_price >= 0.5:
-            return Text("won - redeem on web", style="yellow")
-        return Text("resolved - lost", style="dim red")
+            return Text("won - redeem on web", style=AMBER)
+        return Text("resolved - lost", style=f"dim {DOWN}")
 
     @work(exclusive=True, group="orders")
     async def load_orders(self) -> None:
@@ -286,7 +287,7 @@ class PortfolioPane(TierAware, Vertical):
                     Text(
                         f"COULD NOT CHECK - open orders unavailable ({exc}). Retry with r; "
                         f"do not re-place {self.app.reconcile_target.summary} until confirmed.",
-                        style="bold yellow",
+                        style=f"bold {AMBER}",
                     )
                 )
             return
@@ -306,8 +307,8 @@ class PortfolioPane(TierAware, Vertical):
                 titles.get(order.market, order.market[:20] + "…"), widths["market"]
             )
             cells = {
-                "market": Text("► " + title, style="bold cyan") if match else title,
-                "side": Text(order.side, style="green" if order.side == "BUY" else "red"),
+                "market": Text("► " + title, style=f"bold {BLUE}") if match else title,
+                "side": Text(order.side, style=UP if order.side == "BUY" else DOWN),
                 "outcome": order.outcome or "-",
                 "price": fmt.cents(order.price),
                 "size": f"{order.original_size:,.0f}",
@@ -366,7 +367,7 @@ class PortfolioPane(TierAware, Vertical):
                 Text(
                     f"LANDED - order is resting ({resting:,.0f} shares). {target.summary}. "
                     "Do NOT re-place; cancel with x if unintended.",
-                    style="bold green",
+                    style=f"bold {UP}",
                 )
             )
         else:
@@ -374,7 +375,7 @@ class PortfolioPane(TierAware, Vertical):
                 Text(
                     f"NOT FOUND - no resting order matches {target.summary}. The post did not "
                     "land; it is safe to re-place. (A very recent fill can also explain this.)",
-                    style="bold yellow",
+                    style=f"bold {AMBER}",
                 )
             )
 
@@ -492,7 +493,7 @@ class PortfolioPane(TierAware, Vertical):
         self._cancel_armed_at = time.monotonic() + 0.35
         strip = self.query_one("#cancel-strip", Static)
         text = Text()
-        text.append(" CANCEL ", style="bold reverse red")
+        text.append(" CANCEL ", style=f"bold reverse {DOWN}")
         text.append(
             f" {order.side} {order.remaining:,.0f} {order.outcome} @ {fmt.cents(order.price)}   "
         )

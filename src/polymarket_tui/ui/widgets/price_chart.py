@@ -13,18 +13,21 @@ from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import PricePoint
+from polymarket_tui.ui.theme import DOWN, UP
 from polymarket_tui.ui.widgets.linechart import render_chart
 
 MAX_SERIES = 6
 
 # One palette, used for both the chart lines and the Rich legend swatches.
+# Softened to sit on the navy theme (ui/theme.py): accent blue first, then
+# amber/green/red matching AMBER/UP/DOWN.
 PALETTE: list[tuple[int, int, int]] = [
-    (0, 187, 255),  # sky blue
-    (255, 155, 66),  # orange
-    (46, 204, 113),  # green
-    (231, 76, 60),  # red
-    (187, 134, 252),  # purple
-    (241, 196, 15),  # yellow
+    (91, 142, 247),  # accent blue
+    (224, 175, 104),  # amber
+    (63, 207, 142),  # green
+    (248, 113, 122),  # red
+    (187, 154, 247),  # purple
+    (122, 207, 255),  # sky
 ]
 
 def _rich_color(rgb: tuple[int, int, int]) -> str:
@@ -44,7 +47,7 @@ def _change_text(delta: float) -> tuple[str, str]:
     """(text, style) for a price change in dollars."""
     if abs(delta) < 0.0005:
         return "+0.0c", "dim"
-    return fmt.cents(delta, signed=True), ("green" if delta > 0 else "red")
+    return fmt.cents(delta, signed=True), (UP if delta > 0 else DOWN)
 
 
 class PriceChartPanel(Vertical):

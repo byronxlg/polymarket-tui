@@ -12,12 +12,13 @@ from rich.text import Text
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import ActivityItem, Position
+from polymarket_tui.ui.theme import DOWN, UP
 from polymarket_tui.ui.tiers import Tier
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
 def pnl_text(cash: float, pct: float) -> Text:
-    style = "green" if cash > 0 else "red" if cash < 0 else "dim"
+    style = UP if cash > 0 else DOWN if cash < 0 else "dim"
     return Text(f"{cash:+,.2f} {pct:+.0f}%", style=style)
 
 
@@ -149,7 +150,7 @@ def activity_row(
     cells = {
         "when": item.when.astimezone().strftime("%b %d %H:%M"),
         "type": item.type,
-        "side": Text(item.side, style="green" if item.side == "BUY" else "red")
+        "side": Text(item.side, style=UP if item.side == "BUY" else DOWN)
         if item.side
         else "-",
         "market": fmt.trunc(item.title, widths["market"]),

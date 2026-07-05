@@ -30,6 +30,7 @@ from polymarket_tui.services.orders import (
     round_to_tick,
     tick_size,
 )
+from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
 TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
@@ -360,12 +361,12 @@ class OrderPanel(Vertical):
     @property
     def _outcome_style(self) -> str:
         # Yes/No carry the strong color; index 0 = Yes side of the pair.
-        return "bold green" if self._outcome_index == 0 else "bold red"
+        return f"bold {UP}" if self._outcome_index == 0 else f"bold {DOWN}"
 
     @property
     def _side_style(self) -> str:
         # Side is muted so the outcome color reads first.
-        return "dim green" if self._side is Side.BUY else "dim red"
+        return "dim green" if self._side is Side.BUY else f"dim {DOWN}"
 
     def _refresh_summary(self) -> None:
         summary = self.query_one("#op-summary", Static)
@@ -384,14 +385,14 @@ class OrderPanel(Vertical):
             )
             if self._side is Side.SELL and self._position_size:
                 hint.append(
-                    f"   held {self._position_size:,.0f} - size 50% sells half", style="yellow"
+                    f"   held {self._position_size:,.0f} - size 50% sells half", style=AMBER
                 )
             info.update(hint)
             return
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
         out.append(f"{draft.size:,.0f} ", style="bold")
         out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
-        out.append(f"@ {draft.price * 100:.1f}c ", style="bold cyan")
+        out.append(f"@ {draft.price * 100:.1f}c ", style="bold")
         out.append(f"({kind})", style="dim")
         summary.update(out)
 
@@ -400,7 +401,7 @@ class OrderPanel(Vertical):
             detail.append(f"cost {fmt.money(float(draft.notional))}")
             detail.append(
                 f" -> pays {fmt.money(float(draft.size))} if {draft.outcome_label.upper()}",
-                style="green",
+                style=UP,
             )
         else:
             detail.append(f"proceeds {fmt.money(float(draft.notional))}")
@@ -408,7 +409,7 @@ class OrderPanel(Vertical):
         if book and book.midpoint is not None:
             detail.append(f"   mid {fmt.cents(book.midpoint)}", style="dim")
         mode = self.app.settings.mode
-        detail.append(f"   [{mode.value}]", style="yellow" if mode is Mode.TRADER_DRY else "red")
+        detail.append(f"   [{mode.value}]", style=AMBER if mode is Mode.TRADER_DRY else DOWN)
         if mode is Mode.TRADER_DRY:
             detail.append("  L = go live", style="dim")
         info.update(detail)
@@ -428,13 +429,13 @@ class OrderPanel(Vertical):
         out = Text()
         out.append(
             " PLACE " if live else " DRY-RUN ",
-            style="bold reverse red" if live else "bold reverse yellow",
+            style=f"bold reverse {DOWN}" if live else f"bold reverse {AMBER}",
         )
         out.append(f" {draft.side.value} ", style=self._side_style)
         out.append(f"{draft.size:,.0f} ", style="bold")
         out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"@ {draft.price * 100:.1f}c ({kind})  ", style="bold cyan")
+        out.append(f"@ {draft.price * 100:.1f}c ({kind})  ", style="bold")
         out.append("y", style="bold reverse")
         out.append(" place  ")
         out.append("esc", style="bold reverse")
@@ -503,7 +504,7 @@ class OrderPanel(Vertical):
         issues_widget = self.query_one("#op-issues", Static)
         draft, error = self._current_draft()
         if draft is None:
-            issues_widget.update(Text(error, style="red"))
+            issues_widget.update(Text(error, style=DOWN))
             return
         signature = self._input_signature()
         app = self.app
@@ -532,9 +533,9 @@ class OrderPanel(Vertical):
         warns = [i for i in issues if i.level is IssueLevel.WARN]
         report = Text()
         for issue in blocks:
-            report.append(f"x {issue.message}\n", style="red")
+            report.append(f"x {issue.message}\n", style=DOWN)
         for issue in warns:
-            report.append(f"! {issue.message}\n", style="yellow")
+            report.append(f"! {issue.message}\n", style=AMBER)
         issues_widget.update(report)
         if blocks:
             self._set_confirming(None)
@@ -565,7 +566,7 @@ class OrderPanel(Vertical):
                 # The post may have landed; never auto-retry. Offer to reconcile.
                 target = ReconcileTarget.from_draft(draft)
                 body = Text()
-                body.append(result.error + "\n\n", style="yellow")
+                body.append(result.error + "\n\n", style=AMBER)
                 body.append(f"{draft.summary()}\n\n")
                 body.append(
                     "The order may have been placed. Check Open Orders before re-placing.",
