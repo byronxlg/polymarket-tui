@@ -1,4 +1,4 @@
-"""Inline order entry, shown below the live order book on the market screen.
+"""Inline order entry, at the top of the market page's right rail.
 
 Keyboard-first: b/s opens it preset to a side, price/size are the only two
 fields (empty price = market order at the touch), up/down bump the price by
@@ -145,8 +145,8 @@ class OrderPanel(Vertical):
     DEFAULT_CSS = """
     OrderPanel {
         height: auto;
-        border-top: solid $panel-lighten-2;
-        padding: 0 1;
+        border-bottom: solid $panel-lighten-2;
+        margin-bottom: 1;
         display: none;
     }
     OrderPanel.open {
@@ -181,6 +181,10 @@ class OrderPanel(Vertical):
     }
     OrderPanel.confirming #op-confirm {
         display: block;
+    }
+    OrderPanel.confirming #op-summary,
+    OrderPanel.confirming #op-info {
+        display: none;
     }
     OrderPanel.confirm-live #op-confirm {
         background: $error 15%;
@@ -409,10 +413,7 @@ class OrderPanel(Vertical):
             out.append(f"{outcomes[self._outcome_index]}  ", style=self._outcome_style)
             out.append(error, style="dim")
             summary.update(out)
-            hint = Text(
-                "enter: next/review  esc: close  up/down: step (shift x10)  b/s/space: side",
-                style="dim",
-            )
+            hint = Text("up/down step \u00b7 space side \u00b7 enter review", style="dim")
             if self._side is Side.SELL and self._position_size:
                 hint.append(
                     f"   held {self._position_size:,.0f} - size 50% sells half", style=AMBER
@@ -435,13 +436,10 @@ class OrderPanel(Vertical):
             )
         else:
             detail.append(f"proceeds {fmt.money(float(draft.notional))}")
-        book = self._screen_book()
-        if book and book.midpoint is not None:
-            detail.append(f"   mid {fmt.cents(book.midpoint)}", style="dim")
+        # The live book sits right next to the panel (mid is visible there)
+        # and going-live guidance lives in help - the cost line stays short.
         mode = self.app.settings.mode
         detail.append(f"   [{mode.value}]", style=AMBER if mode is Mode.TRADER_DRY else DOWN)
-        if mode is Mode.TRADER_DRY:
-            detail.append("  L = go live", style="dim")
         info.update(detail)
 
     def _set_confirming(self, draft: OrderDraft | None) -> None:
@@ -460,16 +458,20 @@ class OrderPanel(Vertical):
         # Same arming delay as ConfirmModal: an enter queued from the fields
         # (double-enter on size) must not place the order it just reviewed.
         self._confirm_armed_at = time.monotonic() + ConfirmModal.ARM_DELAY_S
+        # One element per line - the strip lives in the narrow right rail and
+        # must not wrap mid-token: chip, then the order, then the keys.
         out = Text()
         out.append(
             " PLACE " if live else " DRY-RUN ",
             style=f"bold reverse {DOWN}" if live else f"bold reverse {AMBER}",
         )
-        out.append(f" {draft.side.value} ", style=self._side_style)
+        out.append("\n")
+        out.append(f"{draft.side.value} ", style=self._side_style)
         out.append(f"{draft.size:,.0f} ", style="bold")
         out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"@ {draft.price * 100:.1f}c ({kind})   ", style="bold")
+        out.append(f"@ {draft.price * 100:.1f}c ({kind})", style="bold")
+        out.append("\n")
         out.append_text(action_hints(("enter", "place"), ("esc", "edit")))
         if confirm is not None:
             confirm.update(out)

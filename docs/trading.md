@@ -19,7 +19,8 @@ The only part of the app that moves money. Correctness and explicitness beat con
 
 ## Order form
 
-Inline panel below the live order book (b/s opens it; the book stays visible):
+Inline panel at the top of the right rail (b/s opens it; the live book
+stays fully visible beside it):
 
 - Two fields only: price (cents, focused first, tick-rounded mid prefill) and
   size (shares, or a percentage of the held position when selling).

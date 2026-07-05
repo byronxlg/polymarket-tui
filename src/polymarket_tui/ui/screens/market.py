@@ -153,8 +153,10 @@ class MarketPane(TierAware, Vertical):
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
                     scroll.can_focus = False
                     yield scroll
-                    yield OrderPanel(id="order-panel")
             with Vertical(id="trades-rail"):
+                # Order entry lives at the top right (Byron, 2026-07-06); the
+                # book stays fully visible on the left while ordering.
+                yield OrderPanel(id="order-panel")
                 yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
                 yield TradesTable(compact=True, id="trades-table")
             with Vertical(id="rules-rail"):

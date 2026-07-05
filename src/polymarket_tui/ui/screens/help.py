@@ -78,7 +78,7 @@ share, shift+up/down by ten. Selling: enter a percentage ('50%') to sell
 that fraction of your position - the held amount is shown in the panel.
 tab hops fields, enter reviews, a second enter places (the strip arms
 after a beat, so a held-down enter cannot), esc steps back. ctrl+g cycles
-TIF (GTC/FOK/FAK). The book stays live above the form.
+TIF (GTC/FOK/FAK). The form sits top right; the book stays live beside it.
 
 The app never blocks an order the exchange would accept. Hard stops exist
 only for orders that cannot succeed (closed market, bad tick, below minimum

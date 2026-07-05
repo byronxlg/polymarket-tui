@@ -145,3 +145,16 @@ Re-run: C3 and E5 pass with the new keys (E5's edit_back rescripted to
 esc). E4 could not be re-driven - the account held no resting orders at
 run time - but the cancel path shares the arming/strip code verified via
 C3 and a widget-level render.
+
+### Iteration 5 (2026-07-06) - order entry moved top right; leaner order flow
+
+The order panel moved from under the book into the top of the trades rail
+(Byron: "move the buy screen to top right") - the full-height book stays
+visible while ordering. Read-before-enter cut down: the armed state hides
+the summary/info lines it used to repeat and shows chip / order / keys on
+three short lines; the edit-state hint shrank to "up/down step - space
+side - enter review" (esc/tab live in the footer); the cost line drops the
+mid (the book is adjacent) and the "L = go live" aside. Warnings stay
+visible while armed.
+
+Re-run C3, C7, E5: all pass with the panel top right; C3/E5 place DRY.
