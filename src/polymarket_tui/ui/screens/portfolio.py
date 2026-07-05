@@ -19,6 +19,7 @@ from textual.widgets import Static, TabbedContent, TabPane
 from polymarket_tui.core import fmt
 from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
 from polymarket_tui.models.portfolio import OpenOrder, Position
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
@@ -214,6 +215,8 @@ class PortfolioPane(TierAware, Vertical):
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
+        if not alive(self):
+            return  # call_after_refresh can fire after the pane is torn down
         width = self.size.width - 2  # border + slack
         if width <= 0:
             return
@@ -270,6 +273,8 @@ class PortfolioPane(TierAware, Vertical):
                     parts.insert(0, f"total {fmt.money(balance + value)}")
         except Exception as exc:
             parts.append(f"balance error: {exc}")
+        if not alive(self):
+            return  # pane torn down while we fetched
         self.query_one("#balance-line", Static).update("  |  ".join(parts))
 
     @work(exclusive=True, group="positions")
@@ -279,6 +284,8 @@ class PortfolioPane(TierAware, Vertical):
         except Exception as exc:
             self.notify(f"positions unavailable: {exc}", severity="error")
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         self._positions = positions
         self._render_positions()
 
@@ -311,6 +318,8 @@ class PortfolioPane(TierAware, Vertical):
         try:
             self._orders = await self.app.portfolio.open_orders(force=True)
         except Exception as exc:
+            if not alive(self):
+                return  # pane torn down while we fetched
             self.notify(f"open orders unavailable: {exc}", severity="warning")
             # On the reconciliation path the user is waiting on a verdict; a stuck
             # "Checking..." banner is worse than an honest "could not check".
@@ -326,6 +335,8 @@ class PortfolioPane(TierAware, Vertical):
                 )
             return
         self._order_titles_cache = await self._order_titles(self._orders)
+        if not alive(self):
+            return  # pane torn down while we fetched
         self._render_orders()
         self._update_reconcile_banner()
 
@@ -420,6 +431,8 @@ class PortfolioPane(TierAware, Vertical):
         except Exception as exc:
             self.notify(f"history unavailable: {exc}", severity="warning")
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         self._history_items = items
         self._render_history()
 

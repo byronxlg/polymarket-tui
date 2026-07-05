@@ -12,6 +12,7 @@ from textual.containers import Vertical
 from textual.widgets import Static
 
 from polymarket_tui.models.market import PricePoint
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import DOWN, UP
 from polymarket_tui.ui.widgets.linechart import render_chart
 
@@ -55,6 +56,8 @@ class PnlStrip(Vertical):
             points = await self.app.data.user_pnl(address)
         except Exception:
             points = []
+        if not alive(self):
+            return  # host pane torn down while we fetched
         self.show_points(points)
 
     def show_points(self, points: list[PricePoint]) -> None:

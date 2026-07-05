@@ -13,6 +13,7 @@ from textual import work
 from textual.widgets import Static
 
 from polymarket_tui.core import fmt
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.widgets.tables import pnl_text
 
 TOP_POSITIONS = 8
@@ -47,6 +48,8 @@ class TraderOverview(Static):
             positions = await self.app.data.positions(address, limit=50)
         except Exception:
             value, positions = None, None
+        if not alive(self):
+            return  # host pane torn down while we fetched
         if address != self._address:
             return  # the cursor moved on while we fetched
         if positions is None:

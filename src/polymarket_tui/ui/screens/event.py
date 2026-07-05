@@ -18,6 +18,7 @@ from textual.widgets import DataTable, Static, Tab, Tabs
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
@@ -161,6 +162,8 @@ class EventPane(TierAware, Vertical):
             await self.app.portfolio.open_orders()
         except Exception:
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         if self._ordered_condition_ids:
             table = self.query_one(DataTable)
             cursor = table.cursor_row
@@ -202,6 +205,8 @@ class EventPane(TierAware, Vertical):
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
+        if not alive(self):
+            return  # call_after_refresh can fire after the pane is torn down
         table = self.query_one(DataTable)
         width = table.size.width
         if width <= 0 or not table.columns:
@@ -273,6 +278,8 @@ class EventPane(TierAware, Vertical):
             *(self.app.clob.prices_history(m.token_id(0), self._interval) for m in markets),
             return_exceptions=True,
         )
+        if not alive(self):
+            return  # pane torn down while we fetched
         series = [
             (m.display_title, pts)
             for m, pts in zip(markets, results, strict=True)
@@ -287,7 +294,7 @@ class EventPane(TierAware, Vertical):
         except Exception as exc:
             self.notify(f"Refresh failed: {exc}", severity="error")
             return
-        if fresh is not None:
+        if fresh is not None and self.is_mounted:
             self._event = fresh
             self._fill_table()
             self.query_one(ActivityPanel).configure(None, fresh)

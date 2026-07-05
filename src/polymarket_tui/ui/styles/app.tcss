@@ -226,12 +226,11 @@ PriceChartPanel {
     border-left: thick $error;
 }
 
-/* Portfolio: tables size to their rows (scroll past the cap); the
-   profit chart absorbs whatever height is left instead of a fixed strip
-   floating under a void. */
+/* Portfolio: the profit chart is a fixed strip like every other chart
+   in the app - it must not resize when the table data loads. The tables
+   own the space above it (rows scroll inside when they outgrow it). */
 #portfolio-tabs {
-    height: auto;
-    max-height: 60%;
+    height: 1fr;
 }
 
 #portfolio-tabs ContentSwitcher {
@@ -245,14 +244,13 @@ PriceChartPanel {
 }
 
 #pnl-pane {
-    height: 1fr;
-    min-height: 8;
+    height: 30%;
+    min-height: 10;
 }
 
-/* Trader profile: tabs hug their rows, profit history takes the rest */
+/* Trader profile: same shape - fixed profit strip, tables take the rest */
 #user-tabs {
-    height: auto;
-    max-height: 60%;
+    height: 1fr;
 }
 
 #user-tabs ContentSwitcher {
@@ -266,8 +264,8 @@ PriceChartPanel {
 }
 
 #user-pnl {
-    height: 1fr;
-    min-height: 8;
+    height: 30%;
+    min-height: 10;
 }
 
 /* Search */
@@ -359,6 +357,11 @@ PriceChartPanel {
 }
 
 .nav-pane.tier-medium #market-chart-strip {
+    height: 25%;
+}
+
+.nav-pane.tier-medium #pnl-pane,
+.nav-pane.tier-medium #user-pnl {
     height: 25%;
 }
 

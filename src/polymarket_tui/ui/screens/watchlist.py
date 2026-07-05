@@ -17,6 +17,7 @@ from textual.containers import Vertical
 from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.tiers import Tier, TierAware, effective_tier
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -124,6 +125,8 @@ class WatchlistPane(TierAware, Vertical):
         self.call_after_refresh(self._refit_users)
 
     def _refit_users(self) -> None:
+        if not alive(self):
+            return  # call_after_refresh can fire after the pane is torn down
         width = self.size.width - 2
         if width <= 0:
             return
@@ -162,6 +165,8 @@ class WatchlistPane(TierAware, Vertical):
         results = await asyncio.gather(
             *(self.app.gamma.event_by_slug(s) for s in slugs), return_exceptions=True
         )
+        if not alive(self):
+            return  # pane torn down while we fetched
         events = [e for e in results if e is not None and not isinstance(e, BaseException)]
         failed = len(slugs) - len(events)
         self.table.set_events(events, set(slugs))
@@ -187,6 +192,8 @@ class WatchlistPane(TierAware, Vertical):
             *(self.app.data.portfolio_value(u["address"]) for u in watched),
             return_exceptions=True,
         )
+        if not alive(self):
+            return  # pane torn down while we fetched
         for user, value in zip(watched, values, strict=True):
             shown = "-" if isinstance(value, BaseException) or value is None else fmt.money(value)
             self._users_rows.append((user.get("name") or user["address"], user["address"], shown))

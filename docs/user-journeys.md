@@ -174,3 +174,23 @@ ConfirmModal titles are plain bold in the tone color.
 
 Re-run C3: passes; DRY places with enter. LIVE and cancel callouts
 verified widget-level (no resting orders / never go live in automation).
+
+### Iteration 7 (2026-07-06) - fixed-height P&L charts; teardown crash fixed
+
+The portfolio profit chart was height 1fr (absorb-the-rest), so it
+rendered huge over empty tables and shrank when rows loaded (Byron). Both
+P&L strips (portfolio, trader profile) are now fixed strips like the
+market chart: height 30% / min 10 (25% at the medium tier); the tables
+own the space above and scroll internally. Verified: the chart title row
+is identical while loading, after load, and across tabs.
+
+Stress-testing the fix exposed a crash family: swapping the drill root
+(H/p/w) or tearing down drill panes while loaders were mid-fetch let
+worker tails and call_after_refresh callbacks touch dismantled panes -
+NoMatches panics on Home, Portfolio (twice) and Event panes. Removal is
+async, so is_mounted alone leaves a window where the pane is mounted but
+its children are pruned. Fix: NavHost._discard stamps the pane and all
+descendants _nav_discarded synchronously and cancels their workers before
+removing; every loader tail and _refit checks ui.liveness.alive(). 27
+rounds of rapid root-swap + drill churn now run crash-free (previously
+crashed within 5).

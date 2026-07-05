@@ -17,6 +17,7 @@ from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.gamma import SORT_ORDERS
 from polymarket_tui.state import cache
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER
 from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
@@ -158,8 +159,9 @@ class HomePane(TierAware, Vertical):
                 tag_slug=self._tag_slug,
             )
         except Exception as exc:
-            self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
-            self.query_one("#status-line", Static).update(self._status_line())
+            if alive(self):
+                self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
+                self.query_one("#status-line", Static).update(self._status_line())
             self._loading = False
             return
         now = datetime.now(UTC)
@@ -171,6 +173,8 @@ class HomePane(TierAware, Vertical):
             if e.top_market is not None and (e.end_date is None or e.end_date > now)
         ]
         ordered = await self._ordered_slugs(events)
+        if not alive(self):
+            return  # the pane was torn down (root swap) while we fetched
         self.table.set_events(events, set(app.watchlist.slugs), clear=not append, ordered=ordered)
         if not append:
             browser = self.query_one(EventsBrowser)
