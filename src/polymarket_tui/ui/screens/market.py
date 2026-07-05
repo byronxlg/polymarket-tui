@@ -66,6 +66,20 @@ OUTCOMES_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
 }
 
 
+class OutcomesTable(VimDataTable):
+    """The market's outcome selector.
+
+    right no longer opens an order - space does that now (consistent with the
+    book, where space also starts an order). Like down past the last row, right
+    flows into the order book below.
+    """
+
+    BINDINGS = [Binding("right", "into_book", "book", show=False)]
+
+    def action_into_book(self) -> None:
+        self.post_message(self.BottomReached(self))
+
+
 class MarketPane(TierAware, Vertical):
     """Market detail body - hosted as a drill pane by NavHost.
 
@@ -78,7 +92,7 @@ class MarketPane(TierAware, Vertical):
 
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
-        Binding("space", "toggle_outcome", "yes/no"),
+        Binding("space", "order('BUY')", "buy"),
         Binding("y", "key_yes", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
         Binding("enter", "order('BUY')", "buy", priority=False),
@@ -129,7 +143,7 @@ class MarketPane(TierAware, Vertical):
             # Book in the hero column (actionable prices first), trades in the
             # rail (live context) - swapped 2026-07-05 on Byron's request.
             with Vertical(id="market-left"):
-                yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
+                yield OutcomesTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
                 yield Static(id="orders-note")
                 yield Static(id="market-cancel-strip")
@@ -570,9 +584,6 @@ class MarketPane(TierAware, Vertical):
 
     def action_select_outcome(self, index: int) -> None:
         self.query_one("#outcomes-table", VimDataTable).move_cursor(row=index)
-
-    def action_toggle_outcome(self) -> None:
-        self.action_select_outcome(1 - self._outcome_index)
 
     def action_set_interval_key(self, key: str) -> None:
         self._interval = key

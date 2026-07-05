@@ -27,9 +27,10 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 | space | the contextual toggle (see below) |
 
 space by screen: star an event or follow a trader (home, search,
-watchlist, related), flip the YES/NO book (market), toggle BUY/SELL
-(order panel), show/hide rules (event; on market it's i), follow/unfollow
-(trader profile).
+watchlist, related), open the buy form on a market outcome or order from
+the book level (market), toggle BUY/SELL (order panel), show/hide rules
+(event; on market it's i), follow/unfollow (trader profile). Pick the
+outcome with the arrows or y/n; right on an outcome flows into the book.
 
 left always steps out one level: order panel -> market -> previous screen;
 expanded trades collapse before the screen closes.
@@ -66,8 +67,8 @@ jumps straight into the market with the panel open |
 
 ## Order entry
 
-right/enter on an outcome row opens the buy form; left (at the start of a
-field) or escape closes it. b/s/space switch the side at any time, even
+space or enter on an outcome row opens the buy form; left (at the start of
+a field) or escape closes it. b/s/space switch the side at any time, even
 while typing in the fields.
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave

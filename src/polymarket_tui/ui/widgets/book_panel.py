@@ -30,8 +30,11 @@ ASK_BAR = "rgb(125,52,47)"
 BID_BAR = "rgb(42,104,64)"
 MIN_BAR_WIDTH = 12
 MAX_BAR_WIDTH = 60
-CURSOR_GUTTER = 2  # "> " marker column at the left of every row
-FIXED_COLS = 26  # gutter + " price(7) shares(10)" + spacing + own-order marker
+FIXED_COLS = 24  # " price(7) shares(10)" + spacing + own-order marker
+# The cursor row uses the same highlight as every DataTable in the app
+# (app.tcss: .datatable--cursor = $primary 25%): BLUE #5b8ef7 at 25% over the
+# navy surface #0d1320 resolves to this flat tint.
+CURSOR_BG = "#213256"
 
 
 class BookPanel(Static):
@@ -165,14 +168,19 @@ class BookPanel(Static):
             ratio = math.log10(1 + level.size) / math.log10(1 + max_size)
             filled = max(1, int(round(bar_w * ratio)))
         line = Text()
-        line.append("▸ " if cursor else "  ", style=f"bold {AMBER}")
         line.append(" " * (bar_w - filled))
         line.append("█" * filled, style=bar_style)
-        price_style = f"bold {style}" if cursor else style
-        line.append(f" {fmt.cents(level.price):>7}", style=price_style)
-        line.append(f" {fmt.compact_size(level.size):>10}", style="bold" if cursor else "")
+        line.append(f" {fmt.cents(level.price):>7}", style=style)
+        line.append(f" {fmt.compact_size(level.size):>10}")
         if self._orders_at(level.price):
             line.append(" *", style=f"bold {AMBER}")
+        if cursor:
+            # Same treatment as the DataTable row cursor: a full-width tint,
+            # text keeps its side color. Pad so the highlight spans the row.
+            pad = self.size.width - line.cell_len
+            if pad > 0:
+                line.append(" " * pad)
+            line.stylize(f"on {CURSOR_BG}")
         line.append("\n")
         return line
 
@@ -197,7 +205,7 @@ class BookPanel(Static):
         focused = self.has_focus
 
         out = Text()
-        out.append(f"  {'':>{bar_w}} {'price':>7} {'shares':>10}\n", style="bold dim")
+        out.append(f"{'':>{bar_w}} {'price':>7} {'shares':>10}\n", style="bold dim")
 
         row = 0
         for level in reversed(asks):
@@ -207,11 +215,11 @@ class BookPanel(Static):
 
         if book.midpoint is not None:
             out.append(
-                f"  ---- mid {fmt.cents(book.midpoint)}  spread {fmt.cents(book.spread)} ----\n",
+                f"---- mid {fmt.cents(book.midpoint)}  spread {fmt.cents(book.spread)} ----\n",
                 style=f"bold {AMBER}",
             )
         elif not asks and not bids:
-            out.append("  empty book\n", style="dim")
+            out.append("empty book\n", style="dim")
 
         for level in bids:
             cursor = focused and row == self._cursor
