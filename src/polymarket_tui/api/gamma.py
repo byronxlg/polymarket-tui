@@ -121,10 +121,18 @@ class GammaClient:
                 "search_profiles": "true",
             },
         )
-        events = [Event.model_validate(e) for e in (data.get("events") or [])]
+        # The payload can contain null entries (seen live on profile search,
+        # 2026-07-05); skip non-dicts instead of failing the whole search.
+        events = [
+            Event.model_validate(e) for e in (data.get("events") or []) if isinstance(e, dict)
+        ]
         profiles = [
             p
-            for p in (Profile.model_validate(pr) for pr in (data.get("profiles") or []))
+            for p in (
+                Profile.model_validate(pr)
+                for pr in (data.get("profiles") or [])
+                if isinstance(pr, dict)
+            )
             if p.proxy_wallet
         ]
         return events, profiles

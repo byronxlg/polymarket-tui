@@ -151,10 +151,14 @@ def render_chart(
     out.append(" " * 6, style="dim")
     n_labels = max(2, min(6, plot_w // 24))
     axis = [" "] * plot_w
+    last_label = ""
     for i in range(n_labels):
         col = round(i * (plot_w - 1) / (n_labels - 1))
         t = lo_t + (hi_t - lo_t) * col / max(1, plot_w - 1)
         label = datetime.fromtimestamp(t).astimezone().strftime(time_format)
+        if label == last_label:
+            continue  # short ranges repeat the same day - once is enough
+        last_label = label
         start = min(max(0, col - len(label) // 2), plot_w - len(label))
         for j, ch in enumerate(label):
             axis[start + j] = ch

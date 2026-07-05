@@ -126,6 +126,7 @@ class MarketPane(TierAware, Vertical):
         self._trades_expanded = False
         self._rules_visible = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
+        self._my_positions: list = []  # your holdings here (load_position)
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
         self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
         self.drill_key = ("market", market.slug)
@@ -196,7 +197,8 @@ class MarketPane(TierAware, Vertical):
         m = self._market
         bits = [m.question.strip()]
         if m.end_date:
-            bits.append(f"ends {fmt.end_date(m.end_date)}")
+            when = fmt.end_date(m.end_date)
+            bits.append(when if when == "ended" else f"ends {when}")
         if self._event and self._event.title.strip() != m.question.strip():
             bits.append(self._event.title.strip())  # one-line Static crops at the edge
         return "  |  ".join(bits)
@@ -350,8 +352,10 @@ class MarketPane(TierAware, Vertical):
         book.focus()
 
     def _book_header(self) -> Text:
-        """Book title with a live-feed badge: LIVE when the socket is healthy,
+        """Book title with a feed badge: streaming when the socket is healthy,
         else a stale/polling note so the user knows the book is REST-refreshed.
+        The word LIVE is reserved for the execution mode - a green LIVE next
+        to the book read as real-money trading (journey review, 2026-07-05).
         Returned as Text (not markup) so the badge can't be parsed as a tag."""
         head = Text(
             f"ORDER BOOK - {self._outcome_label().upper()}"
@@ -359,7 +363,7 @@ class MarketPane(TierAware, Vertical):
         )
         if self._channel is not None:
             badge = {
-                "live": ("  LIVE", f"bold {UP}"),
+                "live": ("  streaming", UP),
                 "stale": ("  STALE (polling)", AMBER),
                 "down": ("  polling", "dim"),
             }.get(self._channel.status())
@@ -474,6 +478,7 @@ class MarketPane(TierAware, Vertical):
             return
         tokens = set(self._market.clob_token_ids)
         mine = [p for p in positions if p.asset in tokens and p.size >= 0.01]
+        self._my_positions = mine
         if not mine:
             line.update(Text(" no position in this market", style="dim"))
             return
@@ -837,8 +842,31 @@ class MarketPane(TierAware, Vertical):
         panel = self.query_one(OrderPanel)
         if panel.is_open:
             panel.set_side(Side(side))
-        else:
-            panel.open(self._market, Side(side), self._outcome_index, self._book)
+            return
+        if Side(side) is Side.SELL:
+            # Selling means selling shares you hold: if the cursor sits on an
+            # outcome you don't own but you do own the other one, retarget
+            # there first (the book reload then reopens the panel pending).
+            owned = self._owned_outcome_index()
+            if owned is not None and owned != self._outcome_index:
+                outcomes = self._market.outcomes or ["Yes", "No"]
+                self._pending_order_side = side
+                self.action_select_outcome(owned)
+                self.notify(f"Selling your {outcomes[owned]} position", timeout=3)
+                return
+        panel.open(self._market, Side(side), self._outcome_index, self._book)
+
+    def _owned_outcome_index(self) -> int | None:
+        """Index of the outcome you hold (largest position wins a rare tie)."""
+        tokens = list(self._market.clob_token_ids)
+        held = [
+            (p.size, tokens.index(p.asset))
+            for p in self._my_positions
+            if p.asset in tokens
+        ]
+        if not held:
+            return None
+        return max(held)[1]
 
     def action_toggle_watch(self) -> None:
         slug = self._event.slug if self._event else self._market.slug

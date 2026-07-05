@@ -81,6 +81,13 @@ class PolymarketApp(App):
     def get_default_screen(self) -> NavHost:
         return NavHost()
 
+    def notify(self, message: str, **kwargs) -> None:
+        """Toasts render literally by default: API/validation errors carry
+        [bracketed] text that Textual would parse as markup and crash the
+        whole app on (trader search, 2026-07-05)."""
+        kwargs.setdefault("markup", False)
+        super().notify(message, **kwargs)
+
     def on_mount(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
         self.set_interval(900, self._schedule_ntp_refresh)

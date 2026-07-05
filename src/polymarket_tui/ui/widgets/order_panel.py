@@ -193,9 +193,18 @@ class OrderPanel(Vertical):
             yield Label("price")
             # Disabled while closed: hidden-but-focusable inputs would steal
             # the screen's autofocus and swallow the b/s keys.
-            yield PriceInput(placeholder="cents (empty = market)", id="op-price", disabled=True)
+            # restrict: stray letters (a queued y/n, a fat-fingered key) must
+            # not land in the numeric fields as text.
+            yield PriceInput(
+                placeholder="cents (empty = market)",
+                id="op-price",
+                disabled=True,
+                restrict=r"[0-9.]*",
+            )
             yield Label("size")
-            yield SizeInput(placeholder="qty or %", id="op-size", disabled=True)
+            yield SizeInput(
+                placeholder="qty or %", id="op-size", disabled=True, restrict=r"[0-9.]*%?"
+            )
         yield Static(id="op-info")
         yield Static(id="op-issues")
         yield Static(id="op-confirm")
@@ -233,9 +242,10 @@ class OrderPanel(Vertical):
         if preset_size is not None:
             size_input.value = _fmt_size(preset_size)
         self.query_one("#op-issues", Static).update("")
-        # A book-level order lands on size (price is set) so one enter reviews;
-        # otherwise price first: confirm what you pay before how much.
-        (size_input if preset_price is not None else price_input).focus()
+        # Focus follows the open question: whenever a price is already filled
+        # in (book level, midpoint default), the panel is asking "size?" - so
+        # typed digits must land in size, not silently replace the price.
+        (size_input if price_input.value else price_input).focus()
         self._load_position_size()
         self._refresh_summary()
 

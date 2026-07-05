@@ -78,7 +78,10 @@ class PositionsTable(VimDataTable):
     """Positions table: the open-on-web binding lives here so the footer only
     advertises it while this table is focused (won positions redeem on the web)."""
 
-    BINDINGS = [Binding("o", "open_on_web", "open on web")]
+    BINDINGS = [
+        Binding("enter", "select_cursor", "open market"),
+        Binding("o", "open_on_web", "open on web"),
+    ]
 
     def action_open_on_web(self) -> None:
         pane = _pane_of(self)

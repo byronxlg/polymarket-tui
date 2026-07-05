@@ -57,6 +57,7 @@ class HomePane(TierAware, Vertical):
         Binding("shift+tab", "prev_tag", "prev category", show=False),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
+        Binding("w", "app.watchlist", "watched"),
         Binding("r", "refresh", "refresh", show=False),
         Binding("enter", "open_event", "open", priority=False),
         Binding("down", "leave_tag_bar", "back to list", show=False),
@@ -226,7 +227,11 @@ class HomePane(TierAware, Vertical):
             return
         watched = self.app.watchlist.toggle(event.slug)
         self.table.set_star(event.slug, watched)
-        self.notify(("Watching " if watched else "Unwatched ") + event.title[:40], timeout=2)
+        if watched:
+            # Say where starred things live - w is invisible otherwise.
+            self.notify(f"Watching {event.title[:40]} - w opens your watchlist", timeout=3)
+        else:
+            self.notify("Unwatched " + event.title[:40], timeout=2)
 
     def action_refresh(self) -> None:
         self.load_events()
