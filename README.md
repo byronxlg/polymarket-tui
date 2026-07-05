@@ -37,6 +37,25 @@ Then run `polymarket-tui`.
 No credentials needed to browse: markets, books, charts, trades, comments,
 and any trader's public positions all work read-only.
 
+## Run it in the browser
+
+The whole TUI can be served over the web behind a landing page - useful for
+demos or trying it without a local install:
+
+```sh
+uv run polymarket-tui-web          # serves http://localhost:8000
+```
+
+- `/` is a landing page (features, keys, install commands).
+- `/app` streams the live TUI into the browser via
+  [textual-serve](https://github.com/Textualize/textual-serve) (xterm.js over
+  a websocket). Each browser tab spawns its own isolated app subprocess.
+
+Every browser session starts in DRY mode, exactly like the terminal app.
+Environment overrides: `PMTUI_WEB_HOST`, `PMTUI_WEB_PORT`,
+`PMTUI_WEB_PUBLIC_URL` (set the last one when serving behind a reverse proxy
+so the websocket URL is correct).
+
 ## Account setup
 
 Press `A` in the app:
