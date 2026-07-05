@@ -23,6 +23,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
+from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
@@ -129,6 +130,11 @@ class MarketPane(TierAware, Vertical):
         self._my_positions: list = []  # your holdings here (load_position)
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
         self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
+        # Throttled cursor-follows: the ws-cached book renders instantly on an
+        # outcome flip, but the REST refresh / history / own-orders fetches
+        # and the trader overview only fire once the cursor settles.
+        self._outcome_follow = CursorFollow(self, self._load_outcome_data, 0.2)
+        self._trade_follow = CursorFollow(self, self._refresh_trade_overview, 0.2)
         self.drill_key = ("market", market.slug)
         # True while a tier rebuild is restoring the cursor; row-highlight
         # events are ignored until the cursor lands on _outcome_index so the
@@ -301,7 +307,7 @@ class MarketPane(TierAware, Vertical):
     def on_data_table_row_highlighted(self, event) -> None:
         if event.data_table.id == "trades-table":
             if self._trades_expanded:
-                self._refresh_trade_overview()
+                self._trade_follow()  # show_trader fetches - never per key-repeat row
             return
         if event.data_table.id != "outcomes-table" or event.cursor_row is None:
             return
@@ -336,6 +342,10 @@ class MarketPane(TierAware, Vertical):
             self.query_one(BookPanel).update_book(live)
         else:
             self.query_one(BookPanel).update("loading book...")
+        self._outcome_follow()
+
+    def _load_outcome_data(self) -> None:
+        """The fetch tail of an outcome flip - throttled behind _outcome_follow."""
         self.load_book()
         self.load_history()
         self.load_own_orders()

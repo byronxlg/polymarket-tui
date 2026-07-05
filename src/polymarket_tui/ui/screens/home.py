@@ -70,6 +70,7 @@ class HomePane(TierAware, Vertical):
         self._sort_index = 0
         self._offset = 0
         self._loading = False
+        self._load_gen = 0
         self._exhausted = False  # Gamma returned a short page: no more to fetch
 
     def compose(self) -> ComposeResult:
@@ -146,46 +147,55 @@ class HomePane(TierAware, Vertical):
     async def load_events(self, append: bool = False) -> None:
         app = self.app
         self._loading = True
-        if not append:
-            self._offset = 0
-            self._exhausted = False
-        order = SORT_ORDERS[self._sort_index]
-        ascending = order == "endDate"
+        # Generation guard: exclusive cancellation runs a superseded worker's
+        # finally AFTER the replacement set _loading - only the newest run may
+        # clear the flag, or the scroll trigger reopens mid-flight.
+        self._load_gen += 1
+        gen = self._load_gen
         try:
-            events = await app.gamma.events(
-                limit=PAGE_SIZE,
-                offset=self._offset,
-                order=order,
-                ascending=ascending,
-                tag_slug=self._tag_slug,
+            if not append:
+                self._offset = 0
+                self._exhausted = False
+            order = SORT_ORDERS[self._sort_index]
+            ascending = order == "endDate"
+            try:
+                events = await app.gamma.events(
+                    limit=PAGE_SIZE,
+                    offset=self._offset,
+                    order=order,
+                    ascending=ascending,
+                    tag_slug=self._tag_slug,
+                )
+            except Exception as exc:
+                self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
+                self.query_one("#status-line", Static).update(self._status_line())
+                return
+            # Advance past the page just fetched; a short page means the end.
+            # Both track the RAW count - the ended-events filter below shrinks
+            # pages, and judging by filtered size would stop pagination early.
+            self._offset += PAGE_SIZE
+            if len(events) < PAGE_SIZE:
+                self._exhausted = True
+            now = datetime.now(UTC)
+            # Gamma still returns just-ended events as active; hide them like the
+            # web trending list does (they read as noise next to live markets).
+            events = [
+                e
+                for e in events
+                if e.top_market is not None and (e.end_date is None or e.end_date > now)
+            ]
+            ordered = await self._ordered_slugs(events)
+            self.table.set_events(
+                events, set(app.watchlist.slugs), clear=not append, ordered=ordered
             )
-        except Exception as exc:
-            self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
-            self.query_one("#status-line", Static).update(self._status_line())
-            self._loading = False
-            return
-        # Advance past the page just fetched; a short page means the end.
-        # Both track the RAW count - the ended-events filter below shrinks
-        # pages, and judging by filtered size would stop pagination early.
-        self._offset += PAGE_SIZE
-        if len(events) < PAGE_SIZE:
-            self._exhausted = True
-        now = datetime.now(UTC)
-        # Gamma still returns just-ended events as active; hide them like the
-        # web trending list does (they read as noise next to live markets).
-        events = [
-            e
-            for e in events
-            if e.top_market is not None and (e.end_date is None or e.end_date > now)
-        ]
-        ordered = await self._ordered_slugs(events)
-        self.table.set_events(events, set(app.watchlist.slugs), clear=not append, ordered=ordered)
-        if not append:
-            browser = self.query_one(EventsBrowser)
-            browser.preview.show_event(events[0] if events else None)
-            cache.save_events(self._cache_key(), events)
-            self.query_one("#status-line", Static).update(self._status_line())
-        self._loading = False
+            if not append:
+                browser = self.query_one(EventsBrowser)
+                browser.preview.show_event(events[0] if events else None)
+                cache.save_events(self._cache_key(), events)
+                self.query_one("#status-line", Static).update(self._status_line())
+        finally:
+            if gen == self._load_gen:
+                self._loading = False
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         slug = event.tab.id
@@ -207,6 +217,12 @@ class HomePane(TierAware, Vertical):
             and event.cursor_row is not None
             and event.cursor_row >= self.table.row_count - 5
         ):
+            # Claim the guard NOW: @work only sets it when the worker starts,
+            # and key-repeat fires more highlights before that - each used to
+            # schedule a new exclusive fetch cancelling the last (profiled:
+            # this guard plus the follow throttles cut worker spawns from 96
+            # to 40 over one identical scroll-hammer session).
+            self._loading = True
             self.load_events(append=True)
 
     def _open_highlighted(self) -> None:
