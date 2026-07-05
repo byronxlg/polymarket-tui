@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>polymarket-tui — Polymarket in your terminal</title>
+<meta name="description" content="A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio, and place orders without leaving the terminal." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="assets/asciinema-player.css" />
+<style>
+  :root {
+    --bg: #0a0d12;
+    --bg-soft: #0e131a;
+    --panel: #10161e;
+    --panel-2: #131b24;
+    --line: #202834;
+    --line-2: #2b3542;
+    --ink: #d4dce6;
+    --ink-dim: #7d8896;
+    --ink-faint: #565f6c;
+    --green: #45c46a;
+    --red: #f0645b;
+    --yellow: #e0a63a;
+    --accent: #4d8bf5;
+    --accent-2: #6ea6ff;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Cascadia Code", monospace;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(900px 500px at 78% -8%, rgba(77,139,245,0.10), transparent 60%),
+      radial-gradient(700px 500px at 8% 4%, rgba(69,196,106,0.05), transparent 55%);
+  }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: rgba(77,139,245,0.35); }
+
+  .wrap { width: min(1120px, 92vw); margin: 0 auto; }
+
+  /* ---- nav ---- */
+  nav {
+    position: sticky; top: 0; z-index: 40;
+    backdrop-filter: blur(10px);
+    background: rgba(10,13,18,0.72);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-in { display: flex; align-items: center; gap: 20px; height: 58px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; letter-spacing: -0.2px; }
+  .brand .prompt { color: var(--accent); }
+  .brand b { font-weight: 600; }
+  .nav-links { margin-left: auto; display: flex; align-items: center; gap: 22px; }
+  .nav-links a:not(.btn) { color: var(--ink-dim); font-size: 13.5px; }
+  .nav-links a:not(.btn):hover { color: var(--ink); }
+  .nav-links a.btn-primary { color: #04101f; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+    border: 1px solid var(--line-2); color: var(--ink);
+    transition: all .15s ease; cursor: pointer; background: var(--panel);
+  }
+  .btn:hover { border-color: var(--accent); color: #fff; }
+  .btn-primary {
+    background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    border-color: transparent; color: #04101f;
+    box-shadow: 0 6px 22px -8px rgba(77,139,245,0.7);
+  }
+  .btn-primary:hover { color: #04101f; filter: brightness(1.06); }
+  .btn .k { font-size: 11px; opacity: .8; }
+
+  /* ---- hero ---- */
+  header.hero { padding: 74px 0 34px; text-align: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--ink-dim); border: 1px solid var(--line);
+    padding: 5px 12px; border-radius: 999px; background: var(--panel);
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  h1 {
+    font-size: clamp(34px, 6vw, 62px); line-height: 1.02; margin: 22px 0 0;
+    letter-spacing: -1.5px; font-weight: 680;
+  }
+  h1 .grad { background: linear-gradient(120deg, #fff, var(--accent-2) 55%, var(--green)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { max-width: 660px; margin: 20px auto 0; color: var(--ink-dim); font-size: clamp(15px,2.2vw,18px); }
+  .sub b { color: var(--ink); font-weight: 500; }
+  .cta { margin-top: 30px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .cta .btn { padding: 12px 22px; font-size: 15px; }
+  .assure { margin-top: 18px; font-size: 12.5px; color: var(--ink-faint); }
+  .assure span { color: var(--ink-dim); }
+  .assure .sep { opacity: .4; margin: 0 4px; }
+
+  /* ---- terminal window ---- */
+  .term-shell { margin: 44px auto 8px; }
+  .term {
+    border: 1px solid var(--line-2); border-radius: var(--radius);
+    background: var(--bg-soft); overflow: hidden;
+    box-shadow: 0 40px 90px -40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 8px; padding: 11px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .lights { display: flex; gap: 7px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .lights .r { background: #f0645b; } .lights .y { background: #e0a63a; } .lights .g { background: #45c46a; }
+  .term-title { margin: 0 auto; font-size: 12.5px; color: var(--ink-dim); transform: translateX(-24px); }
+  .term-body { padding: 10px 6px 4px; }
+  .demo-player { width: 100%; max-width: 100%; overflow: hidden; }
+  .demo-player .ap-wrapper { justify-content: center; }
+  .demo-player .ap-player { max-width: 100%; }
+  /* asciinema-player: kill its own border/radius (the .term shell provides it) */
+  .demo-player .ap-player { background: transparent; }
+  .term-caption { margin: 14px auto 0; max-width: 760px; text-align: center; font-size: 13px; color: var(--ink-dim); }
+  .term-caption a { color: var(--accent-2); white-space: nowrap; }
+  .term-caption a:hover { color: #fff; }
+
+  /* ---- section scaffolding ---- */
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  .sec-tag { color: var(--accent); font-size: 12.5px; letter-spacing: 1.5px; text-transform: uppercase; }
+  h2 { font-size: clamp(24px, 4vw, 34px); letter-spacing: -0.8px; margin: 10px 0 8px; font-weight: 640; }
+  .lead { color: var(--ink-dim); max-width: 640px; }
+
+  /* ---- features ---- */
+  .feats { margin-top: 34px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feat { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, var(--panel), var(--bg-soft)); padding: 22px; transition: border-color .15s, transform .15s; }
+  .feat:hover { border-color: var(--line-2); transform: translateY(-3px); }
+  .feat .ic { font-size: 20px; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 10px; background: rgba(77,139,245,0.1); border: 1px solid rgba(77,139,245,0.2); margin-bottom: 14px; }
+  .feat h3 { margin: 0 0 6px; font-size: 16px; }
+  .feat p { margin: 0; color: var(--ink-dim); font-size: 13.5px; line-height: 1.55; }
+
+  /* ---- keys ---- */
+  .keys-wrap { margin-top: 30px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .keyrow { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .kbd { display: inline-flex; gap: 4px; }
+  kbd { font-family: var(--mono); font-size: 12px; min-width: 26px; text-align: center; padding: 4px 8px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line-2); border-bottom-width: 2px; color: var(--ink); }
+  .keyrow span { color: var(--ink-dim); font-size: 13.5px; }
+
+  /* ---- install ---- */
+  .code {
+    margin-top: 22px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-soft); overflow: hidden;
+  }
+  .code .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--line); }
+  .code .row:first-child { border-top: none; }
+  .code .lbl { color: var(--ink-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; width: 78px; flex-shrink: 0; }
+  .code pre { margin: 0; flex: 1; overflow-x: auto; color: var(--ink); font-size: 13px; }
+  .code .tok { color: var(--accent-2); }
+  .copy { flex-shrink: 0; cursor: pointer; border: 1px solid var(--line-2); background: var(--panel); color: var(--ink-dim); font-size: 11px; padding: 5px 10px; border-radius: 6px; font-family: var(--mono); }
+  .copy:hover { color: var(--ink); border-color: var(--accent); }
+  .copy.ok { color: var(--green); border-color: var(--green); }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-top: 10px; }
+  .browser-note { border: 1px dashed var(--line-2); border-radius: var(--radius); padding: 24px; background: rgba(77,139,245,0.04); }
+  .browser-note h3 { margin: 0 0 8px; }
+  .browser-note p { color: var(--ink-dim); font-size: 13.5px; margin: 0 0 16px; }
+
+  /* ---- disclaimer / footer ---- */
+  .disc { border-top: 1px solid var(--line); }
+  .disc .card { border: 1px solid var(--yellow); border-left-width: 3px; border-radius: 10px; background: rgba(224,166,58,0.06); padding: 18px 20px; color: var(--ink-dim); font-size: 13px; }
+  .disc .card b { color: var(--yellow); }
+  footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 12.5px; }
+  .foot-in { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+  .foot-in a { color: var(--ink-dim); }
+  .foot-in a:hover { color: var(--ink); }
+  .sources { color: var(--ink-faint); font-size: 11.5px; margin-top: 10px; }
+  .sources code { color: var(--ink-dim); }
+
+  @media (max-width: 860px) {
+    .feats { grid-template-columns: 1fr; }
+    .keys-wrap { grid-template-columns: 1fr; }
+    .split { grid-template-columns: 1fr; }
+    .nav-links a:not(.btn) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#keys">Keys</a>
+      <a href="#install">Install</a>
+      <a class="btn btn-primary" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub <span class="k">&#8599;</span></a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span> Live against the real exchange</span>
+    <h1>Polymarket, at the<br><span class="grad">speed of your keyboard</span></h1>
+    <p class="sub">A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio and P&amp;L, and place orders <b>without leaving the terminal</b>.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">&#9660;&nbsp; Install</a>
+      <a class="btn" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">View on GitHub &#8599;</a>
+    </div>
+    <p class="assure">
+      <span>No signup to browse</span><span class="sep">/</span>
+      <span>every session starts in <b style="color:var(--yellow)">DRY</b> mode</span><span class="sep">/</span>
+      <span>open source</span>
+    </p>
+  </div>
+
+  <div class="wrap term-shell">
+    <div class="term">
+      <div class="term-bar">
+        <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+        <div class="term-title">polymarket-tui &mdash; recorded demo</div>
+      </div>
+      <div class="term-body">
+        <div id="demo-player" class="demo-player"></div>
+      </div>
+    </div>
+    <p class="term-caption">A recorded session &mdash; browse markets, open one, cursor the live
+      order book, chart, search. <a href="#install">Install it &#8594;</a></p>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <span class="sec-tag">// what it does</span>
+    <h2>Everything Polymarket, one keystroke away</h2>
+    <p class="lead">The whole surface of the exchange, rendered as a dense, fast, keyboard-native interface. No mouse required.</p>
+    <div class="feats">
+      <div class="feat"><div class="ic">&#128202;</div><h3>Browse every market</h3><p>Trending, Politics, Sports, Crypto and more, sorted by volume or liquidity. Search markets and traders with <kbd>/</kbd>.</p></div>
+      <div class="feat"><div class="ic">&#128200;</div><h3>Live order books</h3><p>Real-time YES/NO books and the trade tape stream straight from the CLOB. Cursor the book; <kbd>space</kbd> buys at the level you hover.</p></div>
+      <div class="feat"><div class="ic">&#128201;</div><h3>Price charts</h3><p>Full price history for any market or outcome, inline. Move the cursor to inspect any point in time.</p></div>
+      <div class="feat"><div class="ic">&#128176;</div><h3>Portfolio &amp; P&amp;L</h3><p>Positions, cash, and profit history for your wallet, or observe any public trader's book read-only.</p></div>
+      <div class="feat"><div class="ic">&#9889;</div><h3>Place orders</h3><p>Limit and market orders under the live book, priced in cents. Decimal-exact, validated, audited to a local log.</p></div>
+      <div class="feat"><div class="ic">&#128274;</div><h3>Safe by default</h3><p>Every session opens in <b style="color:var(--yellow)">DRY</b> mode: orders are signed but never posted. Going LIVE is an explicit, per-session opt-in.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="keys">
+  <div class="wrap">
+    <span class="sec-tag">// one scheme everywhere</span>
+    <h2>Built for the keyboard</h2>
+    <p class="lead">A small core of keys, one meaning each. Arrows move and drill; <kbd>space</kbd> is always the contextual toggle. Press <kbd>?</kbd> in the app for the full reference.</p>
+    <div class="keys-wrap">
+      <div class="keyrow"><span class="kbd"><kbd>&#8593;</kbd><kbd>&#8595;</kbd><kbd>&#8592;</kbd><kbd>&#8594;</kbd></span><span>Move, drill in with right/enter, step out with left/esc</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>space</kbd></span><span>Contextual toggle: star, follow, buy a market, flip BUY/SELL</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>tab</kbd></span><span>Cycle the screen's selector: category, timeframe, pane</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>b</kbd><kbd>s</kbd></span><span>Buy / sell entry under the live book, price in cents</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>/</kbd></span><span>Search markets and traders</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>p</kbd><kbd>w</kbd></span><span>Portfolio and watchlist</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>L</kbd></span><span>Toggle DRY / LIVE for the session (confirmed)</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>?</kbd><kbd>q</kbd></span><span>Full key reference / quit</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <span class="sec-tag">// get it</span>
+    <h2>Run it your way</h2>
+    <div class="split">
+      <div>
+        <p class="lead" style="margin-bottom:0">Install the CLI. Requires Python 3.12+ (the curl script installs <code>uv</code> for you if it is missing).</p>
+        <div class="code">
+          <div class="row"><span class="lbl">curl</span><pre id="c1"><span class="tok">curl</span> -sSL https://raw.githubusercontent.com/byronxlg/polymarket-tui/main/install.sh | <span class="tok">bash</span></pre><button class="copy" data-c="c1">copy</button></div>
+          <div class="row"><span class="lbl">brew</span><pre id="c2"><span class="tok">brew</span> tap byronxlg/polymarket-tui https://github.com/byronxlg/polymarket-tui
+<span class="tok">brew</span> install polymarket-tui</pre><button class="copy" data-c="c2">copy</button></div>
+          <div class="row"><span class="lbl">source</span><pre id="c3"><span class="tok">git</span> clone https://github.com/byronxlg/polymarket-tui
+<span class="tok">cd</span> polymarket-tui &amp;&amp; <span class="tok">uv</span> sync &amp;&amp; <span class="tok">uv</span> run polymarket-tui</pre><button class="copy" data-c="c3">copy</button></div>
+        </div>
+      </div>
+      <div class="browser-note">
+        <div class="ic" style="font-size:22px;width:44px;height:44px;display:grid;place-items:center;border-radius:10px;background:rgba(69,196,106,0.1);border:1px solid rgba(69,196,106,0.25);margin-bottom:14px">&#128273;</div>
+        <h3>No account to browse</h3>
+        <p>Markets, books, charts, trades, and any trader's public positions all work read-only. Add a funder address to observe your portfolio, or a private key to trade - dry-run until you explicitly go LIVE.</p>
+        <a class="btn" href="https://github.com/byronxlg/polymarket-tui#account-setup" target="_blank" rel="noopener">Account setup &#8599;</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="disc">
+  <div class="wrap">
+    <div class="card"><b>Disclaimer.</b> &nbsp;Unofficial client, not affiliated with Polymarket. It can place real orders with real money when LIVE mode is explicitly enabled; you are responsible for your trades. No warranty. Deposits, withdrawals, and redemptions are on-chain operations this client does not perform, use the website.</div>
+    <p class="sources">Data from public Polymarket APIs: <code>gamma-api.polymarket.com</code>, <code>clob.polymarket.com</code>, <code>data-api.polymarket.com</code>, <code>user-pnl-api.polymarket.com</code>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b> &nbsp;<span style="color:var(--ink-faint)">Built with Python + Textual</span></div>
+    <div style="display:flex;gap:22px">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://polymarket.com" target="_blank" rel="noopener">Polymarket</a>
+      <a href="#install">Install</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/asciinema-player.min.js"></script>
+<script>
+  // The recorded TUI session, played in the hero terminal window.
+  AsciinemaPlayer.create("assets/demo.cast", document.getElementById("demo-player"), {
+    autoPlay: true,
+    loop: true,
+    controls: true,
+    fit: "width",     // scale the terminal to the container width (never overflow)
+    theme: "asciinema",
+    poster: "npt:0:6",
+    idleTimeLimit: 2,
+  });
+
+  // Copy buttons on the install commands.
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var el = document.getElementById(b.dataset.c);
+      var txt = el.innerText.trim();
+      navigator.clipboard.writeText(txt).then(function () {
+        var old = b.innerText; b.innerText = "copied"; b.classList.add("ok");
+        setTimeout(function () { b.innerText = old; b.classList.remove("ok"); }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>

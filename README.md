@@ -37,6 +37,15 @@ Then run `polymarket-tui`.
 No credentials needed to browse: markets, books, charts, trades, comments,
 and any trader's public positions all work read-only.
 
+## Landing page
+
+A static landing page lives in [`site/`](site/) and deploys to GitHub Pages
+(https://byronxlg.github.io/polymarket-tui/). Its hero plays a recorded
+asciinema demo of the TUI - browse markets, open one, cursor the live book,
+chart, search. Preview it locally with `python3 -m http.server -d site 8000`,
+and regenerate the demo with `bash scripts/record_demo.sh`. See
+[`site/README.md`](site/README.md).
+
 ## Account setup
 
 Press `A` in the app:
