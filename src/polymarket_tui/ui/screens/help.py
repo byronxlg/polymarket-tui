@@ -20,17 +20,17 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 
 | Key | Action |
 |-----|--------|
-| arrows | move; up/down also flow into adjacent panels (category bar, book, trades, search) |
+| arrows | move; up/down also flow into adjacent panels (category bar, chart, search box) |
 | right or enter | open the selected row |
 | left or escape | back |
 | tab / shift+tab | cycle the screen's selector (category / timeframe / pane) |
 | space | the contextual toggle (see below) |
 
 space by screen: star an event or follow a trader (home, search,
-watchlist, related), buy the selected outcome (market - priced at the
-level under the cursor when the book is focused), toggle BUY/SELL
-(order panel), show/hide rules (event; on market it's i), follow/unfollow
-(trader profile).
+watchlist, related), open the buy form on a market outcome or order from
+the book level (market), toggle BUY/SELL (order panel), show/hide rules
+(event; on market it's i), follow/unfollow (trader profile). Pick the
+outcome with the arrows or y/n; right on an outcome flows into the book.
 
 left always steps out one level: order panel -> market -> previous screen;
 expanded trades collapse before the screen closes.
@@ -56,22 +56,20 @@ expanded trades collapse before the screen closes.
 | b / s | lists, event, market | order entry; on a home/watchlist row it
 jumps straight into the market with the panel open |
 | y / n | market | jump straight to the YES / NO book |
-| down / up | market | step the cursor into the order book and back to the outcomes |
-| right | market | step the cursor into the trades rail |
 | a | market | expand the inline trades to full width (right opens the trader) |
 | i | market | show/hide the rules rail (auto-shown on wide terminals) |
 | c | market | comments in the chart strip |
 | e | market | open the parent event |
 | R | event, market | related markets (series siblings for dailies) |
-| x | portfolio open-orders tab | cancel the highlighted order |
+| space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
+| x | market book / portfolio orders | cancel your resting order (full details shown, y confirms) |
 | r | anywhere | refresh |
 
 ## Order entry
 
-On a market, space / b / enter open the buy form and s opens it to sell;
-when the book is focused (down from the outcomes) the form is priced at the
-level under the cursor. left (at the start of a field) or escape closes it.
-b/s/space switch the side at any time, even while typing in the fields.
+space or enter on an outcome row opens the buy form; left (at the start of
+a field) or escape closes it. b/s/space switch the side at any time, even
+while typing in the fields.
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
 price empty for a market order at the touch. up/down bump by one tick or
@@ -85,11 +83,14 @@ only for orders that cannot succeed (closed market, bad tick, below minimum
 size, price out of range, insufficient cash/shares). Anything else - far
 off mid, large notional, rapid duplicate - is at most a yellow warning.
 
-## Charts
+## Chart inspect
 
 Charts sit below/beside the prices they explain - history is context, not
-the headline. The legend shows the latest price and the change over the
-visible window; tab / shift+tab cycle the timeframe.
+the headline. On an event, down past the last outcome row enters chart
+inspect: left/right scrub through time (shift for big steps), the legend
+shows values at the crosshair, up/down/esc exit. On a market, down past the
+last outcome row instead cursors into the order book (space orders from a
+level, x cancels a resting order there); the chart is display-only.
 
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.

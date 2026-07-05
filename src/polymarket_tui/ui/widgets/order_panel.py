@@ -36,6 +36,12 @@ from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
 
 
+def _fmt_size(size: Decimal) -> str:
+    """Book sizes are shares - show whole shares, keep any fraction the level has."""
+    text = f"{size:.2f}".rstrip("0").rstrip(".")
+    return text or "0"
+
+
 class SideKey(Message):
     """b/s/space pressed inside an order field: pick or toggle (None) the side."""
 
@@ -206,7 +212,8 @@ class OrderPanel(Vertical):
         side: Side,
         outcome_index: int,
         book: OrderBook | None,
-        price: float | None = None,
+        preset_price: Decimal | None = None,
+        preset_size: Decimal | None = None,
     ) -> None:
         self._market = market
         self._side = side
@@ -216,15 +223,19 @@ class OrderPanel(Vertical):
         for field in ("#op-price", "#op-size"):
             self.query_one(field, Input).disabled = False
         price_input = self.query_one("#op-price", PriceInput)
-        # A price passed in (the level under the book cursor) wins over the
-        # midpoint default; either only fills an empty field.
-        if price is not None and not price_input.value:
-            price_input.value = f"{round_to_tick(market, Decimal(str(price))) * 100:.1f}"
+        size_input = self.query_one("#op-size", SizeInput)
+        # Prefilled from a book level (space on the order book): both fields are
+        # the level's price and size, ready to review or tweak.
+        if preset_price is not None:
+            price_input.value = f"{preset_price * 100:.1f}"
         elif book is not None and book.midpoint is not None and not price_input.value:
             price_input.value = f"{round_to_tick(market, Decimal(str(book.midpoint))) * 100:.1f}"
+        if preset_size is not None:
+            size_input.value = _fmt_size(preset_size)
         self.query_one("#op-issues", Static).update("")
-        # Price first: confirm or adjust what you pay before how much.
-        self.query_one("#op-price", PriceInput).focus()
+        # A book-level order lands on size (price is set) so one enter reviews;
+        # otherwise price first: confirm what you pay before how much.
+        (size_input if preset_price is not None else price_input).focus()
         self._load_position_size()
         self._refresh_summary()
 

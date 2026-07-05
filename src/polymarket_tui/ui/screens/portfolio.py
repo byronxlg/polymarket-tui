@@ -21,6 +21,7 @@ from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_bro
 from polymarket_tui.models.portfolio import OpenOrder, Position
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.widgets.order_details import order_detail_text
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     ACTIVITY_TIER_COLUMNS,
@@ -492,11 +493,11 @@ class PortfolioPane(TierAware, Vertical):
         self._pending_cancel = order
         self._cancel_armed_at = time.monotonic() + 0.35
         strip = self.query_one("#cancel-strip", Static)
+        title = self._order_titles_cache.get(order.market)
         text = Text()
-        text.append(" CANCEL ", style=f"bold reverse {DOWN}")
-        text.append(
-            f" {order.side} {order.remaining:,.0f} {order.outcome} @ {fmt.cents(order.price)}   "
-        )
+        text.append(" CANCEL \n", style=f"bold reverse {DOWN}")
+        text.append_text(order_detail_text(order, title))
+        text.append("\n")
         text.append("y", style="bold")
         text.append(" cancel order   ", style="dim")
         text.append("esc", style="bold")
