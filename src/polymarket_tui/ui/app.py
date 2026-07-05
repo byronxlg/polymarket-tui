@@ -332,7 +332,9 @@ class PolymarketApp(App):
                     timeout=5,
                 )
 
-        self.push_screen(ConfirmModal("ENABLE LIVE TRADING", body, "go live"), _confirmed)
+        self.push_screen(
+            ConfirmModal("ENABLE LIVE TRADING", body, "go live", tone="danger"), _confirmed
+        )
 
     def action_toggle_density(self) -> None:
         """Flip condensed/spacious layout; the choice persists across sessions."""

@@ -219,7 +219,10 @@ class AuthScreen(Screen):
                 else:
                     self.query_one("#live-select", Select).value = "DRY"
 
-            self.app.push_screen(ConfirmModal("ENABLE LIVE TRADING", body, "go live"), _confirmed)
+            self.app.push_screen(
+                ConfirmModal("ENABLE LIVE TRADING", body, "go live", tone="danger"),
+                _confirmed,
+            )
             return
         self.apply_and_test(candidate)
 
@@ -322,6 +325,7 @@ class AuthScreen(Screen):
                 "CLEAR CREDENTIALS",
                 "Drop funder and private key from this session AND delete the saved file?",
                 "clear",
+                tone="danger",
             ),
             _confirmed,
         )

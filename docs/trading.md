@@ -5,8 +5,10 @@ The only part of the app that moves money. Correctness and explicitness beat con
 ## Principles
 
 1. **Every order passes the same validation pipeline** - no fast path.
-2. **Every order is confirmed** with an explicit `y` keypress on an armed
-   confirm strip showing exactly what will be signed.
+2. **Every order is confirmed** with a deliberate enter on an armed
+   confirm strip showing exactly what will be signed. The strip ignores
+   keys for 0.35s after arming (ConfirmModal.ARM_DELAY_S), so the enter
+   that reviewed cannot also place.
 3. **Decimal everywhere.** Prices and sizes are `decimal.Decimal` from input to
    `OrderArgs`. Floats appear nowhere in order math.
 4. **Live-fire switch.** LIVE mode (global `L` toggle or auth-screen select,
@@ -49,10 +51,11 @@ confirm step; blocks list the reason and keep the panel in edit state.
 
 ## Confirm step
 
-Enter runs the pipeline; if nothing blocks, a reverse-video strip arms in the
-panel: `DRY-RUN  BUY 10 YES @ 33.4c (limit GTC)  y place  esc edit`. `y`
-places (the panel becomes focusable only at this point so a queued keypress
-cannot fire it); esc/left steps back to editing.
+Enter runs the pipeline; if nothing blocks, a tinted strip arms in the
+panel (amber DRY, red LIVE): `DRY-RUN  BUY 10 YES @ 33.4c (limit GTC)
+enter place  esc edit`. A second enter places - the panel becomes focusable
+only at this point and ignores keys for the 0.35s arming beat, so a queued
+enter cannot fire it; esc/left steps back to editing.
 
 ## Placement and result handling
 
@@ -93,7 +96,8 @@ today the open-orders tab refetches on demand.
 
 ## Cancels
 
-`x` on an open order (portfolio, orders tab) -> confirm modal -> cancel via
+`x` on an open order (portfolio, orders tab) arms an inline full-detail
+strip; enter confirms (same arming beat) -> cancel via
 `cancel_order(OrderPayload)`. Cancels obey the same live gate as placement
 (DRY mode never posts a cancel), are audited to the JSONL log, and the
 response's `canceled`/`not_canceled` maps are checked - a 200 response is

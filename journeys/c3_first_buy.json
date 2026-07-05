@@ -8,7 +8,7 @@
     ["buy_panel", ["Space"], 2],
     ["size_5", ["5"], 1],
     ["review", ["Enter"], 2],
-    ["confirm_dry", ["y"], 4],
+    ["confirm_dry", ["Enter"], 4],
     ["after", [], 2],
     ["out", ["Escape", "Escape"], 1]
   ]

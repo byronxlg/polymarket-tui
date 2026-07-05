@@ -5,7 +5,7 @@
     ["portfolio", ["p"], 8],
     ["orders", ["Tab"], 3],
     ["arm_cancel", ["x"], 2],
-    ["confirm_dry", ["y"], 4],
+    ["confirm_dry", ["Enter"], 4],
     ["done", [], 2]
   ]
 }

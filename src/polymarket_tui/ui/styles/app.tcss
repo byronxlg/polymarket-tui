@@ -151,11 +151,12 @@ PriceChartPanel {
     height: 1;
 }
 
-/* Full-detail cancel confirm on the market page (x on a book level). */
+/* Full-detail cancel confirm on the market page (x on a book level).
+   Red-tinted like every armed confirm surface (op-confirm, ConfirmModal). */
 #market-cancel-strip {
     height: auto;
     padding: 0 1;
-    background: $panel;
+    background: $error 15%;
 }
 
 /* Trades rail (live context); 'a' expands it to full width */
@@ -220,7 +221,7 @@ PriceChartPanel {
 #cancel-strip {
     height: auto;
     padding: 0 1;
-    background: $panel;
+    background: $error 15%;
 }
 
 /* Portfolio: tables size to their rows (scroll past the cap); the

@@ -7,7 +7,7 @@
     ["sell_panel", ["s"], 2],
     ["size_2", ["2"], 1],
     ["review", ["Enter"], 2],
-    ["confirm_dry", ["y"], 4],
+    ["confirm_dry", ["Enter"], 4],
     ["back_portfolio", ["Escape", "Escape"], 2]
   ]
 }

@@ -21,7 +21,7 @@ from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_bro
 from polymarket_tui.models.portfolio import OpenOrder, Position
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
-from polymarket_tui.ui.widgets.order_details import order_detail_text
+from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     ACTIVITY_TIER_COLUMNS,
@@ -67,12 +67,22 @@ class OrdersTable(VimDataTable):
     """Open-orders table: the cancel binding lives here so the footer only
     advertises it while this table is focused."""
 
-    BINDINGS = [Binding("x", "cancel_order", "cancel order")]
+    BINDINGS = [
+        Binding("x", "cancel_order", "cancel order"),
+        # enter confirms an armed cancel; otherwise the row just selects.
+        Binding("enter", "confirm_or_select", "confirm", show=False),
+    ]
 
     def action_cancel_order(self) -> None:
         pane = _pane_of(self)
         if pane is not None:
             pane.action_cancel_order()
+
+    def action_confirm_or_select(self) -> None:
+        pane = _pane_of(self)
+        if pane is not None and pane.confirm_pending_cancel():
+            return
+        self.action_select_cursor()
 
 
 class PositionsTable(VimDataTable):
@@ -97,7 +107,6 @@ class PortfolioPane(TierAware, Vertical):
         Binding("escape", "app.nav_back", "back"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "prev_pane", "prev tab", show=False),
-        Binding("y", "confirm_cancel", "confirm cancel", show=False),
         Binding("r", "refresh", "refresh", show=False),
     ]
 
@@ -503,7 +512,7 @@ class PortfolioPane(TierAware, Vertical):
         self.notify(f"{note} {url}{suffix}", timeout=6)
 
     def action_cancel_order(self) -> None:
-        """x arms an inline confirm strip (no modal); y within the strip cancels.
+        """x arms an inline confirm strip (no modal); enter within it cancels.
         The arming delay mirrors ConfirmModal: queued keys can't confirm."""
         if self._active_pane() != "pane-orders":
             return
@@ -517,16 +526,7 @@ class PortfolioPane(TierAware, Vertical):
         self._pending_cancel = order
         self._cancel_armed_at = time.monotonic() + 0.35
         strip = self.query_one("#cancel-strip", Static)
-        title = self._order_titles_cache.get(order.market)
-        text = Text()
-        text.append(" CANCEL \n", style=f"bold reverse {DOWN}")
-        text.append_text(order_detail_text(order, title))
-        text.append("\n")
-        text.append("y", style="bold")
-        text.append(" cancel order   ", style="dim")
-        text.append("esc", style="bold")
-        text.append(" keep", style="dim")
-        strip.update(text)
+        strip.update(cancel_confirm_text([order], self._order_titles_cache.get(order.market)))
         strip.display = True
 
     def _clear_pending_cancel(self) -> None:
@@ -534,12 +534,16 @@ class PortfolioPane(TierAware, Vertical):
             self._pending_cancel = None
             self.query_one("#cancel-strip", Static).display = False
 
-    def action_confirm_cancel(self) -> None:
+    def confirm_pending_cancel(self) -> bool:
+        """enter on the orders table fires an armed cancel. True = consumed."""
         order = self._pending_cancel
-        if order is None or time.monotonic() < self._cancel_armed_at:
-            return
+        if order is None:
+            return False
+        if time.monotonic() < self._cancel_armed_at:
+            return True  # armed but still in the queued-key window - swallow
         self._clear_pending_cancel()
         self._start_cancel(order.id)
+        return True
 
     def on_data_table_row_highlighted(self, event) -> None:
         # Moving the cursor retargets the row - a stale confirm must not linger.
