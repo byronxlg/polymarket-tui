@@ -368,3 +368,79 @@ PriceChartPanel {
     padding: 2 4;
     color: $text-muted;
 }
+
+/* Spacious layout variant. The app root carries density-condensed
+   (default, the rules above) or density-spacious - T toggles it, the
+   choice persists in ui.json. Spacious only adds breathing room: pane
+   gutters, rail padding, vertical rhythm between sections. Widths stay
+   with the tier system so column fitting is untouched, and tables refit
+   automatically because they measure their real content width. */
+App.density-spacious .screen-title {
+    padding: 0 2;
+}
+
+App.density-spacious #nav-crumbs {
+    padding: 0 2;
+}
+
+App.density-spacious .nav-pane {
+    padding: 0 1;
+}
+
+App.density-spacious #tag-bar {
+    height: 3;  /* restore the gap row that condensed reclaims */
+}
+
+App.density-spacious #preview-pane {
+    padding: 1 2;
+}
+
+App.density-spacious #book-pane {
+    padding: 1 2;
+}
+
+/* Chart panes: horizontal air only - vertical padding (or taller interval
+   tabs) starves the plot canvas below its 5-row minimum on small
+   terminals and the chart silently disappears. */
+App.density-spacious #event-chart-pane {
+    padding: 0 2;
+    margin-top: 1;
+}
+
+App.density-spacious #market-chart-strip {
+    padding: 0 2;
+    margin-top: 1;
+}
+
+App.density-spacious #trades-rail,
+App.density-spacious #rules-rail,
+App.density-spacious #market-overview-pane,
+App.density-spacious #trader-overview-pane {
+    padding: 1 2;
+}
+
+App.density-spacious #market-info {
+    padding: 1 2;
+    max-height: 8;  /* vertical padding must not clip the order panel */
+}
+
+App.density-spacious #cancel-strip {
+    padding: 0 2;
+}
+
+App.density-spacious #pnl-pane,
+App.density-spacious #user-pnl {
+    margin-top: 1;
+}
+
+App.density-spacious #search-input {
+    margin: 1 0;
+}
+
+App.density-spacious #help-body {
+    padding: 2 4;
+}
+
+App.density-spacious .empty-note {
+    padding: 3 6;
+}

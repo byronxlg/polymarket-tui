@@ -17,6 +17,7 @@ from polymarket_tui.models.market import Event, Market
 from polymarket_tui.models.ws import UserOrderMessage, UserTradeMessage
 from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
+from polymarket_tui.state.prefs import load_density, save_density
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthScreen
 from polymarket_tui.ui.screens.event import EventPane
@@ -45,6 +46,7 @@ class PolymarketApp(App):
         Binding("p", "portfolio", "portfolio"),
         Binding("A", "auth", "auth", show=False, key_display="A"),
         Binding("L", "toggle_live", "live", show=False, key_display="L"),
+        Binding("T", "toggle_density", "layout", show=False, key_display="T"),
         Binding("question_mark", "help", "help", key_display="?"),
         Binding("left", "nav_back", "back", show=False),
         Binding("less_than_sign", "nav_back", "back", show=False),
@@ -54,6 +56,10 @@ class PolymarketApp(App):
         super().__init__()
         self.register_theme(PMTUI_THEME)
         self.theme = "pmtui"
+        # Layout density: the app root carries a density-<name> class so
+        # app.tcss can restyle spacing declaratively (spacious block there).
+        self.density = load_density()
+        self.add_class(f"density-{self.density}")
         self.ntp_offset: float | None = None
         self.username: str | None = None
         self.account_status = Text("loading account...", style="dim")
@@ -320,6 +326,15 @@ class PolymarketApp(App):
                 )
 
         self.push_screen(ConfirmModal("ENABLE LIVE TRADING", body, "go live"), _confirmed)
+
+    def action_toggle_density(self) -> None:
+        """Flip condensed/spacious layout; the choice persists across sessions."""
+        new = "spacious" if self.density == "condensed" else "condensed"
+        self.remove_class(f"density-{self.density}")
+        self.density = new
+        self.add_class(f"density-{new}")
+        save_density(new)
+        self.notify(f"{new} layout (T to switch back)", timeout=4)
 
     def action_portfolio(self) -> None:
         """'p': switch the drill root to the portfolio (same top level as Home)."""
