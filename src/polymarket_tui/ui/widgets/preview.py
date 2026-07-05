@@ -43,9 +43,8 @@ class MarketPreview(Static):
         if market is None:
             self.update(Text("", style="dim"))
             return
-        w = max(20, self.size.width or 44)
         out = Text()
-        out.append(fmt.trunc(market.display_title, w) + "\n", style="bold")
+        out.append(market.display_title + "\n", style="bold")
         if market.question and market.question != market.display_title:
             # Full question - the panel wraps and scrolls, no need to cut it.
             out.append(market.question.strip() + "\n", style="dim")
@@ -103,7 +102,7 @@ class EventPreview(Static):
         bar_w = BAR_W if w >= 38 else 0
         name_w = max(12, w - 16 - (bar_w + 1 if bar_w else 0))
         out = Text()
-        out.append(fmt.trunc(event.title, w) + "\n", style="bold")
+        out.append(event.title + "\n", style="bold")
         meta = []
         if event.end_date:
             meta.append(f"ends {fmt.end_date(event.end_date)}")
