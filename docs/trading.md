@@ -52,11 +52,16 @@ confirm step; blocks list the reason and keep the panel in edit state.
 
 ## Confirm step
 
-Enter runs the pipeline; if nothing blocks, a tinted strip arms in the
-panel (amber DRY, red LIVE): `DRY-RUN  BUY 10 YES @ 33.4c (limit GTC)
-enter place  esc edit`. A second enter places - the panel becomes focusable
-only at this point and ignores keys for the 0.35s arming beat, so a queued
-enter cannot fire it; esc/left steps back to editing.
+Enter runs the pipeline; if nothing blocks, a quiet callout (left accent
+bar, amber DRY / red LIVE) arms in the panel:
+
+    DRY-RUN - signs, never posts
+    BUY 10 YES @ 33.4c (limit GTC)
+    enter place   esc edit
+
+A second enter places - the panel becomes focusable only at this point and
+ignores keys for the 0.35s arming beat, so a queued enter cannot fire it;
+esc/left steps back to editing.
 
 ## Placement and result handling
 

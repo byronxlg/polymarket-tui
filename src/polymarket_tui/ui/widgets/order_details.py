@@ -17,17 +17,17 @@ from polymarket_tui.ui.theme import DOWN, UP
 
 
 def action_hints(*pairs: tuple[str, str]) -> Text:
-    """Key hints for an armed confirm ('enter' place   'esc' edit).
+    """Key hints for an armed confirm (enter place   esc edit).
 
-    One style for every confirm surface: the key as a reversed chip, the
-    label plain. Confirms proceed with enter and step back with esc
-    everywhere (order panel, cancel strips, modals).
+    One quiet style for every confirm surface, matching the footer: the
+    key bold, the label dim. Confirms proceed with enter and step back
+    with esc everywhere (order panel, cancel strips, modals).
     """
     out = Text()
     for i, (key, label) in enumerate(pairs):
         if i:
             out.append("   ")
-        out.append(f" {key} ", style="bold reverse")
+        out.append(key, style="bold")
         out.append(f" {label}", style="dim")
     return out
 
@@ -35,7 +35,7 @@ def action_hints(*pairs: tuple[str, str]) -> Text:
 def cancel_confirm_text(orders: list[OpenOrder], title: str | None = None) -> Text:
     """The armed cancel strip: CANCEL chip, full order details, key hints."""
     out = Text()
-    out.append(" CANCEL ", style=f"bold reverse {DOWN}")
+    out.append("CANCEL", style=f"bold {DOWN}")
     if len(orders) > 1:
         out.append(f" {len(orders)} orders at this level", style="bold")
     out.append("\n")

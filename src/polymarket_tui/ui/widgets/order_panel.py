@@ -153,14 +153,25 @@ class OrderPanel(Vertical):
         display: block;
     }
     OrderPanel .field-row {
-        height: 3;
+        height: 1;
+        margin: 1 0;
     }
     OrderPanel Label {
-        padding: 1 1 0 0;
+        padding: 0 1 0 0;
         width: 6;
     }
+    /* Borderless one-row fields: the boxed 3-row inputs read heavy in the
+       rail. Focus shows as the lighter field plus the cursor block. */
     OrderPanel Input {
         width: 1fr;
+        border: none;
+        height: 1;
+        padding: 0 1;
+        background: $panel;
+    }
+    OrderPanel Input:focus {
+        border: none;  /* the default tall focus border swallows a 1-row field */
+        background: $panel-lighten-2;
     }
     OrderPanel #op-summary {
         height: 1;
@@ -173,11 +184,13 @@ class OrderPanel(Vertical):
     OrderPanel #op-issues {
         height: auto;
     }
+    /* Armed confirm: a quiet callout (left accent bar, no background
+       wash) - amber for DRY, red for LIVE. */
     OrderPanel #op-confirm {
         height: auto;
         display: none;
         padding: 0 1;
-        background: $warning 15%;
+        border-left: thick $warning;
     }
     OrderPanel.confirming #op-confirm {
         display: block;
@@ -187,7 +200,7 @@ class OrderPanel(Vertical):
         display: none;
     }
     OrderPanel.confirm-live #op-confirm {
-        background: $error 15%;
+        border-left: thick $error;
     }
     """
 
@@ -461,10 +474,14 @@ class OrderPanel(Vertical):
         # One element per line - the strip lives in the narrow right rail and
         # must not wrap mid-token: chip, then the order, then the keys.
         out = Text()
-        out.append(
-            " PLACE " if live else " DRY-RUN ",
-            style=f"bold reverse {DOWN}" if live else f"bold reverse {AMBER}",
-        )
+        # The mode word, plain bold - a reversed "PLACE" chip read as a
+        # scary un-clickable button; LIVE/DRY-RUN says what enter will do.
+        if live:
+            out.append("LIVE", style=f"bold {DOWN}")
+            out.append(" - posts for real", style="dim")
+        else:
+            out.append("DRY-RUN", style=f"bold {AMBER}")
+            out.append(" - signs, never posts", style="dim")
         out.append("\n")
         out.append(f"{draft.side.value} ", style=self._side_style)
         out.append(f"{draft.size:,.0f} ", style="bold")
