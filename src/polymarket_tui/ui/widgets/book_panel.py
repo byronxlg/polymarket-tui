@@ -11,10 +11,12 @@ owns the order panel and the cancel flow.
 
 from __future__ import annotations
 
+import contextlib
 import math
 
 from rich.text import Text
 from textual.binding import Binding
+from textual.geometry import Region
 from textual.message import Message
 from textual.widgets import Static
 
@@ -227,3 +229,24 @@ class BookPanel(Static):
             row += 1
 
         self.update(out)
+        if focused:
+            self._scroll_cursor_visible()
+
+    def _scroll_cursor_visible(self) -> None:
+        """Keep the cursor row in view when the book overflows its pane.
+
+        The whole book is one Static, so Textual's focus-scrolling can't
+        follow the in-widget cursor (only the widget is focused, the cursor is
+        styled text). On a short terminal the pane clips to a few rows, so
+        scroll the wrapping container to the cursor's line or the levels below
+        the fold are unreachable. Line = header(1) + cursor, plus the mid
+        divider once the cursor is in the bids.
+        """
+        parent = self.parent
+        if parent is None or not getattr(parent, "is_scrollable", False):
+            return
+        n_asks = sum(1 for kind, _ in self._levels if kind == "ask")
+        has_mid = self._book is not None and self._book.midpoint is not None
+        line = 1 + self._cursor + (1 if has_mid and self._cursor >= n_asks else 0)
+        with contextlib.suppress(Exception):
+            parent.scroll_to_region(Region(0, line, 1, 1), animate=False)
