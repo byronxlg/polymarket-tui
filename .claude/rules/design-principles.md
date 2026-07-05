@@ -54,8 +54,10 @@ pane must never render clipped columns.
   that starts LIVE announces it loudly; dropping back to DRY is instant.
 - Decimal for all order math; every order/cancel appended to the JSONL audit
   log; a timed-out post is NEVER auto-retried (it may have landed).
-- Confirmation is an explicit `y` on a strip that only becomes focusable
-  when armed - queued keypresses cannot place orders.
+- Confirmation is a deliberate enter on a strip that only becomes
+  focusable when armed and ignores keys for a 0.35s arming beat - queued
+  keypresses cannot place orders. Enter proceeds and esc steps back on
+  every confirm surface (order strip, cancel strips, modals).
 
 ## Display conventions
 

@@ -1,4 +1,9 @@
-"""Reusable confirmation modal. Returns True on confirm, False otherwise."""
+"""Reusable confirmation modal. Returns True on confirm, False otherwise.
+
+`tone` colors the border and title chip by severity: "accent" (default)
+for neutral confirms, "warn" for check-first prompts, "danger" for
+real-money or destructive ones (going LIVE, clearing credentials).
+"""
 
 from __future__ import annotations
 
@@ -11,6 +16,11 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN
+from polymarket_tui.ui.widgets.order_details import action_hints
+
+TONE_COLORS = {"accent": BLUE, "warn": AMBER, "danger": DOWN}
+
 
 class ConfirmModal(ModalScreen[bool]):
     BINDINGS = [
@@ -21,37 +31,56 @@ class ConfirmModal(ModalScreen[bool]):
     DEFAULT_CSS = """
     ConfirmModal {
         align: center middle;
+        background: $background 40%;
     }
     ConfirmModal > Vertical {
         width: 70;
         max-width: 90%;
         height: auto;
         max-height: 80%;
-        border: thick $primary;
+        border: round $primary;
         background: $surface;
         padding: 1 2;
     }
+    ConfirmModal.tone-warn > Vertical {
+        border: round $warning;
+    }
+    ConfirmModal.tone-danger > Vertical {
+        border: round $error;
+    }
     ConfirmModal #modal-title {
-        text-style: bold;
         margin-bottom: 1;
     }
     ConfirmModal #modal-actions {
         margin-top: 1;
-        color: $text-muted;
     }
     """
 
-    def __init__(self, title: str, body: Text | str, confirm_label: str = "confirm") -> None:
+    def __init__(
+        self,
+        title: str,
+        body: Text | str,
+        confirm_label: str = "confirm",
+        tone: str = "accent",
+    ) -> None:
         super().__init__()
         self._title = title
         self._body = body
         self._confirm_label = confirm_label
+        self._tone = tone if tone in TONE_COLORS else "accent"
 
     def compose(self) -> ComposeResult:
+        self.add_class(f"tone-{self._tone}")
         with Vertical():
-            yield Static(self._title, id="modal-title")
+            yield Static(
+                Text(f" {self._title} ", style=f"bold reverse {TONE_COLORS[self._tone]}"),
+                id="modal-title",
+            )
             yield Static(self._body, id="modal-body")
-            yield Static(f"enter {self._confirm_label}   esc cancel", id="modal-actions")
+            yield Static(
+                action_hints(("enter", self._confirm_label), ("esc", "cancel")),
+                id="modal-actions",
+            )
 
     ARM_DELAY_S = 0.35
 

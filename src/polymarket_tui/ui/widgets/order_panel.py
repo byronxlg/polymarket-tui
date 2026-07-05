@@ -2,12 +2,14 @@
 
 Keyboard-first: b/s opens it preset to a side, price/size are the only two
 fields (empty price = market order at the touch), up/down bump the price by
-one tick, enter advances price -> size -> review, and confirmation is a plain
-'y' in the same panel - the book stays visible and live the whole time.
+one tick, enter advances price -> size -> review, and a deliberate second
+enter on the armed strip places (0.35s arming beat, so a queued enter
+cannot) - the book stays visible and live the whole time.
 """
 
 from __future__ import annotations
 
+import time
 from decimal import Decimal, InvalidOperation
 
 from rich.text import Text
@@ -32,6 +34,7 @@ from polymarket_tui.services.orders import (
 )
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
+from polymarket_tui.ui.widgets.order_details import action_hints
 
 TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
 
@@ -131,8 +134,9 @@ class OrderPanel(Vertical):
         Binding("tab", "next_field", "field"),
         Binding("shift+tab", "next_field", "prev field", show=False),
         Binding("ctrl+g", "cycle_tif", "tif", show=False),
-        Binding("y", "confirm_yes", "place", show=False),
-        Binding("n", "confirm_no", "edit", show=False),
+        # Fires only while confirming - in edit state the inputs own enter
+        # (submit advances price -> size -> review).
+        Binding("enter", "confirm_yes", "place"),
         Binding("b", "side('BUY')", "buy", show=False),
         Binding("s", "side('SELL')", "sell", show=False),
         Binding("space", "flip_side", "buy/sell"),
@@ -172,9 +176,14 @@ class OrderPanel(Vertical):
     OrderPanel #op-confirm {
         height: auto;
         display: none;
+        padding: 0 1;
+        background: $warning 15%;
     }
     OrderPanel.confirming #op-confirm {
         display: block;
+    }
+    OrderPanel.confirm-live #op-confirm {
+        background: $error 15%;
     }
     """
 
@@ -438,15 +447,19 @@ class OrderPanel(Vertical):
     def _set_confirming(self, draft: OrderDraft | None) -> None:
         self._confirming = draft
         confirm = self.query_one("#op-confirm", Static) if self.is_mounted else None
+        live = self.app.settings.mode is Mode.TRADER_LIVE
         if draft is None:
-            self.remove_class("confirming")
+            self.remove_class("confirming", "confirm-live")
             self.can_focus = False
             if confirm is not None:
                 confirm.update("")
             return
         self.add_class("confirming")
-        self.can_focus = True  # so the y/n/esc bindings receive keys
-        live = self.app.settings.mode is Mode.TRADER_LIVE
+        self.set_class(live, "confirm-live")  # red tint when this posts for real
+        self.can_focus = True  # so the enter/esc bindings receive keys
+        # Same arming delay as ConfirmModal: an enter queued from the fields
+        # (double-enter on size) must not place the order it just reviewed.
+        self._confirm_armed_at = time.monotonic() + ConfirmModal.ARM_DELAY_S
         out = Text()
         out.append(
             " PLACE " if live else " DRY-RUN ",
@@ -456,14 +469,11 @@ class OrderPanel(Vertical):
         out.append(f"{draft.size:,.0f} ", style="bold")
         out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"@ {draft.price * 100:.1f}c ({kind})  ", style="bold")
-        out.append("y", style="bold reverse")
-        out.append(" place  ")
-        out.append("esc", style="bold reverse")
-        out.append(" edit")
+        out.append(f"@ {draft.price * 100:.1f}c ({kind})   ", style="bold")
+        out.append_text(action_hints(("enter", "place"), ("esc", "edit")))
         if confirm is not None:
             confirm.update(out)
-        self.focus()  # move focus off the inputs so y/esc hit panel bindings
+        self.focus()  # move focus off the inputs so enter/esc hit panel bindings
 
     # -- events --------------------------------------------------------------------
 
@@ -566,6 +576,8 @@ class OrderPanel(Vertical):
     def action_confirm_yes(self) -> None:
         if self._confirming is None:
             return
+        if time.monotonic() < getattr(self, "_confirm_armed_at", 0.0):
+            return  # queued enter from the review keypress - not a decision
         draft = self._confirming
         app = self.app
         pane = self._market_pane()  # the market pane, for a post-fill position refresh
@@ -599,7 +611,8 @@ class OrderPanel(Vertical):
                         app.open_reconciliation(target)
 
                 app.push_screen(
-                    ConfirmModal("ORDER STATUS UNKNOWN", body, "check open orders"), _reconcile
+                    ConfirmModal("ORDER STATUS UNKNOWN", body, "check open orders", tone="warn"),
+                    _reconcile,
                 )
             else:
                 app.notify(result.error, severity="error", timeout=10)

@@ -28,7 +28,7 @@ from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier,
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
-from polymarket_tui.ui.widgets.order_details import order_detail_text
+from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
 from polymarket_tui.ui.widgets.order_panel import OrderPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
 from polymarket_tui.ui.widgets.trader_overview import TraderOverview
@@ -93,9 +93,9 @@ class MarketPane(TierAware, Vertical):
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
         Binding("space", "order('BUY')", "buy"),
-        Binding("y", "key_yes", "yes", show=False),
+        Binding("y", "select_outcome(0)", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
-        Binding("enter", "order('BUY')", "buy", priority=False),
+        Binding("enter", "enter_key", "buy", priority=False),
         Binding("b", "order('BUY')", "buy", show=False),
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_trades", "trades"),
@@ -588,6 +588,11 @@ class MarketPane(TierAware, Vertical):
     # -- actions ----------------------------------------------------------------
 
     def action_select_outcome(self, index: int) -> None:
+        # A y/n leaking through while the order panel is up (the confirming
+        # state keeps focus on the panel, whose bindings no longer shadow
+        # them) must not flip the outcome under the order.
+        if self.query_one(OrderPanel).is_open:
+            return
         self.query_one("#outcomes-table", VimDataTable).move_cursor(row=index)
 
     def action_set_interval_key(self, key: str) -> None:
@@ -653,23 +658,8 @@ class MarketPane(TierAware, Vertical):
         self._pending_cancel = orders
         self._cancel_armed_at = time.monotonic() + 0.35
         strip = self.query_one("#market-cancel-strip", Static)
-        strip.update(self._cancel_strip_text(orders))
+        strip.update(cancel_confirm_text(orders))
         strip.display = True
-
-    def _cancel_strip_text(self, orders: list) -> Text:
-        out = Text()
-        out.append(" CANCEL ", style=f"bold reverse {DOWN}")
-        if len(orders) > 1:
-            out.append(f" {len(orders)} orders at this level", style="bold")
-        out.append("\n")
-        for order in orders:
-            out.append_text(order_detail_text(order))
-            out.append("\n")
-        out.append("y", style="bold")
-        out.append(" confirm cancel   ", style="dim")
-        out.append("esc/left", style="bold")
-        out.append(" keep", style="dim")
-        return out
 
     def _clear_pending_cancel(self) -> None:
         if self._pending_cancel is not None:
@@ -677,17 +667,17 @@ class MarketPane(TierAware, Vertical):
             with contextlib.suppress(Exception):
                 self.query_one("#market-cancel-strip", Static).display = False
 
-    def action_key_yes(self) -> None:
-        """y confirms an armed cancel; otherwise it selects the YES outcome."""
+    def action_enter_key(self) -> None:
+        """enter confirms an armed cancel; otherwise it opens the buy panel."""
         if self._pending_cancel is not None:
             if time.monotonic() < self._cancel_armed_at:
-                return
+                return  # queued enter - not a decision
             orders = self._pending_cancel
             self._clear_pending_cancel()
             for order in orders:
                 self._start_cancel(order.id)
             return
-        self.action_select_outcome(0)
+        self.action_order("BUY")
 
     def _start_cancel(self, order_id: str) -> None:
         # App-lifetime worker: navigating off the pane must not drop an in-flight

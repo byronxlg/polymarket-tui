@@ -12,10 +12,10 @@
     ["tick_down3", ["Down", "Down", "Down"], 1],
     ["enter_to_size", ["Enter"], 1],
     ["review", ["Enter"], 2],
-    ["edit_back", ["n"], 1],
+    ["edit_back", ["Escape"], 1],
     ["stray_y_rejected", ["y"], 1],
     ["review2", ["Enter"], 2],
-    ["place_dry", ["y"], 4],
+    ["place_dry", ["Enter"], 4],
     ["out", ["Escape", "Escape"], 1]
   ]
 }

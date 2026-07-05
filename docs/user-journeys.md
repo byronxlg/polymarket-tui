@@ -125,3 +125,23 @@ follow_from_list): all pass. Verified untouched paths still behave:
 watchlist/portfolio root swaps, order panel open/edit/review/close, cancel
 strips, chart inspect, book focus flow, overlays (search/help/auth), tag
 bar, H, `<`, quick-order warnings.
+
+### Iteration 4 (2026-07-06) - enter confirms everywhere; confirm surfaces restyled
+
+Confirm keys unified (Byron's request): enter proceeds and esc steps back
+on every confirm surface - the order strip (was y), both cancel strips
+(was y), and ConfirmModal (already enter). Every surface ignores keys for
+the 0.35s arming beat, so a queued or held enter cannot confirm; verified
+by sending a rapid double-enter (reviews, does not place) and a deliberate
+enter (places DRY).
+
+Visual pass on the same surfaces: op-confirm and the cancel strips get a
+severity-tinted full-width row (amber DRY / red LIVE-or-cancel) and shared
+reverse-chip key hints; ConfirmModal drops the thick blue brick border for
+a round tone-colored one (danger red for LIVE/clear-creds, amber for the
+status-unknown prompt) with a chip title.
+
+Re-run: C3 and E5 pass with the new keys (E5's edit_back rescripted to
+esc). E4 could not be re-driven - the account held no resting orders at
+run time - but the cancel path shares the arming/strip code verified via
+C3 and a widget-level render.
