@@ -10,6 +10,7 @@ from rich.text import Text
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import ActivityItem
+from polymarket_tui.ui.theme import DOWN, UP
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
@@ -35,7 +36,7 @@ class TradesTable(VimDataTable):
         self.clear()
         for i, trade in enumerate(trades):
             side_char = trade.side[:1] if self.compact else trade.side
-            side_text = Text(side_char, style="green" if trade.side == "BUY" else "red")
+            side_text = Text(side_char, style=UP if trade.side == "BUY" else DOWN)
             row = [
                 trade.when.astimezone().strftime("%H:%M:%S"),
                 side_text,

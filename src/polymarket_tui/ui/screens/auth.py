@@ -25,6 +25,7 @@ from polymarket_tui.core.credstore import (
     save_credentials,
 )
 from polymarket_tui.core.proxy import check_pairing
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
@@ -153,7 +154,7 @@ class AuthScreen(Screen):
         mode = settings.mode
         out = Text()
         out.append("status\n", style="bold")
-        mode_style = {"RO": "dim", "OBS": "cyan", "DRY": "yellow", "LIVE": "bold red"}[mode.value]
+        mode_style = {"RO": "dim", "OBS": BLUE, "DRY": AMBER, "LIVE": f"bold {DOWN}"}[mode.value]
         out.append(f"  mode          {mode.value}", style=mode_style)
         out.append(f"  ({MODE_DESCRIPTIONS[mode]})\n", style="dim")
         funder = settings.polymarket_funder
@@ -172,7 +173,7 @@ class AuthScreen(Screen):
                 state, detail = check_pairing(
                     signer, funder, settings.polymarket_signature_type
                 )
-                pair_style = {"proven": "green", "mismatch": "bold red", "unproven": "yellow"}[
+                pair_style = {"proven": UP, "mismatch": f"bold {DOWN}", "unproven": AMBER}[
                     state
                 ]
                 label = {"proven": "PROVEN", "mismatch": "MISMATCH", "unproven": "unproven"}[state]
@@ -182,7 +183,7 @@ class AuthScreen(Screen):
         stored = "saved" if CRED_PATH.exists() else "not saved"
         out.append(f"  storage       {stored} ({CRED_PATH})\n")
         if self.app.authed is not None and self.app.authed.auth_failed:
-            out.append(f"  L2 creds      failed: {self.app.authed.auth_failed}\n", style="red")
+            out.append(f"  L2 creds      failed: {self.app.authed.auth_failed}\n", style=DOWN)
         if extra is not None:
             out.append_text(extra)
         self.query_one("#auth-status", Static).update(out)
@@ -210,7 +211,7 @@ class AuthScreen(Screen):
         if candidate.mode is Mode.TRADER_LIVE and self.app.settings.mode is not Mode.TRADER_LIVE:
             body = Text()
             body.append("Orders and cancels will be posted to the exchange for real.\n")
-            body.append("Dry-run protection is OFF for this session.", style="bold red")
+            body.append("Dry-run protection is OFF for this session.", style=f"bold {DOWN}")
 
             def _confirmed(ok: bool | None) -> None:
                 if ok:
@@ -234,7 +235,7 @@ class AuthScreen(Screen):
             state, detail = "unproven", ""
             if signer is None:
                 ok = False
-                report.append("private key is not a valid secp256k1 key\n", style="red")
+                report.append("private key is not a valid secp256k1 key\n", style=DOWN)
             else:
                 # Authoritative offline check: does this key control the funder?
                 # Types 0/1 are proven or refuted here; type 2 stays unproven.
@@ -243,39 +244,39 @@ class AuthScreen(Screen):
                 )
                 if state == "mismatch":
                     ok = False
-                    report.append(f"key/funder mismatch: {detail}\n", style="red")
+                    report.append(f"key/funder mismatch: {detail}\n", style=DOWN)
             if ok:
                 authed = AuthedClobClient(candidate)
                 try:
                     balance = await authed.usdc_balance()
-                    report.append(f"L2 auth ok - cash {fmt.money(balance)}\n", style="green")
+                    report.append(f"L2 auth ok - cash {fmt.money(balance)}\n", style=UP)
                     report.append(f"signer {signer}\n")
                     if state == "proven":
-                        report.append(f"pairing proven: {detail}\n", style="green")
+                        report.append(f"pairing proven: {detail}\n", style=UP)
                     elif state == "unproven":
-                        report.append(f"pairing unproven: {detail}\n", style="yellow")
+                        report.append(f"pairing unproven: {detail}\n", style=AMBER)
                     if balance == 0 and state != "proven":
                         report.append(
                             "cash $0.00 can mean a wrong key for this funder -"
                             " check the signer matches your wallet\n",
-                            style="yellow",
+                            style=AMBER,
                         )
                 except Exception as exc:
                     ok = False
-                    report.append(f"auth failed: {exc}\n", style="red")
+                    report.append(f"auth failed: {exc}\n", style=DOWN)
             if not ok:
                 report.append("kept previous credentials\n", style="dim")
         elif candidate.polymarket_funder:
             try:
                 value = await self.app.data.portfolio_value(candidate.polymarket_funder)
                 report.append(
-                    f"observer ok - portfolio value {fmt.money(value or 0.0)}\n", style="green"
+                    f"observer ok - portfolio value {fmt.money(value or 0.0)}\n", style=UP
                 )
             except Exception as exc:
                 ok = False
-                report.append(f"funder lookup failed: {exc}\n", style="red")
+                report.append(f"funder lookup failed: {exc}\n", style=DOWN)
         else:
-            report.append("no credentials - read-only mode\n", style="yellow")
+            report.append("no credentials - read-only mode\n", style=AMBER)
 
         if ok:
             self.app.reconfigure(candidate)
@@ -313,7 +314,7 @@ class AuthScreen(Screen):
                 message = "credentials cleared - read-only mode"
                 if removed:
                     message += f" (deleted {CRED_PATH})"
-                self.query_one("#auth-result", Static).update(Text(message, style="yellow"))
+                self.query_one("#auth-result", Static).update(Text(message, style=AMBER))
                 self._render_status()
 
         self.app.push_screen(

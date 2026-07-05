@@ -6,15 +6,16 @@ from rich.text import Text
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
 def change_text(change: float | None) -> Text:
     if change is None:
-        return Text("-", style="dim")
-    style = "green" if change > 0 else "red" if change < 0 else "dim"
-    return Text(fmt.cents(change, signed=True), style=style)
+        return Text("-", style="dim", justify="right")
+    style = UP if change > 0 else DOWN if change < 0 else "dim"
+    return Text(fmt.cents(change, signed=True), style=style, justify="right")
 
 
 # (key, label, width) per width tier. Compact keeps only what identifies the
@@ -28,7 +29,6 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
         ("price", "Price", 7),
         ("change", "24h", 7),
         ("vol", "Vol 24h", 9),
-        ("ends", "Ends", 8),
     ),
     "medium": (
         ("star", " ", 2),
@@ -130,23 +130,21 @@ class EventsTable(VimDataTable):
         price: Text | str = ""
         if top is not None:
             outcome = top.display_title if not event.is_binary else "Yes"
-            price = Text(fmt.cents(top.yes_price), style="bold cyan")
-        ends = fmt.end_date(event.end_date)
+            price = Text(fmt.cents(top.yes_price), style="bold", justify="right")
         return {
             "star": self._flag_cell(event.slug),
             "event": fmt.trunc(event.title, widths["event"]),
             "outcome": fmt.trunc(outcome, widths.get("outcome", 24)),
             "price": price,
             "change": change_text(top.one_day_price_change if top else None),
-            "vol": fmt.vol(event.volume_24hr),
-            "ends": Text(ends, style="dim red") if ends == "ended" else ends,
+            "vol": Text(fmt.vol(event.volume_24hr), justify="right"),
         }
 
     def _flag_cell(self, slug: str) -> Text:
         """Two-char flag: * watched, o resting order."""
         out = Text()
-        out.append("*" if slug in self._watched else " ", style="yellow")
-        out.append("o" if slug in self._ordered else " ", style="bold cyan")
+        out.append("*" if slug in self._watched else " ", style=AMBER)
+        out.append("o" if slug in self._ordered else " ", style=f"bold {BLUE}")
         return out
 
     def highlighted_event(self) -> Event | None:
