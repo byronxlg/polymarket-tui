@@ -17,6 +17,7 @@ site/
     asciinema-player.min.js         vendored player (Apache-2.0)
     asciinema-player.css            vendored player styles
     demo.cast                       the recording (asciinema v2 format)
+    fonts/plexmono-*.woff2          vendored IBM Plex Mono, latin subset (OFL)
 scripts/
   record_demo.sh                    re-records assets/demo.cast
   trim_cast.py                      trims dead time from a raw cast
