@@ -18,6 +18,7 @@ from textual.widgets import DataTable, Static, Tab, Tabs
 from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
+from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
@@ -85,6 +86,8 @@ class EventPane(TierAware, Vertical):
         self._show_info = False
         self._interval = "ALL"
         self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
+        # Throttled cursor-follow: one preview render per settle, not per row.
+        self._preview_follow = CursorFollow(self, self._show_market_preview)
         self.drill_key = ("event", event.slug)
 
     def compose(self) -> ComposeResult:
@@ -259,9 +262,12 @@ class EventPane(TierAware, Vertical):
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         if event.row_key is not None:
-            market = self._market_by_slug(str(event.row_key.value))
-            if market is not None:
-                self.query_one(MarketPreview).show_market(market)
+            self._preview_follow(str(event.row_key.value))
+
+    def _show_market_preview(self, slug: str) -> None:
+        market = self._market_by_slug(slug)
+        if market is not None:
+            self.query_one(MarketPreview).show_market(market)
 
     # -- chart -----------------------------------------------------------------
 

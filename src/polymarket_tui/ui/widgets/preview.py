@@ -9,6 +9,7 @@ from textual.widgets import DataTable, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
+from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
 from polymarket_tui.ui.widgets.event_table import EventsTable
 
@@ -139,6 +140,12 @@ class EventPreview(Static):
 class EventsBrowser(Horizontal):
     """EventsTable with a side preview that follows the cursor and mouse hover."""
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        # Throttled: re-rendering the preview per key-repeat row makes the
+        # compositor repaint the pane ~20x/s while scrolling.
+        self._follow = CursorFollow(self, self._show_slug)
+
     def compose(self):
         yield EventsTable(id="events-table")
         pane = VerticalScroll(EventPreview(id="event-preview"), id="preview-pane")
@@ -153,9 +160,12 @@ class EventsBrowser(Horizontal):
     def preview(self) -> EventPreview:
         return self.query_one(EventPreview)
 
+    def _show_slug(self, slug: str) -> None:
+        self.preview.show_event(self.table.events_by_slug.get(slug))
+
     def _preview_slug(self, slug: str | None) -> None:
         if slug:
-            self.preview.show_event(self.table.events_by_slug.get(slug))
+            self._follow(slug)
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         if event.row_key is not None:
