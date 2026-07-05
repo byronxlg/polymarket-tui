@@ -28,6 +28,13 @@ class Position(BaseModel):
     redeemable: bool = False
     end_date: datetime | None = Field(default=None, alias="endDate")
 
+    @property
+    def resolved_loss(self) -> bool:
+        """Losing shares of a resolved market: the book is gone and redemption
+        pays 0, so data-api keeps returning them (redeemable, price 0) until
+        redeemed. A 50/50 resolution prices at 0.5 and still pays - not a loss."""
+        return self.redeemable and self.cur_price < 0.5
+
 
 class ActivityItem(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)

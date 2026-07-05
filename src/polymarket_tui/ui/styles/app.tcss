@@ -244,6 +244,13 @@ PriceChartPanel {
     max-height: 100%;
 }
 
+/* One dim line under the positions table when resolved losses are hidden.
+   Visibility is inline (display flag) because it depends on the data. */
+#lost-note {
+    height: 1;
+    padding: 0 1;
+}
+
 #pnl-pane {
     height: 1fr;
     min-height: 8;

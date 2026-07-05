@@ -131,6 +131,7 @@ class PortfolioPane(TierAware, Vertical):
         with TabbedContent(id="portfolio-tabs"):
             with TabPane("Positions", id="pane-positions"):
                 yield PositionsTable(cursor_type="row", zebra_stripes=True, id="positions-table")
+                yield Static(id="lost-note")
             with TabPane("Open orders", id="pane-orders"):
                 yield OrdersTable(cursor_type="row", zebra_stripes=True, id="orders-table")
             with TabPane("History", id="pane-history"):
@@ -161,6 +162,7 @@ class PortfolioPane(TierAware, Vertical):
 
     def on_mount(self) -> None:
         self.query_one("#cancel-strip", Static).display = False
+        self.query_one("#lost-note", Static).display = False
         self._rendered_density = self.app.density
         self._pos_spec = list(self._pos_columns()[self.tier])
         self._pos_tier = self.tier
@@ -288,23 +290,38 @@ class PortfolioPane(TierAware, Vertical):
         full = self._pos_tier == "full"
         density = self.app.density
         height = 2 if density == "spacious" else 1
+        lost = 0
         for pos in sorted(self._positions, key=lambda p: p.current_value, reverse=True):
             if pos.size < 0.01:
+                continue
+            if pos.resolved_loss:
+                lost += 1
                 continue
             row = position_row(pos, columns=self._pos_spec, density=density)
             if full:
                 row.append(self._resolution_flag(pos))
             table.add_row(*row, key=f"{pos.slug}|{pos.asset}", height=height)
+        note = self.query_one("#lost-note", Static)
+        # Compact tier is context-only (primary list survives); inline display
+        # flags override stylesheet rules, so the tier gate lives here too.
+        note.display = lost > 0 and self._pos_tier != "compact"
+        if lost:
+            word = "losses" if lost != 1 else "loss"
+            note.update(
+                Text(
+                    f"{lost} resolved {word} hidden - worth 0, nothing to claim",
+                    style="dim",
+                )
+            )
 
     @staticmethod
     def _resolution_flag(pos) -> Text | str:
         """Resolved markets: won shares redeem for USD1 each (on the website -
-        redemption is an on-chain transaction this client does not send)."""
+        redemption is an on-chain transaction this client does not send).
+        Losses never reach the table (_render_positions drops resolved_loss)."""
         if not pos.redeemable:
             return ""
-        if pos.cur_price >= 0.5:
-            return Text("won - redeem on web", style=AMBER)
-        return Text("resolved - lost", style=f"dim {DOWN}")
+        return Text("won - redeem on web", style=AMBER)
 
     @work(exclusive=True, group="orders")
     async def load_orders(self) -> None:
