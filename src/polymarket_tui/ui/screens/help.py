@@ -45,7 +45,7 @@ expanded trades collapse before the screen closes.
 | H or Home | home screen |
 | A | auth / credentials |
 | L | toggle DRY/LIVE (going live asks for confirmation; the mode persists) |
-| T | toggle condensed/spacious layout (persists) |
+| T | toggle condensed/spacious density (spacious: two-line rows with market metadata; persists) |
 | ? | this help |
 | q | quit |
 

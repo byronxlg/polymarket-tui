@@ -24,13 +24,16 @@ TIER_ORDER: dict[Tier, int] = {"compact": 0, "medium": 1, "full": 2}
 ColumnSpec = tuple[str, str, int]
 
 
-def columns_need(columns: tuple[ColumnSpec, ...] | list[ColumnSpec]) -> int:
-    """Cells render with one cell of padding each side."""
-    return sum(width for _, _, width in columns) + 2 * len(columns)
+def columns_need(columns: tuple[ColumnSpec, ...] | list[ColumnSpec], pad: int = 1) -> int:
+    """Cells render with `pad` cells of padding each side (DataTable.cell_padding)."""
+    return sum(width for _, _, width in columns) + 2 * pad * len(columns)
 
 
 def effective_tier(
-    cap: Tier, width: int, tier_columns: dict[Tier, tuple[ColumnSpec, ...]]
+    cap: Tier,
+    width: int,
+    tier_columns: dict[Tier, tuple[ColumnSpec, ...]],
+    pad: int = 1,
 ) -> Tier:
     """Widest column set that the slot tier allows AND the measured width fits.
 
@@ -39,7 +42,9 @@ def effective_tier(
     of a wide one, so the column set must follow real columns-on-screen.
     """
     for tier in ("full", "medium"):
-        if TIER_ORDER[tier] <= TIER_ORDER[cap] and width >= columns_need(tier_columns[tier]):
+        if TIER_ORDER[tier] <= TIER_ORDER[cap] and width >= columns_need(
+            tier_columns[tier], pad
+        ):
             return tier  # type: ignore[return-value]
     return "compact"
 
@@ -49,6 +54,7 @@ def fit_columns(
     width: int,
     flex_key: str,
     flex_max: int | None = None,
+    pad: int = 1,
 ) -> list[ColumnSpec]:
     """Fit the set to `width` by resizing the primary text column.
 
@@ -57,7 +63,7 @@ def fit_columns(
     as soon as there is room without pushing the numeric columns into the
     void when rows are short.
     """
-    delta = width - columns_need(columns)
+    delta = width - columns_need(columns, pad)
     if delta < 0:
         return [
             (key, label, max(14, w + delta) if key == flex_key else w)

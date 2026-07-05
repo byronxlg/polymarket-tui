@@ -1,0 +1,10 @@
+{
+  "size": [100, 32],
+  "boot_wait": 16,
+  "command": "HOME=$(scripts/journey_env.sh anon) .venv/bin/polymarket-tui; sleep 300",
+  "steps": [
+    ["narrow_condensed", [], 2],
+    ["narrow_spacious", ["T"], 3],
+    ["narrow_event", ["Enter"], 7]
+  ]
+}
