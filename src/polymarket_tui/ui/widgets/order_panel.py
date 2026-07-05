@@ -199,7 +199,14 @@ class OrderPanel(Vertical):
     def is_open(self) -> bool:
         return self.has_class("open")
 
-    def open(self, market: Market, side: Side, outcome_index: int, book: OrderBook | None) -> None:
+    def open(
+        self,
+        market: Market,
+        side: Side,
+        outcome_index: int,
+        book: OrderBook | None,
+        price: float | None = None,
+    ) -> None:
         self._market = market
         self._side = side
         self._outcome_index = outcome_index
@@ -208,7 +215,11 @@ class OrderPanel(Vertical):
         for field in ("#op-price", "#op-size"):
             self.query_one(field, Input).disabled = False
         price_input = self.query_one("#op-price", PriceInput)
-        if book is not None and book.midpoint is not None and not price_input.value:
+        # A price passed in (the level under the book cursor) wins over the
+        # midpoint default; either only fills an empty field.
+        if price is not None and not price_input.value:
+            price_input.value = f"{round_to_tick(market, Decimal(str(price))) * 100:.1f}"
+        elif book is not None and book.midpoint is not None and not price_input.value:
             price_input.value = f"{round_to_tick(market, Decimal(str(book.midpoint))) * 100:.1f}"
         self.query_one("#op-issues", Static).update("")
         # Price first: confirm or adjust what you pay before how much.

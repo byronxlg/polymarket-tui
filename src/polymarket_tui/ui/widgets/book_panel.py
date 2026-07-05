@@ -1,10 +1,18 @@
-"""Order book rendering: top N levels per side with size bars."""
+"""Order book rendering: top N levels per side with size bars.
+
+The panel is focusable: up/down move a cursor through the price levels and
+the hovered level is highlighted. The market screen reads the hovered price
+to pre-fill an order (space buys at the level under the cursor). Up past the
+top level raises CursorExitedTop so focus can step back to the outcome table.
+"""
 
 from __future__ import annotations
 
 import math
 
 from rich.text import Text
+from textual.binding import Binding
+from textual.message import Message
 from textual.widgets import Static
 
 from polymarket_tui.core import fmt
@@ -17,10 +25,30 @@ FIXED_COLS = 24  # " price(7) shares(10)" + spacing + own-order marker
 
 
 class BookPanel(Static):
+    can_focus = True
+
+    BINDINGS = [
+        Binding("up", "cursor_up", "up", show=False),
+        Binding("down", "cursor_down", "down", show=False),
+        Binding("left", "app.nav_back", "back", show=False),
+    ]
+
+    class CursorExitedTop(Message):
+        """Up pressed on the top book level - step focus back above."""
+
+        def __init__(self, panel: BookPanel) -> None:
+            super().__init__()
+            self.panel = panel
+
     def __init__(self, **kwargs) -> None:
         super().__init__("loading book...", **kwargs)
         self._own_prices: set[float] = set()
         self._book: OrderBook | None = None
+        # Display-order levels (highest ask down to lowest bid) with their side.
+        self._levels: list[tuple[BookLevel, str]] = []
+        # Cursor tracked by price, not index: a live book rebuilds constantly,
+        # so an index would jump under the cursor while a price stays put.
+        self._cursor_price: float | None = None
 
     def set_own_prices(self, prices: set[float]) -> None:
         """Price levels holding one of your resting orders (marked with *)."""
@@ -34,28 +62,86 @@ class BookPanel(Static):
         if self._book is not None:
             self.update_book(self._book)
 
+    def on_focus(self) -> None:
+        if self._cursor_price is None and self._levels:
+            self._cursor_price = self._levels[0][0].price
+        self._rerender()
+
+    def on_blur(self) -> None:
+        self._rerender()
+
     def show_error(self, message: str) -> None:
+        self._book = None
+        self._levels = []
         self.update(Text(message, style="dim"))
+
+    # -- cursor -----------------------------------------------------------------
+
+    def _cursor_index(self) -> int | None:
+        if self._cursor_price is None:
+            return None
+        for i, (level, _side) in enumerate(self._levels):
+            if abs(level.price - self._cursor_price) < 1e-9:
+                return i
+        return None
+
+    def selected_price(self) -> float | None:
+        """Price of the level under the cursor (dollars, 0-1), or None."""
+        idx = self._cursor_index()
+        return self._levels[idx][0].price if idx is not None else None
+
+    def action_cursor_up(self) -> None:
+        idx = self._cursor_index()
+        if not self._levels:
+            return
+        if idx is None:
+            self._cursor_price = self._levels[0][0].price
+        elif idx == 0:
+            self.post_message(self.CursorExitedTop(self))
+            return
+        else:
+            self._cursor_price = self._levels[idx - 1][0].price
+        self._rerender()
+
+    def action_cursor_down(self) -> None:
+        idx = self._cursor_index()
+        if not self._levels:
+            return
+        if idx is None:
+            self._cursor_price = self._levels[0][0].price
+        elif idx < len(self._levels) - 1:
+            self._cursor_price = self._levels[idx + 1][0].price
+        self._rerender()
 
     def _bar_width(self) -> int:
         width = self.size.width or (MIN_BAR_WIDTH + FIXED_COLS + 2)
         return max(MIN_BAR_WIDTH, min(MAX_BAR_WIDTH, width - FIXED_COLS))
 
-    def _level_line(self, level: BookLevel, max_size: float, style: str, bar_w: int) -> Text:
+    def _level_line(
+        self, level: BookLevel, max_size: float, style: str, bar_w: int, selected: bool
+    ) -> Text:
         # log scale so one whale level doesn't flatten every other bar to nothing
         filled = 0
         if max_size > 0 and level.size > 0:
             ratio = math.log10(1 + level.size) / math.log10(1 + max_size)
             filled = max(1, int(round(bar_w * ratio)))
+        # Selected row: explicit highlight background reads reliably in Textual
+        # (Rich `reverse` on a Static does not composite to a visible swap).
+        hi = " on rgb(38,64,102)" if selected else ""
+        bar_style = f"bold {style}{hi}" if selected else style
         line = Text()
-        line.append(" " * (bar_w - filled))
-        line.append("\u2588" * filled, style=style)
-        line.append(f" {fmt.cents(level.price):>7}", style=style)
-        line.append(f" {fmt.compact_size(level.size):>10}")
+        line.append(" " * (bar_w - filled), style=hi.strip() or None)
+        line.append("█" * filled, style=bar_style)
+        line.append(f" {fmt.cents(level.price):>7}", style=bar_style)
+        line.append(f" {fmt.compact_size(level.size):>10}", style=hi.strip() or None)
         if any(abs(level.price - p) < 1e-9 for p in self._own_prices):
             line.append(" *", style="bold yellow")
         line.append("\n")
         return line
+
+    def _rerender(self) -> None:
+        if self._book is not None:
+            self.update_book(self._book)
 
     def update_book(self, book: OrderBook) -> None:
         self._book = book
@@ -64,11 +150,17 @@ class BookPanel(Static):
         bids = sorted(book.bids, key=lambda lvl: lvl.price, reverse=True)[:DEPTH]
         max_size = max((lvl.size for lvl in asks + bids), default=0.0)
 
+        # Display order (top to bottom) with side; the cursor rides this list.
+        self._levels = [(lvl, "ask") for lvl in reversed(asks)] + [(lvl, "bid") for lvl in bids]
+        cursor_idx = self._cursor_index() if self.has_focus else None
+
         out = Text()
         out.append(f"{'':>{bar_w}} {'price':>7} {'shares':>10}\n", style="bold dim")
 
+        row = 0
         for level in reversed(asks):
-            out.append_text(self._level_line(level, max_size, "red", bar_w))
+            out.append_text(self._level_line(level, max_size, "red", bar_w, row == cursor_idx))
+            row += 1
 
         if book.midpoint is not None:
             out.append(
@@ -79,6 +171,7 @@ class BookPanel(Static):
             out.append("empty book\n", style="dim")
 
         for level in bids:
-            out.append_text(self._level_line(level, max_size, "green", bar_w))
+            out.append_text(self._level_line(level, max_size, "green", bar_w, row == cursor_idx))
+            row += 1
 
         self.update(out)

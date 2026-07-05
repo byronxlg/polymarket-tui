@@ -74,7 +74,7 @@ class MarketPane(TierAware, Vertical):
 
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
-        Binding("space", "toggle_outcome", "yes/no"),
+        Binding("space", "order('BUY')", "buy"),
         Binding("y", "select_outcome(0)", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
         Binding("enter", "order('BUY')", "buy", priority=False),
@@ -122,7 +122,13 @@ class MarketPane(TierAware, Vertical):
             # Book in the hero column (actionable prices first), trades in the
             # rail (live context) - swapped 2026-07-05 on Byron's request.
             with Vertical(id="market-left"):
-                yield VimDataTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
+                # right steps the cursor into the trades rail (not open a row).
+                yield VimDataTable(
+                    cursor_type="row",
+                    zebra_stripes=True,
+                    id="outcomes-table",
+                    open_on_right=False,
+                )
                 yield Static(id="position-line")
                 yield Static(id="orders-note")
                 with Vertical(id="book-pane"):
@@ -312,8 +318,30 @@ class MarketPane(TierAware, Vertical):
         self.load_history()
         self.load_own_orders()
 
+    def on_vim_data_table_right_reached(self, message) -> None:
+        """Right on the outcome table steps the cursor into the trades rail."""
+        if message.table.id == "outcomes-table":
+            self._focus_trades_rail()
+
     def on_vim_data_table_bottom_reached(self, message) -> None:
-        self.action_inspect_chart()
+        """Down past the last outcome row drops the cursor into the book."""
+        if message.table.id == "outcomes-table":
+            self._focus_book()
+
+    def on_book_panel_cursor_exited_top(self, message) -> None:
+        """Up past the top book level steps back to the outcome table."""
+        self.query_one("#outcomes-table", VimDataTable).focus()
+
+    def _focus_trades_rail(self) -> None:
+        # Only when the rail is on screen (medium/full) and not already the
+        # full-width expanded view - a pure cursor switch, no layout change.
+        if self._trades_expanded or not self.query_one("#trades-rail").display:
+            return
+        self.query_one(TradesTable).focus()
+
+    def _focus_book(self) -> None:
+        if self.query_one("#book-pane").display:
+            self.query_one(BookPanel).focus()
 
     def _book_header(self) -> Text:
         """Book title with a live-feed badge: LIVE when the socket is healthy,
@@ -543,9 +571,6 @@ class MarketPane(TierAware, Vertical):
     def action_select_outcome(self, index: int) -> None:
         self.query_one("#outcomes-table", VimDataTable).move_cursor(row=index)
 
-    def action_toggle_outcome(self) -> None:
-        self.action_select_outcome(1 - self._outcome_index)
-
     def action_set_interval_key(self, key: str) -> None:
         self._interval = key
         tabs = self.query_one("#interval-tabs", Tabs)
@@ -567,12 +592,6 @@ class MarketPane(TierAware, Vertical):
     def action_refresh(self) -> None:
         self.load_book()
         self.load_history()
-
-    def action_inspect_chart(self) -> None:
-        if self.query_one(PriceChartPanel).display:
-            self.query_one(PriceChartPanel).enter_inspect(
-                return_focus=self.query_one("#outcomes-table", VimDataTable)
-            )
 
     @work(exclusive=True, group="trades")
     async def load_trades(self) -> None:
@@ -620,6 +639,14 @@ class MarketPane(TierAware, Vertical):
         panel = self.query_one(OrderPanel)
         if panel.is_open:
             panel.close()
+            return True
+        # Cursor parked in the book or trades rail (right/down stepped into it) -
+        # step back to the outcome table rather than leaving the whole pane.
+        if self.query_one(BookPanel).has_focus:
+            self.query_one("#outcomes-table", VimDataTable).focus()
+            return True
+        if not self._trades_expanded and self.query_one(TradesTable).has_focus:
+            self.query_one("#outcomes-table", VimDataTable).focus()
             return True
         # At compact the trades view is suspended (not visible), so esc
         # should step out of the pane, not invisibly collapse it.
@@ -696,8 +723,12 @@ class MarketPane(TierAware, Vertical):
         panel = self.query_one(OrderPanel)
         if panel.is_open:
             panel.set_side(Side(side))
-        else:
-            panel.open(self._market, Side(side), self._outcome_index, self._book)
+            return
+        # Price the order from the level under the cursor when the book is
+        # focused; otherwise the panel falls back to the midpoint.
+        book_panel = self.query_one(BookPanel)
+        price = book_panel.selected_price() if book_panel.has_focus else None
+        panel.open(self._market, Side(side), self._outcome_index, self._book, price=price)
 
     def action_toggle_watch(self) -> None:
         slug = self._event.slug if self._event else self._market.slug

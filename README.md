@@ -83,16 +83,17 @@ are on-chain operations this client does not perform - use the website.
 One scheme everywhere - press `?` in the app for the full reference:
 
 - **arrows** move; `up`/`down` flow into adjacent panels (category bar,
-  chart inspect, search box); `right`/`enter` open; `left`/`esc` step out
-  one level (order panel -> expanded view -> screen -> previous screen)
+  order book, trades, search box); `right`/`enter` open; `left`/`esc` step
+  out one level (order panel -> expanded view -> screen -> previous screen)
 - **tab** cycles the screen's selector: category (home), chart timeframe
   (event/market), pane (portfolio), results mode (search)
-- **space** is the contextual toggle: star an event, follow a trader, flip
-  the YES/NO book, flip BUY/SELL while ordering, show rules
-- Market pages: `b`/`s` order entry under the live book (price in cents,
-  empty = market order, up/down = tick), `y`/`n` book side, `a` expand the
-  inline trades to full width (right opens the trader), `i` rules,
-  `c` comments, `e` parent event
+- **space** is the contextual toggle: star an event, follow a trader, buy
+  the selected outcome (market), flip BUY/SELL while ordering, show rules
+- Market pages: `space`/`b`/`enter` buy, `s` sell (price in cents, empty =
+  market order, up/down = tick); `down` steps the cursor into the live book
+  (buying then prices at the hovered level), `right` into the trades rail;
+  `y`/`n` book side, `a` expand the inline trades to full width (right opens
+  the trader), `i` rules, `c` comments, `e` parent event
 - `/` search (markets and traders), `p` portfolio, `w` watchlist, `A` auth,
   `L` toggle DRY/LIVE for the session (going live asks for confirmation),
   `q` quit

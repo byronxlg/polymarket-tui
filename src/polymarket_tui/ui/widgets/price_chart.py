@@ -2,20 +2,13 @@
 
 The legend is rendered outside the plot (a Rich line above it) so the plot area
 stays clean; series colors are deterministic so legend and lines always match.
-
-Inspect mode: `x` (bound on the owning screen) focuses the panel and shows a
-crosshair; left/right step through time, escape/x exits and returns focus.
+The chart is display-only context - it never takes focus.
 """
 
 from __future__ import annotations
 
-import bisect
-from datetime import datetime
-
 from rich.text import Text
-from textual.binding import Binding
 from textual.containers import Vertical
-from textual.widget import Widget
 from textual.widgets import Static
 
 from polymarket_tui.core import fmt
@@ -57,17 +50,6 @@ def _change_text(delta: float) -> tuple[str, str]:
 class PriceChartPanel(Vertical):
     """Legend + chart. Call show(series, interval_key) with (label, points) tuples."""
 
-    BINDINGS = [
-        Binding("left", "step(-1)", "back", show=False),
-        Binding("right", "step(1)", "forward", show=False),
-        Binding("shift+left", "step(-10)", "back 10", show=False),
-        Binding("shift+right", "step(10)", "forward 10", show=False),
-        Binding("escape", "exit_inspect", "exit inspect", show=False),
-        Binding("x", "exit_inspect", "exit inspect", show=False),
-        Binding("down", "exit_inspect", "exit inspect", show=False),
-        Binding("up", "exit_inspect", "exit inspect", show=False),
-    ]
-
     DEFAULT_CSS = """
     PriceChartPanel > #chart-legend {
         height: 1;
@@ -76,19 +58,14 @@ class PriceChartPanel(Vertical):
     PriceChartPanel > #chart-canvas {
         height: 1fr;
     }
-    PriceChartPanel:focus-within #chart-legend {
-        background: $panel;
-    }
     """
 
-    can_focus = False  # focusable only while inspecting
+    can_focus = False  # display-only context, never focused
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._series: list[tuple[str, list[PricePoint]]] = []
         self._interval = "1D"
-        self._inspect_ts: int | None = None  # crosshair time, None = live mode
-        self._return_focus: Widget | None = None
 
     def compose(self):
         yield Static(id="chart-legend")
@@ -100,59 +77,11 @@ class PriceChartPanel(Vertical):
     def show(self, series: list[tuple[str, list[PricePoint]]], interval_key: str) -> None:
         self._series = [(label, pts) for label, pts in series if pts][:MAX_SERIES]
         self._interval = interval_key
-        if self._inspect_ts is not None or self.has_focus:
-            # New data invalidates the crosshair position - leave inspect cleanly.
-            self.action_exit_inspect()
-            return
         self._redraw()
 
     def _redraw(self) -> None:
         self._draw_legend()
         self._draw_plot()
-
-    # -- inspect mode -------------------------------------------------------------
-
-    @property
-    def _lead_times(self) -> list[int]:
-        return [p.t for p in self._series[0][1]] if self._series else []
-
-    def enter_inspect(self, return_focus: Widget | None = None) -> None:
-        if not self._series:
-            return
-        self._return_focus = return_focus
-        self.can_focus = True
-        self.focus()
-        # Start inside the plot (not at the right edge, where the crosshair
-        # would blend into the frame border).
-        times = self._lead_times
-        self._inspect_ts = times[max(0, int(len(times) * 0.85) - 1)]
-        self._redraw()
-
-    def action_exit_inspect(self) -> None:
-        self._inspect_ts = None
-        self.can_focus = False
-        self._redraw()
-        if self._return_focus is not None and self._return_focus.is_mounted:
-            self._return_focus.focus()
-        else:
-            self.screen.set_focus(None)
-
-    def action_step(self, delta: int) -> None:
-        times = self._lead_times
-        if not times or self._inspect_ts is None:
-            return
-        # Scale steps to the window so each press moves visibly: ~1.5% per
-        # arrow press, ~10% per shift press (delta arrives as +-1 / +-10).
-        unit = max(1, len(times) // 66)
-        idx = bisect.bisect_left(times, self._inspect_ts)
-        idx = max(0, min(len(times) - 1, idx + delta * unit))
-        self._inspect_ts = times[idx]
-        self._redraw()
-
-    def _value_at(self, points: list[PricePoint], ts: int) -> PricePoint:
-        idx = bisect.bisect_left([p.t for p in points], ts)
-        idx = max(0, min(len(points) - 1, idx))
-        return points[idx]
 
     # -- legend -----------------------------------------------------------------
 
@@ -162,28 +91,17 @@ class PriceChartPanel(Vertical):
             legend.update(Text("no price history", style="dim"))
             return
         out = Text()
-        inspecting = self._inspect_ts is not None
-        if inspecting:
-            when = datetime.fromtimestamp(self._inspect_ts).astimezone()
-            out.append(when.strftime("%b %d %H:%M "), style="bold reverse")
-            out.append(" ")
         for i, (label, points) in enumerate(self._series):
             color = _rich_color(PALETTE[i % len(PALETTE)])
             if i:
                 out.append("   ")
             out.append("● ", style=color)
             out.append(fmt.trunc(label, 22), style=color)
-            if inspecting:
-                point = self._value_at(points, self._inspect_ts)
-                out.append(f" {fmt.cents(point.p)}", style=f"bold {color}")
-            else:
-                out.append(f" {fmt.cents(points[-1].p)}", style=f"bold {color}")
-                # Change over the visible window.
-                delta = points[-1].p - points[0].p
-                text, style = _change_text(delta)
-                out.append(f" {text}", style=style)
-        if inspecting:
-            out.append("   (left/right step, esc exit)", style="dim")
+            out.append(f" {fmt.cents(points[-1].p)}", style=f"bold {color}")
+            # Change over the visible window.
+            delta = points[-1].p - points[0].p
+            text, style = _change_text(delta)
+            out.append(f" {text}", style=style)
         legend.update(out)
 
     # -- plot -------------------------------------------------------------------
@@ -208,6 +126,5 @@ class PriceChartPanel(Vertical):
                 width=size.width,
                 height=size.height,
                 time_format=_time_format(self._interval, span),
-                inspect_ts=self._inspect_ts,
             )
         )

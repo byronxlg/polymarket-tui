@@ -35,12 +35,15 @@ pane must never render clipped columns.
 ## Keys: a small core, one meaning each
 
 - Arrows do everything first: up/down move and flow into adjacent panels
-  (category bar, chart inspect, search box); right/enter drill in; left/esc
-  step OUT one level (panel -> expanded view -> screen -> previous screen).
+  (category bar, order book, trades rail, search box); right/enter drill in;
+  left/esc step OUT one level (panel -> expanded view -> screen -> previous
+  screen). On a market, down parks the cursor in the live book and right in
+  the trades rail; left/up steps back to the outcomes.
 - tab / shift+tab cycle the screen's primary selector (category, timeframe,
   pane, search mode).
-- space is the contextual toggle: star a list row, flip the YES/NO book,
-  flip BUY/SELL in the order panel, show rules, follow a trader.
+- space is the contextual toggle: star a list row, follow a trader, show
+  rules, flip BUY/SELL in the order panel. On a market it buys the selected
+  outcome, priced at the level under the cursor when the book is focused.
 - New keybinds only when they earn their place; no aliases, no vim keys.
   Footer shows at most the few keys that matter on that screen.
 

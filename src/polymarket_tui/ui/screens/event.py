@@ -311,15 +311,6 @@ class EventPane(TierAware, Vertical):
                 self._interval = key
                 self.load_chart()
 
-    def on_vim_data_table_bottom_reached(self, message) -> None:
-        # The chart lives below the table now - down past the last row inspects it.
-        self.action_inspect_chart()
-
-    def action_inspect_chart(self) -> None:
-        pane = self.query_one("#event-chart-pane", Vertical)
-        if pane.display:
-            self.query_one(PriceChartPanel).enter_inspect(return_focus=self.query_one(VimDataTable))
-
     def action_toggle_info(self) -> None:
         """Swap the right pane between the market preview and the event rules."""
         rules = self.query_one("#rules-panel", Static)

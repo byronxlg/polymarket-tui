@@ -17,8 +17,6 @@ from polymarket_tui.models.market import PricePoint
 GUTTER = 7  # "  33.5┤"
 RGB = tuple[int, int, int]
 
-CROSSHAIR_BG = " on grey30"
-
 
 def _color(rgb: RGB) -> str:
     return f"rgb({rgb[0]},{rgb[1]},{rgb[2]})"
@@ -40,7 +38,6 @@ def render_chart(
     width: int,
     height: int,
     time_format: str,
-    inspect_ts: int | None = None,
     clamp: tuple[float, float] | None = (0.0, 100.0),
 ) -> Text:
     plot_w = width - GUTTER
@@ -105,16 +102,6 @@ def render_chart(
             col = last_cols[-1]
             put(to_row(values[col]), col, "●", f"bold {style}")
 
-    # crosshair column
-    inspect_col: int | None = None
-    if inspect_ts is not None and hi_t > lo_t:
-        inspect_col = round((inspect_ts - lo_t) / (hi_t - lo_t) * (plot_w - 1))
-        inspect_col = max(0, min(plot_w - 1, inspect_col))
-        for row in range(rows):
-            if chars[row][inspect_col] == " ":
-                chars[row][inspect_col] = "│"
-                colors[row][inspect_col] = "grey58"
-
     # y-axis labels on ~5 rows
     label_rows = {0, rows // 4, rows // 2, 3 * rows // 4, rows - 1}
     out = Text(no_wrap=True, overflow="crop")
@@ -133,18 +120,7 @@ def render_chart(
             while col < plot_w and colors[row][col] == style:
                 col += 1
             segment = "".join(chars[row][run_start:col])
-            if inspect_col is not None and run_start <= inspect_col < col and style:
-                # split the run to add the crosshair background on one cell
-                pre = segment[: inspect_col - run_start]
-                mid = segment[inspect_col - run_start]
-                post = segment[inspect_col - run_start + 1 :]
-                if pre:
-                    out.append(pre, style=style)
-                out.append(mid, style=(style or "") + CROSSHAIR_BG)
-                if post:
-                    out.append(post, style=style)
-            else:
-                out.append(segment, style=style)
+            out.append(segment, style=style)
         out.append("\n")
 
     # time axis
