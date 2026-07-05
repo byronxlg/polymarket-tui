@@ -51,7 +51,7 @@ Grading: each journey gets pass / friction / fail per iteration.
 | E5 | Limit order shaping: outcome flip (y/n), price ticks, size, review - all from the keyboard | `e5_limit.json` |
 | E6 | Watchlist as workspace: w -> row -> quick order; space unstars | `e6_watchlist.json` |
 | E7 | Position to market: p -> position -> Enter -> market with book, then back into portfolio | `e7_pos_to_market.json` |
-| E8 | Trader intel: "/" -> tab to traders -> open profile -> follow (space) | `e8_trader.json` |
+| E8 | Trader intel: "/" -> tab to traders -> down into list -> follow (space) -> open profile | `e8_trader.json` |
 | E9 | Mode control: L toggles DRY/LIVE with explicit confirm; header states the mode | `e9_mode.json` (manual-only; never confirmed LIVE in automation) |
 
 ## Test environments
@@ -107,3 +107,21 @@ size-first focus (Tab reaches price for tick stepping). All seven pass:
 
 Remaining grade: casual journeys C1-C9 pass; expert journeys E1-E8 pass
 (E9 stays manual-only by design).
+
+### Iteration 3 (2026-07-05) - navigation consistency sweep
+
+Walked every drill/back/overlay path in the real app (anon + authed-dry)
+and mapped actual vs expected screens. Three inconsistencies found, all
+fixed on this branch:
+
+| finding | grade | fix |
+|---------|-------|-----|
+| F10 'e' on a market drilled from its own event nested a duplicate event pane (Home > WCW > France > WCW); the trail grew unboundedly | E-nav fail | NavHost.drill reuses the parent pane when its drill_key matches - focus steps back instead of nesting |
+| F11 escape died on Home-as-parent: HomePane bound esc to leave_tag_bar, so the split could never be collapsed with esc (left worked) - C9-style recovery stalled one level from home | C9 friction | esc -> app.nav_back like every pane; the tag-bar step-out moved into HomePane.handle_back |
+| F12 "press space on a trader" (watchlist empty note, help) was impossible: search pinned focus in the input, so space typed text; stars/follows were mouse-only | E8 fail | down flows focus into the result list (up at top / left / esc return to the input); space stars/follows there and the footer advertises it only while the list is focused |
+
+Re-ran C2, C8, C9 (extended with esc5_full_home), E8 (extended with
+follow_from_list): all pass. Verified untouched paths still behave:
+watchlist/portfolio root swaps, order panel open/edit/review/close, cancel
+strips, chart inspect, book focus flow, overlays (search/help/auth), tag
+bar, H, `<`, quick-order warnings.

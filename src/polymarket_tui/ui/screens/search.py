@@ -1,8 +1,10 @@
 """Search screen: debounced Gamma public-search with combobox navigation.
 
 Two result modes toggled with tab: MARKETS (event list + preview) and
-TRADERS (profile list + overview). Arrows drive the active list while focus
-stays in the input; enter opens the highlighted result.
+TRADERS (profile list + overview). down flows focus from the input into the
+active list - so space can star/follow the highlighted row - and up from the
+top row (or left/esc) returns to the input; enter opens the highlighted
+result from either side.
 """
 
 from __future__ import annotations
@@ -27,19 +29,19 @@ DEBOUNCE_SECONDS = 0.35
 
 
 class SearchInput(Input):
-    """Up/down move the active result list's cursor without leaving the input."""
+    """down flows focus into the active result list; up at its top returns.
 
-    BINDINGS = [
-        Binding("down", "move_result(1)", "next result", show=False),
-        Binding("up", "move_result(-1)", "prev result", show=False),
-    ]
+    Focus (not a remote cursor) moves into the list so the contextual keys
+    work on the highlighted row - space stars an event / follows a trader,
+    which an Input would otherwise swallow as typed text.
+    """
 
-    def action_move_result(self, delta: int) -> None:
+    BINDINGS = [Binding("down", "focus_results", "results", show=False)]
+
+    def action_focus_results(self) -> None:
         table = self.screen.active_table()
-        if table.row_count == 0:
-            return
-        row = table.cursor_row if table.cursor_row is not None else -1
-        table.move_cursor(row=max(0, min(table.row_count - 1, row + delta)))
+        if table.row_count:
+            table.focus()
 
 
 class SearchScreen(Screen):
@@ -47,8 +49,15 @@ class SearchScreen(Screen):
         Binding("escape", "back_or_pop", "back"),
         Binding("tab", "toggle_mode", "markets/traders"),
         Binding("shift+tab", "toggle_mode", "markets/traders", show=False),
-        Binding("space", "toggle_watch", "star", show=False),
+        Binding("space", "toggle_watch", "star/follow"),
     ]
+
+    def check_action(self, action: str, parameters) -> bool:
+        # space is text while typing in the input; only advertise (and honor)
+        # star/follow while a result list has focus.
+        if action == "toggle_watch":
+            return self.is_mounted and self.active_table().has_focus
+        return True
 
     def __init__(self) -> None:
         super().__init__()
@@ -97,6 +106,9 @@ class SearchScreen(Screen):
         markets = self._mode == "markets"
         self.query_one(EventsBrowser).display = markets
         self.query_one("#traders-block", Horizontal).display = not markets
+        # A result list hidden by the mode switch must not keep focus.
+        if self.focused is not None and not isinstance(self.focused, SearchInput):
+            self.query_one(SearchInput).focus()
         line = Text()
         line.append("  results: ")
         line.append("MARKETS", style="bold" if markets else "dim")
@@ -211,5 +223,13 @@ class SearchScreen(Screen):
     def on_vim_data_table_top_reached(self, message) -> None:
         self.query_one(SearchInput).focus()
 
+    def handle_back(self) -> bool:
+        """left/esc from a result list steps back to the search input first."""
+        if self.active_table().has_focus:
+            self.query_one(SearchInput).focus()
+            return True
+        return False
+
     def action_back_or_pop(self) -> None:
-        self.app.pop_screen()
+        if not self.handle_back():
+            self.app.pop_screen()

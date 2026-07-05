@@ -61,7 +61,7 @@ class HomePane(TierAware, Vertical):
         Binding("r", "refresh", "refresh", show=False),
         Binding("enter", "open_event", "open", priority=False),
         Binding("down", "leave_tag_bar", "back to list", show=False),
-        Binding("escape", "leave_tag_bar", "back to list", show=False),
+        Binding("escape", "app.nav_back", "back", show=False),
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -215,6 +215,14 @@ class HomePane(TierAware, Vertical):
         if tabs.has_focus:
             tabs.can_focus = False
             self.table.focus()
+
+    def handle_back(self) -> bool:
+        """esc steps out of the tag bar first; otherwise NavHost handles it
+        (collapse the split / no-op at the root), same as every other pane."""
+        if self.query_one(Tabs).has_focus:
+            self.action_leave_tag_bar()
+            return True
+        return False
 
     def action_cycle_sort(self) -> None:
         self._sort_index = (self._sort_index + 1) % len(SORT_ORDERS)

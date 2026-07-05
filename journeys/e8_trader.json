@@ -5,9 +5,10 @@
     ["search", ["/"], 1],
     ["traders_mode", ["Tab"], 1],
     ["query", ["theo"], 4],
-    ["pick", ["Down"], 1],
+    ["into_list", ["Down"], 1],
+    ["follow_from_list", ["Space"], 2],
     ["open_profile", ["Enter"], 8],
-    ["follow", ["Space"], 2],
+    ["unfollow", ["Space"], 2],
     ["panes", ["Tab"], 2],
     ["back", ["Escape", "Escape"], 2]
   ]

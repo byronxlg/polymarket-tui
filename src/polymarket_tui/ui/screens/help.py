@@ -97,9 +97,11 @@ The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.
 
 Search (/) has two result modes toggled with tab: MARKETS and TRADERS.
-Arrows drive the visible list from the input; enter opens. In traders mode
-the side pane previews the highlighted trader (value, top positions);
-opening a profile shows full positions/activity, space follows them there.
+down moves from the input into the result list (up at the top, or left/esc,
+returns); enter opens the highlighted result from either side; space in the
+list stars an event or follows a trader. In traders mode the side pane
+previews the highlighted trader (value, top positions); opening a profile
+shows full positions/activity, space follows them there.
 The watchlist (w) keeps Events and Traders tabs. Market pages show your
 position for that market under the outcome rows.
 
