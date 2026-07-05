@@ -175,18 +175,25 @@ class PolymarketApp(App):
         funder = settings.polymarket_funder
         display_name = self.username or f"{funder[:6]}...{funder[-4:]}"
         out.append(display_name, style="bold")
-        try:
-            if self.authed is not None:
-                cash = await self.portfolio.usdc_balance()
-                if cash is not None:
-                    out.append("  cash ", style="dim")
-                    out.append(f"${cash:,.2f}", style=UP)
-            value = await self.portfolio.portfolio_value()
-            if value is not None:
-                out.append("  pf ", style="dim")
-                out.append(f"${value:,.2f}", style=UP)
-        except Exception:
-            out.append("  (balances unavailable)", style="dim")
+        if settings.polymarket_hide_balances:
+            # Streamer/demo mode: keep the strip's shape, never the numbers.
+            out.append("  cash ", style="dim")
+            out.append("$···", style="dim")
+            out.append("  pf ", style="dim")
+            out.append("$···", style="dim")
+        else:
+            try:
+                if self.authed is not None:
+                    cash = await self.portfolio.usdc_balance()
+                    if cash is not None:
+                        out.append("  cash ", style="dim")
+                        out.append(f"${cash:,.2f}", style=UP)
+                value = await self.portfolio.portfolio_value()
+                if value is not None:
+                    out.append("  pf ", style="dim")
+                    out.append(f"${value:,.2f}", style=UP)
+            except Exception:
+                out.append("  (balances unavailable)", style="dim")
         mode = settings.mode.value
         out.append("  ")
         out.append(mode, style=mode_style[mode])
