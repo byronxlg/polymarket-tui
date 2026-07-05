@@ -6,6 +6,7 @@
 <title>polymarket-tui — Polymarket in your terminal</title>
 <meta name="description" content="A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio, and place orders without leaving the terminal. Launch it in your browser." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="assets/asciinema-player.css" />
 <style>
   :root {
     --bg: #0a0d12;
@@ -112,48 +113,13 @@
   .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
   .lights .r { background: #f0645b; } .lights .y { background: #e0a63a; } .lights .g { background: #45c46a; }
   .term-title { margin: 0 auto; font-size: 12.5px; color: var(--ink-dim); transform: translateX(-24px); }
-  .term-body { overflow-x: auto; }
-  .screen { min-width: 780px; font-size: 12.5px; line-height: 1.5; padding: 0; }
-
-  /* app chrome inside terminal */
-  .app-head { display: flex; align-items: center; padding: 7px 14px; border-bottom: 1px solid var(--line); color: var(--ink); }
-  .app-head .title { color: #fff; font-weight: 600; }
-  .app-head .right { margin-left: auto; display: flex; gap: 18px; color: var(--ink-dim); }
-  .app-head .right .cash { color: var(--green); }
-  .app-head .right .dry { color: var(--yellow); font-weight: 600; }
-  .cats { display: flex; gap: 20px; padding: 7px 14px 4px; color: var(--ink-dim); border-bottom: 1px solid var(--line); }
-  .cats .on { color: var(--accent-2); border-bottom: 2px solid var(--accent); padding-bottom: 3px; margin-bottom: -6px; }
-  .hint { padding: 6px 14px; color: var(--ink-faint); font-size: 11.5px; }
-
-  .body-grid { display: grid; grid-template-columns: 1fr 300px; }
-  .rail { border-left: 1px solid var(--line); padding: 12px 14px; background: rgba(255,255,255,0.012); }
-
-  table.mkt { width: 100%; border-collapse: collapse; }
-  table.mkt th { text-align: left; font-weight: 500; color: var(--ink-faint); font-size: 11px; padding: 6px 14px; text-transform: uppercase; letter-spacing: .5px; }
-  table.mkt td { padding: 5px 14px; border-top: 1px solid rgba(255,255,255,0.03); white-space: nowrap; }
-  table.mkt tr:hover td { background: rgba(77,139,245,0.06); }
-  table.mkt tr.sel td { background: rgba(77,139,245,0.12); box-shadow: inset 2px 0 0 var(--accent); }
-  .ev { color: var(--ink); }
-  .out { color: var(--ink-dim); }
-  .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .up { color: var(--green); } .down { color: var(--red); }
-  .vol { color: var(--ink-dim); text-align: right; }
-  td.pr { color: var(--ink); text-align: right; font-weight: 600; }
-
-  .rail h4 { margin: 0 0 2px; font-size: 13px; color: #fff; }
-  .rail .meta { color: var(--ink-faint); font-size: 11px; margin-bottom: 12px; }
-  .bar { display: flex; align-items: center; gap: 8px; font-size: 11.5px; padding: 2px 0; }
-  .bar .nm { width: 74px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; }
-  .bar .track { flex: 1; color: var(--accent); letter-spacing: -1px; }
-  .bar .track .dim { color: var(--line-2); }
-  .bar .pc { width: 42px; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .bar .ch { width: 40px; text-align: right; }
-  .rail .rules { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 11px; line-height: 1.5; }
-
-  .app-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 11.5px; flex-wrap: wrap; }
-  .app-foot b { color: var(--ink-dim); font-weight: 600; }
-  .cur { display: inline-block; width: 8px; height: 15px; background: var(--green); vertical-align: text-bottom; animation: blink 1.1s step-end infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
+  .term-body { padding: 10px 6px 4px; }
+  .demo-player { width: 100%; }
+  /* asciinema-player: kill its own border/radius (the .term shell provides it) */
+  .demo-player .ap-player { background: transparent; }
+  .term-caption { margin: 14px auto 0; max-width: 760px; text-align: center; font-size: 13px; color: var(--ink-dim); }
+  .term-caption a { color: var(--accent-2); white-space: nowrap; }
+  .term-caption a:hover { color: #fff; }
 
   /* ---- section scaffolding ---- */
   section { padding: 64px 0; border-top: 1px solid var(--line); }
@@ -210,8 +176,6 @@
     .feats { grid-template-columns: 1fr; }
     .keys-wrap { grid-template-columns: 1fr; }
     .split { grid-template-columns: 1fr; }
-    .body-grid { grid-template-columns: 1fr; }
-    .rail { display: none; }
     .nav-links a:not(.btn) { display: none; }
   }
 </style>
@@ -251,57 +215,14 @@
     <div class="term">
       <div class="term-bar">
         <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
-        <div class="term-title">polymarket-tui &mdash; home</div>
+        <div class="term-title">polymarket-tui &mdash; recorded demo</div>
       </div>
       <div class="term-body">
-        <div class="screen">
-          <div class="app-head">
-            <span class="title">polymarket-tui</span>
-            <span class="right">
-              <span>wettor-bettor</span>
-              <span class="cash">cash $580.45</span>
-              <span class="cash">pf $89.61</span>
-              <span class="dry">DRY</span>
-              <span>12:15:32</span>
-            </span>
-          </div>
-          <div class="cats">
-            <span class="on">Trending</span><span>Politics</span><span>Sports</span><span>Crypto</span><span>Economy</span><span>Tech</span><span>Culture</span><span>World</span>
-          </div>
-          <div class="hint">sort 24h volume &nbsp;&middot;&nbsp; o cycle sort &nbsp;&middot;&nbsp; tab category</div>
-          <div class="body-grid">
-            <table class="mkt">
-              <thead><tr><th>Event</th><th>Top outcome</th><th class="num">Price</th><th class="num">24h</th><th class="num">Vol 24h</th></tr></thead>
-              <tbody>
-                <tr class="sel"><td class="ev">World Cup Winner</td><td class="out">France</td><td class="pr">36.0c</td><td class="num up">+1.6c</td><td class="vol">$57.0M</td></tr>
-                <tr><td class="ev">Next leader out of power before 2027?</td><td class="out">Starmer &mdash; UK PM</td><td class="pr">96.4c</td><td class="num down">-1.1c</td><td class="vol">$10.7M</td></tr>
-                <tr><td class="ev">World Cup: Golden Boot Winner</td><td class="out">Kylian Mbappe</td><td class="pr">53.5c</td><td class="num up">+9.5c</td><td class="vol">$1.8M</td></tr>
-                <tr><td class="ev">NFL Champion 2027</td><td class="out">Los Angeles Rams</td><td class="pr">17.5c</td><td class="num up">+1.0c</td><td class="vol">$1.6M</td></tr>
-                <tr><td class="ev">NBA: LeBron James Next Team</td><td class="out">Cleveland Cavaliers</td><td class="pr">52.5c</td><td class="num up">+10.1c</td><td class="vol">$976K</td></tr>
-                <tr><td class="ev">US-Iran Final Nuclear Deal by&hellip;?</td><td class="out">December 31</td><td class="pr">45.5c</td><td class="num down">-2.0c</td><td class="vol">$600K</td></tr>
-                <tr><td class="ev">Democratic Presidential Nominee 2028</td><td class="out">Gavin Newsom</td><td class="pr">20.6c</td><td class="num up">+0.1c</td><td class="vol">$597K</td></tr>
-                <tr><td class="ev">Elon Musk # tweets this week?</td><td class="out">100-119</td><td class="pr">26.3c</td><td class="num up">+12.5c</td><td class="vol">$564K</td></tr>
-                <tr><td class="ev">Fed Decision in July?</td><td class="out">No change</td><td class="pr">89.5c</td><td class="num">&mdash;</td><td class="vol">$445K</td></tr>
-              </tbody>
-            </table>
-            <div class="rail">
-              <h4>World Cup Winner</h4>
-              <div class="meta">ends Jul 20 &nbsp; vol24h $57.0M &nbsp; liq $56.6M</div>
-              <div class="bar"><span class="nm">France</span><span class="track">&#9608;&#9608;&#9608;<span class="dim">&middot;&middot;&middot;&middot;&middot;</span></span><span class="pc">36.0c</span><span class="ch up">+1.6</span></div>
-              <div class="bar"><span class="nm">Argentina</span><span class="track">&#9608;<span class="dim">&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span></span><span class="pc">16.6c</span><span class="ch down">-1.4</span></div>
-              <div class="bar"><span class="nm">Spain</span><span class="track">&#9608;<span class="dim">&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span></span><span class="pc">12.6c</span><span class="ch up">+0.1</span></div>
-              <div class="bar"><span class="nm">England</span><span class="track">&#9608;<span class="dim">&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span></span><span class="pc">6.9c</span><span class="ch down">-0.4</span></div>
-              <div class="bar"><span class="nm">Brazil</span><span class="track">&#9608;<span class="dim">&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span></span><span class="pc">6.5c</span><span class="ch down">-0.3</span></div>
-              <div class="bar"><span class="nm">Portugal</span><span class="track"><span class="dim">&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span></span><span class="pc">6.0c</span><span class="ch up">+0.1</span></div>
-              <div class="rules">This market will resolve according to the national team that wins the 2026 FIFA World Cup&hellip;<span class="cur"></span></div>
-            </div>
-          </div>
-          <div class="app-foot">
-            <span><b>space</b> star</span><span><b>tab</b> category</span><span><b>b</b> buy</span><span><b>s</b> sell</span><span><b>/</b> search</span><span><b>p</b> portfolio</span><span><b>?</b> help</span>
-          </div>
-        </div>
+        <div id="demo-player" class="demo-player"></div>
       </div>
     </div>
+    <p class="term-caption">A recorded session &mdash; browse markets, open one, cursor the live
+      order book, chart, search. <a href="/app">Launch the real thing &#8594;</a></p>
   </div>
 </header>
 
@@ -312,7 +233,7 @@
     <p class="lead">The whole surface of the exchange, rendered as a dense, fast, keyboard-native interface. No mouse required.</p>
     <div class="feats">
       <div class="feat"><div class="ic">&#128202;</div><h3>Browse every market</h3><p>Trending, Politics, Sports, Crypto and more, sorted by volume or liquidity. Search markets and traders with <kbd>/</kbd>.</p></div>
-      <div class="feat"><div class="ic">&#128200;</div><h3>Live order books</h3><p>Real-time YES/NO books and the trade tape stream straight from the CLOB. Flip sides with <kbd>space</kbd>.</p></div>
+      <div class="feat"><div class="ic">&#128200;</div><h3>Live order books</h3><p>Real-time YES/NO books and the trade tape stream straight from the CLOB. Cursor the book; <kbd>space</kbd> buys at the level you hover.</p></div>
       <div class="feat"><div class="ic">&#128201;</div><h3>Price charts</h3><p>Full price history for any market or outcome, inline. Move the cursor to inspect any point in time.</p></div>
       <div class="feat"><div class="ic">&#128176;</div><h3>Portfolio &amp; P&amp;L</h3><p>Positions, cash, and profit history for your wallet, or observe any public trader's book read-only.</p></div>
       <div class="feat"><div class="ic">&#9889;</div><h3>Place orders</h3><p>Limit and market orders under the live book, priced in cents. Decimal-exact, validated, audited to a local log.</p></div>
@@ -328,7 +249,7 @@
     <p class="lead">A small core of keys, one meaning each. Arrows move and drill; <kbd>space</kbd> is always the contextual toggle. Press <kbd>?</kbd> in the app for the full reference.</p>
     <div class="keys-wrap">
       <div class="keyrow"><span class="kbd"><kbd>&#8593;</kbd><kbd>&#8595;</kbd><kbd>&#8592;</kbd><kbd>&#8594;</kbd></span><span>Move, drill in with right/enter, step out with left/esc</span></div>
-      <div class="keyrow"><span class="kbd"><kbd>space</kbd></span><span>Contextual toggle: star, follow, flip book, flip BUY/SELL</span></div>
+      <div class="keyrow"><span class="kbd"><kbd>space</kbd></span><span>Contextual toggle: star, follow, buy a market, flip BUY/SELL</span></div>
       <div class="keyrow"><span class="kbd"><kbd>tab</kbd></span><span>Cycle the screen's selector: category, timeframe, pane</span></div>
       <div class="keyrow"><span class="kbd"><kbd>b</kbd><kbd>s</kbd></span><span>Buy / sell entry under the live book, price in cents</span></div>
       <div class="keyrow"><span class="kbd"><kbd>/</kbd></span><span>Search markets and traders</span></div>
@@ -382,7 +303,21 @@
   </div>
 </footer>
 
+<script src="assets/asciinema-player.min.js"></script>
 <script>
+  // The recorded TUI session, played in the hero terminal window.
+  AsciinemaPlayer.create("assets/demo.cast", document.getElementById("demo-player"), {
+    autoPlay: true,
+    loop: true,
+    controls: true,
+    fit: "width",
+    terminalFontSize: "small",
+    theme: "asciinema",
+    poster: "npt:0:6",
+    idleTimeLimit: 2,
+  });
+
+  // Copy buttons on the install commands.
   document.querySelectorAll(".copy").forEach(function (b) {
     b.addEventListener("click", function () {
       var el = document.getElementById(b.dataset.c);
@@ -393,18 +328,6 @@
       });
     });
   });
-
-  // Gentle live tick on the terminal clock so the hero feels alive.
-  var clock = document.querySelector(".app-head .right span:last-child");
-  if (clock) {
-    var t = new Date();
-    t.setHours(12, 15, 32, 0);
-    setInterval(function () {
-      t = new Date(t.getTime() + 1000);
-      var p = function (n) { return String(n).padStart(2, "0"); };
-      clock.textContent = p(t.getHours()) + ":" + p(t.getMinutes()) + ":" + p(t.getSeconds());
-    }, 1000);
-  }
 </script>
 </body>
 </html>

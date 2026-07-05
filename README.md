@@ -46,8 +46,10 @@ demos or trying it without a local install:
 uv run polymarket-tui-web          # serves http://localhost:8000
 ```
 
-- `/` is a landing page (features, keys, install commands).
-- `/app` streams the live TUI into the browser via
+- `/` is a static landing page; its hero plays a recorded demo of the TUI
+  (asciinema, vendored - no external CDN). Regenerate it with
+  `bash scripts/record_demo.sh`. See `src/polymarket_tui/web/DEMO.md`.
+- `/app` streams the live, interactive TUI into the browser via
   [textual-serve](https://github.com/Textualize/textual-serve) (xterm.js over
   a websocket). Each browser tab spawns its own isolated app subprocess.
 
