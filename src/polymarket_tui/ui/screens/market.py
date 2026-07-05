@@ -24,6 +24,7 @@ from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
 from polymarket_tui.ui.follow import CursorFollow
+from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
@@ -227,6 +228,8 @@ class MarketPane(TierAware, Vertical):
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
+        if not alive(self):
+            return  # call_after_refresh can fire after the pane is torn down
         self._refit_trades()
         table = self.query_one("#outcomes-table", VimDataTable)
         width = table.size.width
@@ -488,6 +491,8 @@ class MarketPane(TierAware, Vertical):
             positions = await app.portfolio.positions()
         except Exception:
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         tokens = set(self._market.clob_token_ids)
         mine = [p for p in positions if p.asset in tokens and p.size >= 0.01]
         self._my_positions = mine
@@ -520,6 +525,8 @@ class MarketPane(TierAware, Vertical):
             await app.portfolio.open_orders()
         except Exception:
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         token = self._token_id
         if token is None:
             return
@@ -567,8 +574,11 @@ class MarketPane(TierAware, Vertical):
         try:
             book = await self.app.clob.order_book(token)
         except Exception as exc:
-            panel.show_error(f"book unavailable: {exc}")
+            if alive(self):
+                panel.show_error(f"book unavailable: {exc}")
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         self._book = book
         panel.update_book(book)
         self._refresh_book_badge()
@@ -589,6 +599,8 @@ class MarketPane(TierAware, Vertical):
         except Exception as exc:
             self.notify(f"history unavailable: {exc}", severity="warning", timeout=4)
             self._history = []
+        if not alive(self):
+            return  # pane torn down while we fetched
         self._draw_chart()
 
     # -- chart ----------------------------------------------------------------
@@ -724,6 +736,8 @@ class MarketPane(TierAware, Vertical):
             trades = await self.app.data.market_trades(self._market.condition_id, limit=limit)
         except Exception:
             return
+        if not alive(self):
+            return  # pane torn down while we fetched
         self.query_one(TradesTable).set_trades(trades)
 
     def action_toggle_rules(self) -> None:
