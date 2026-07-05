@@ -158,3 +158,19 @@ mid (the book is adjacent) and the "L = go live" aside. Warnings stay
 visible while armed.
 
 Re-run C3, C7, E5: all pass with the panel top right; C3/E5 place DRY.
+
+### Iteration 6 (2026-07-06) - calmer confirm styling
+
+Byron flagged the armed LIVE strip as ugly and scary: a murky red wash,
+a reversed salmon "PLACE" chip that read as an un-clickable button, and
+heavy reversed key chips. All confirm surfaces now use a quiet callout -
+thick left accent bar (amber DRY / red LIVE and cancels), no background
+wash, the mode stated plainly ("LIVE - posts for real" / "DRY-RUN -
+signs, never posts" / "CANCEL"), and footer-style key hints (bold key,
+dim label). The order panel's boxed 3-row inputs became borderless
+one-row fields (focus = lighter field; an explicit :focus border-none
+keeps the default tall focus border from swallowing the single row).
+ConfirmModal titles are plain bold in the tone color.
+
+Re-run C3: passes; DRY places with enter. LIVE and cancel callouts
+verified widget-level (no resting orders / never go live in automation).

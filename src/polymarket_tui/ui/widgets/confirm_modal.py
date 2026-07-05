@@ -73,7 +73,7 @@ class ConfirmModal(ModalScreen[bool]):
         self.add_class(f"tone-{self._tone}")
         with Vertical():
             yield Static(
-                Text(f" {self._title} ", style=f"bold reverse {TONE_COLORS[self._tone]}"),
+                Text(self._title, style=f"bold {TONE_COLORS[self._tone]}"),
                 id="modal-title",
             )
             yield Static(self._body, id="modal-body")
