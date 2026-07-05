@@ -98,6 +98,11 @@ class HomePane(TierAware, Vertical):
         """Last session's list, instantly - the live fetch replaces it."""
         events = cache.load_events(self._cache_key())
         if not events:
+            # First run (no cache): the table is empty for however long the
+            # Gamma fetch takes - say so instead of sitting silent.
+            status = Text(justify="center")
+            status.append("fetching live markets...", style="dim")
+            self.query_one("#status-line", Static).update(status)
             return
         self.table.set_events(events, set(self.app.watchlist.slugs), clear=True)
         browser = self.query_one(EventsBrowser)
@@ -154,6 +159,7 @@ class HomePane(TierAware, Vertical):
             )
         except Exception as exc:
             self.notify(f"Failed to load events: {exc}", severity="error", timeout=6)
+            self.query_one("#status-line", Static).update(self._status_line())
             self._loading = False
             return
         now = datetime.now(UTC)

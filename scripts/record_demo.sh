@@ -34,20 +34,37 @@ NAME="$(curl -sf -A Mozilla/5.0 "https://gamma-api.polymarket.com/public-profile
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name') or d.get('pseudonym') or '')" \
   || true)"
 
-echo "Recording to $RAW (home=$REC_HOME, ${COLS}x${ROWS}, authed DRY, balances hidden)..."
+K() { tmux -L "$SOCK" send-keys "$@"; }
+wait_for_rows() {  # block until the trending list has market rows (a $ volume)
+  for _ in $(seq 1 60); do
+    tmux -L "$SOCK" capture-pane -p 2>/dev/null | grep -qE '\$[0-9]' && return 0
+    sleep 0.3
+  done
+  echo "timed out waiting for market rows" >&2
+  return 1
+}
+
+# Warm the events cache with a throwaway run: the recorded boot then paints
+# last-run's list instantly instead of an empty shell waiting on Gamma.
+echo "Warming the events cache in $REC_HOME..."
 tmux -L "$SOCK" kill-server 2>/dev/null || true
+tmux -L "$SOCK" new-session -d -x "$COLS" -y "$ROWS" -e HOME="$REC_HOME" "$APP"
+wait_for_rows
+K q; sleep 1
+tmux -L "$SOCK" kill-server 2>/dev/null || true
+
+echo "Recording to $RAW (home=$REC_HOME, ${COLS}x${ROWS}, authed DRY, balances hidden)..."
 tmux -L "$SOCK" new-session -d -x "$COLS" -y "$ROWS" \
   -e HOME="$REC_HOME" -e POLYMARKET_HIDE_BALANCES=1 \
   "asciinema rec '$RAW' --overwrite -q -c '$APP'"
-
-K() { tmux -L "$SOCK" send-keys "$@"; }
 snap() {  # snap <name>: dump the pane for post-hoc scene review
   [ -n "$SNAP_DIR" ] || return 0
   mkdir -p "$SNAP_DIR"
   tmux -L "$SOCK" capture-pane -p > "$SNAP_DIR/$1.txt"
 }
 
-sleep 16                                   # first paint (fetches live markets)
+wait_for_rows                              # cached list paints ~instantly
+sleep 2.2                                  # live refresh lands; a beat to read
 snap 01_home
 # Browse the trending list, peek two categories, return.
 K Down; sleep 0.5; K Down; sleep 0.5; K Down; sleep 0.7
