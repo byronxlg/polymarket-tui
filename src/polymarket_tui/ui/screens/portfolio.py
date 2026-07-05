@@ -25,6 +25,7 @@ from polymarket_tui.ui.widgets.order_details import order_detail_text
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     ACTIVITY_TIER_COLUMNS,
+    POSITIONS_SPACIOUS_TIER_COLUMNS,
     POSITIONS_TIER_COLUMNS,
     activity_row,
     position_row,
@@ -110,6 +111,7 @@ class PortfolioPane(TierAware, Vertical):
         self._cancel_armed_at = 0.0
         self._pos_spec: list[ColumnSpec] = list(POSITIONS_TIER_COLUMNS["full"])
         self._pos_tier: Tier = "full"
+        self._rendered_density: str = "condensed"
         self._ord_spec: list[ColumnSpec] = list(ORDERS_TIER_COLUMNS["full"])
         self._act_spec: list[ColumnSpec] = list(ACTIVITY_TIER_COLUMNS["full"])
 
@@ -142,9 +144,16 @@ class PortfolioPane(TierAware, Vertical):
             return True
         return False
 
+    def _pos_columns(self) -> dict[Tier, tuple]:
+        """Positions column sets for the current density (spacious re-composes rows)."""
+        if self.app.density == "spacious":
+            return POSITIONS_SPACIOUS_TIER_COLUMNS
+        return POSITIONS_TIER_COLUMNS
+
     def on_mount(self) -> None:
         self.query_one("#cancel-strip", Static).display = False
-        self._pos_spec = list(POSITIONS_TIER_COLUMNS[self.tier])
+        self._rendered_density = self.app.density
+        self._pos_spec = list(self._pos_columns()[self.tier])
         self._pos_tier = self.tier
         self._ord_spec = list(ORDERS_TIER_COLUMNS[self.tier])
         self._act_spec = list(ACTIVITY_TIER_COLUMNS[self.tier])
@@ -182,6 +191,10 @@ class PortfolioPane(TierAware, Vertical):
     def on_tier_changed(self, tier: Tier) -> None:
         self._schedule_refit()
 
+    def on_density_changed(self, density: str) -> None:
+        """T toggled: positions re-compose into two-line rows (app calls this)."""
+        self._schedule_refit()
+
     def on_resize(self) -> None:
         if self._tier_ready:
             self._schedule_refit()
@@ -195,17 +208,23 @@ class PortfolioPane(TierAware, Vertical):
         width = self.size.width - 2  # border + slack
         if width <= 0:
             return
-        pos_tier = effective_tier(self.tier, width, POSITIONS_TIER_COLUMNS)
+        pos_columns = self._pos_columns()
+        pos_tier = effective_tier(self.tier, width, pos_columns)
         ord_tier = effective_tier(self.tier, width, ORDERS_TIER_COLUMNS)
         act_tier = effective_tier(self.tier, width, ACTIVITY_TIER_COLUMNS)
         pos_flex = max((len(p.title) for p in self._positions), default=0) or None
-        pos_spec = fit_columns(POSITIONS_TIER_COLUMNS[pos_tier], width, "market", pos_flex)
+        pos_spec = fit_columns(pos_columns[pos_tier], width, "market", pos_flex)
         ord_spec = fit_columns(ORDERS_TIER_COLUMNS[ord_tier], width, "market")
         act_spec = fit_columns(ACTIVITY_TIER_COLUMNS[act_tier], width, "market")
-        if (pos_spec, ord_spec, act_spec) == (self._pos_spec, self._ord_spec, self._act_spec):
+        if (pos_spec, ord_spec, act_spec) == (
+            self._pos_spec,
+            self._ord_spec,
+            self._act_spec,
+        ) and self._rendered_density == self.app.density:
             return
         self._pos_spec, self._ord_spec, self._act_spec = pos_spec, ord_spec, act_spec
         self._pos_tier = pos_tier
+        self._rendered_density = self.app.density
         self._build_columns()
         self._render_positions()
         self._render_orders()
@@ -258,13 +277,15 @@ class PortfolioPane(TierAware, Vertical):
         table = self.query_one("#positions-table", VimDataTable)
         table.clear()
         full = self._pos_tier == "full"
+        density = self.app.density
+        height = 2 if density == "spacious" else 1
         for pos in sorted(self._positions, key=lambda p: p.current_value, reverse=True):
             if pos.size < 0.01:
                 continue
-            row = position_row(pos, columns=self._pos_spec)
+            row = position_row(pos, columns=self._pos_spec, density=density)
             if full:
                 row.append(self._resolution_flag(pos))
-            table.add_row(*row, key=f"{pos.slug}|{pos.asset}")
+            table.add_row(*row, key=f"{pos.slug}|{pos.asset}", height=height)
 
     @staticmethod
     def _resolution_flag(pos) -> Text | str:

@@ -22,6 +22,15 @@ def pnl_text(cash: float, pct: float) -> Text:
     return Text(f"{cash:+,.2f} {pct:+.0f}%", style=style)
 
 
+def pnl_text_stacked(cash: float, pct: float) -> Text:
+    """Spacious rows: cash on the title line, percentage dim underneath."""
+    style = UP if cash > 0 else DOWN if cash < 0 else "dim"
+    out = Text(justify="right")
+    out.append(f"{cash:+,.2f}", style=style)
+    out.append(f"\n{pct:+.0f}%", style=f"dim {style}")
+    return out
+
+
 # (key, label, width) per width tier. "full" is defined in the setup
 # functions because its widths are parameterized by the caller.
 POSITIONS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
@@ -48,6 +57,32 @@ POSITIONS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     ),
 }
 
+# Spacious positions re-compose the row (MS Teams comfy/compact model):
+# outcome, size, and avg fold into a dim second line under the title, the
+# percentage stacks under the cash P&L, and the freed width goes to titles.
+POSITIONS_SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("market", "Market", 52),
+        ("cur", "Cur", 7),
+        ("value", "Value", 10),
+        ("pnl", "P&L", 12),
+    ),
+    "medium": (
+        ("market", "Market", 40),
+        ("value", "Value", 10),
+        ("pnl", "P&L", 12),
+    ),
+    "compact": (
+        ("market", "Market", 26),
+        ("pnl", "P&L", 12),
+    ),
+}
+
+
+def position_meta(pos: Position) -> str:
+    """The dim second line of a spacious position row: Yes · 1.2K sh · avg 33.4c."""
+    return f"{pos.outcome} · {fmt.compact_size(pos.size)} sh · avg {fmt.cents(pos.avg_price)}"
+
 
 def setup_positions_columns(
     table: VimDataTable,
@@ -61,18 +96,39 @@ def setup_positions_columns(
         table.add_column("", width=20, key="flag")
 
 
-def position_row(pos: Position, tier: Tier = "full", columns: list | None = None) -> list:
-    columns = columns or POSITIONS_TIER_COLUMNS[tier]
+def position_row(
+    pos: Position,
+    tier: Tier = "full",
+    columns: list | None = None,
+    density: str = "condensed",
+) -> list:
+    if columns is None:
+        columns = (
+            POSITIONS_SPACIOUS_TIER_COLUMNS[tier]
+            if density == "spacious"
+            else POSITIONS_TIER_COLUMNS[tier]
+        )
     widths = {key: width for key, _, width in columns}
-    cells = {
-        "market": fmt.trunc(pos.title, widths["market"]),
-        "outcome": fmt.trunc(pos.outcome, widths.get("outcome", 12)),
-        "size": fmt.compact_size(pos.size),
-        "avg": fmt.cents(pos.avg_price),
-        "cur": fmt.cents(pos.cur_price),
-        "value": fmt.money(pos.current_value),
-        "pnl": pnl_text(pos.cash_pnl, pos.percent_pnl),
-    }
+    if density == "spacious":
+        w = widths["market"]
+        market = Text(fmt.trunc(pos.title, w))
+        market.append("\n" + fmt.trunc(position_meta(pos), w), style="dim")
+        cells: dict[str, object] = {
+            "market": market,
+            "cur": fmt.cents(pos.cur_price),
+            "value": fmt.money(pos.current_value),
+            "pnl": pnl_text_stacked(pos.cash_pnl, pos.percent_pnl),
+        }
+    else:
+        cells = {
+            "market": fmt.trunc(pos.title, widths["market"]),
+            "outcome": fmt.trunc(pos.outcome, widths.get("outcome", 12)),
+            "size": fmt.compact_size(pos.size),
+            "avg": fmt.cents(pos.avg_price),
+            "cur": fmt.cents(pos.cur_price),
+            "value": fmt.money(pos.current_value),
+            "pnl": pnl_text(pos.cash_pnl, pos.percent_pnl),
+        }
     return [cells[key] for key, _, _ in columns]
 
 

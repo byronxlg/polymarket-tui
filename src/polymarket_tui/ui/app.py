@@ -341,6 +341,14 @@ class PolymarketApp(App):
         self.density = new
         self.add_class(f"density-{new}")
         save_density(new)
+        # CSS only handles spacing; rows re-compose in code (two-line spacious
+        # rows in the events/positions tables), so notify every mounted widget
+        # that opted in via an on_density_changed method.
+        for screen in self.screen_stack:
+            for node in screen.walk_children():
+                handler = getattr(node, "on_density_changed", None)
+                if handler is not None:
+                    handler(new)
         self.notify(f"{new} layout (T to switch back)", timeout=4)
 
     def action_portfolio(self) -> None:

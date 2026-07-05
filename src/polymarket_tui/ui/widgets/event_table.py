@@ -47,6 +47,46 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     ),
 }
 
+# Spacious re-composes the row instead of padding it (the MS Teams
+# comfy/compact model): two-line rows where the second line carries the
+# context columns - the metadata line replaces the Vol column and the 24h
+# change stacks under the price, so the freed width goes to full titles.
+SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("star", " ", 2),
+        ("event", "Event", 52),
+        ("outcome", "Top outcome", 22),
+        ("price", "Price", 8),
+    ),
+    "medium": (
+        ("star", " ", 2),
+        ("event", "Event", 42),
+        ("outcome", "Top outcome", 16),
+        ("price", "Price", 8),
+    ),
+    "compact": (
+        ("star", " ", 2),
+        ("event", "Event", 26),
+        ("price", "Price", 8),
+    ),
+}
+
+
+def event_meta(event: Event) -> str:
+    """The dim second line of a spacious row: ends Jul 20 · vol24h $41M · liq $53M.
+
+    Same vocabulary and order as the market header so the two read as one
+    system. Missing fields drop out instead of rendering '-'.
+    """
+    parts = []
+    if event.end_date is not None:
+        parts.append(f"ends {fmt.end_date(event.end_date)}")
+    if event.volume_24hr is not None:
+        parts.append(f"vol24h {fmt.vol(event.volume_24hr)}")
+    if event.liquidity is not None:
+        parts.append(f"liq {fmt.vol(event.liquidity)}")
+    return " · ".join(parts)
+
 
 class EventsTable(VimDataTable):
     """DataTable keyed by event slug; keeps the Event objects for row lookups.
@@ -65,12 +105,15 @@ class EventsTable(VimDataTable):
         super().__init__(cursor_type="row", zebra_stripes=True, **kwargs)
         self.events_by_slug: dict[str, Event] = {}
         self._cap: Tier = "full"
+        self._density: str = "condensed"
         self._columns_spec: list[ColumnSpec] = list(TIER_COLUMNS["full"])
         self._events: list[Event] = []
         self._watched: set[str] = set()
         self._ordered: set[str] = set()  # slugs where the user has a resting order
 
     def on_mount(self) -> None:
+        self._density = getattr(self.app, "density", "condensed")
+        self.cell_padding = 2 if self._density == "spacious" else 1
         self._build_columns()
 
     def on_resize(self) -> None:
@@ -81,13 +124,31 @@ class EventsTable(VimDataTable):
         self._cap = tier
         self._refit()
 
+    def on_density_changed(self, density: str) -> None:
+        """T toggled: re-compose rows (called by the app, not Textual)."""
+        if density == self._density:
+            return
+        self._density = density
+        self.cell_padding = 2 if density == "spacious" else 1
+        self._columns_spec = []  # force the refit past its no-change guard
+        self._refit()
+
+    @property
+    def _spacious(self) -> bool:
+        return self._density == "spacious"
+
     def _refit(self) -> None:
         width = self.size.width
         if width <= 0:
             return  # not laid out yet; the first real resize refits
-        tier = effective_tier(self._cap, width, TIER_COLUMNS)
-        flex_max = max((len(e.title) for e in self._events), default=0) or None
-        spec = fit_columns(TIER_COLUMNS[tier], width, "event", flex_max)
+        tier_columns = SPACIOUS_TIER_COLUMNS if self._spacious else TIER_COLUMNS
+        pad = self.cell_padding
+        tier = effective_tier(self._cap, width, tier_columns, pad)
+        lengths = [len(e.title) for e in self._events]
+        if self._spacious:
+            lengths += [len(event_meta(e)) for e in self._events]
+        flex_max = max(lengths, default=0) or None
+        spec = fit_columns(tier_columns[tier], width, "event", flex_max, pad)
         if spec == self._columns_spec and self.columns:
             return
         self._columns_spec = spec
@@ -125,9 +186,12 @@ class EventsTable(VimDataTable):
 
     def _render_rows(self, events: list[Event]) -> None:
         widths = {key: width for key, _, width in self._columns_spec}
+        height = 2 if self._spacious else 1
         for event in events:
-            cells = self._row_cells(event, widths)
-            self.add_row(*(cells[key] for key in widths), key=event.slug)
+            cells = (self._spacious_cells if self._spacious else self._row_cells)(
+                event, widths
+            )
+            self.add_row(*(cells[key] for key in widths), key=event.slug, height=height)
 
     def _row_cells(self, event: Event, widths: dict[str, int]) -> dict[str, object]:
         top = event.top_market
@@ -143,6 +207,26 @@ class EventsTable(VimDataTable):
             "price": price,
             "change": change_text(top.one_day_price_change if top else None),
             "vol": Text(fmt.vol(event.volume_24hr), justify="right"),
+        }
+
+    def _spacious_cells(self, event: Event, widths: dict[str, int]) -> dict[str, object]:
+        """Two-line row: title over a dim metadata line; 24h stacks under price."""
+        top = event.top_market
+        w = widths["event"]
+        title = Text(fmt.trunc(event.title, w))
+        title.append("\n" + fmt.trunc(event_meta(event), w), style="dim")
+        price = Text(justify="right")
+        outcome = ""
+        if top is not None:
+            outcome = top.display_title if not event.is_binary else "Yes"
+            price.append(fmt.cents(top.yes_price), style="bold")
+            price.append("\n")
+            price.append_text(change_text(top.one_day_price_change))
+        return {
+            "star": self._flag_cell(event.slug),
+            "event": title,
+            "outcome": fmt.trunc(outcome, widths.get("outcome", 22)),
+            "price": price,
         }
 
     def _flag_cell(self, slug: str) -> Text:
