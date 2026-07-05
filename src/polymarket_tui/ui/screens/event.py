@@ -75,7 +75,7 @@ class EventPane(TierAware, Vertical):
         super().__init__(**kwargs)
         self._event = event
         self._show_info = False
-        self._interval = "1D"
+        self._interval = "ALL"
         self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
         self.drill_key = ("event", event.slug)
 

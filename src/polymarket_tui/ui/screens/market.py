@@ -102,7 +102,7 @@ class MarketPane(TierAware, Vertical):
         self._market = market
         self._event = event
         self._outcome_index = 0  # 0 = YES/first outcome, 1 = NO
-        self._interval = "1H"  # matches the initially-active interval tab
+        self._interval = "ALL"  # full history first; tab/shift+tab narrows
         self._history: list = []
         self._book = None
         self._trades_expanded = False
@@ -360,6 +360,7 @@ class MarketPane(TierAware, Vertical):
             self._schedule_refit()
 
     def on_mount(self) -> None:
+        self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         table = self.query_one("#outcomes-table", VimDataTable)
         self._columns_spec = list(OUTCOMES_TIER_COLUMNS[self.tier])
         self._build_outcome_columns()
