@@ -170,7 +170,13 @@ class EventsTable(VimDataTable):
         clear: bool = True,
         ordered: set[str] | None = None,
     ) -> None:
+        keep_slug: str | None = None
         if clear:
+            # A reload (cache->live swap at boot, r refresh) must not snap
+            # the cursor to the top: remember the highlighted event and
+            # restore it by key below if the new list still has it.
+            held = self.highlighted_event()
+            keep_slug = held.slug if held is not None else None
             self.clear()
             self.events_by_slug.clear()
             self._events = []
@@ -185,6 +191,8 @@ class EventsTable(VimDataTable):
         self._events.extend(fresh)
         self._render_rows(fresh)
         self._refit()  # the longest title may have changed
+        if keep_slug is not None and keep_slug in self.events_by_slug:
+            self.move_cursor(row=self.get_row_index(keep_slug))
 
     def _render_rows(self, events: list[Event]) -> None:
         widths = {key: width for key, _, width in self._columns_spec}
