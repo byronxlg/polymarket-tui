@@ -222,7 +222,10 @@ class OrderPanel(Vertical):
             # restrict: stray letters (a queued y/n, a fat-fingered key) must
             # not land in the numeric fields as text.
             yield PriceInput(
-                placeholder="cents (empty = market)",
+                # Just "cents": "(empty = market)" clipped mid-word in the
+                # narrow rail field, and the summary line already flips to
+                # MARKET live when the price is left empty.
+                placeholder="cents",
                 id="op-price",
                 disabled=True,
                 restrict=r"[0-9.]*",

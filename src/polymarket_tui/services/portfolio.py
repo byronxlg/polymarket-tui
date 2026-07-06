@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.core.config import Settings
+from polymarket_tui.models.market import Event
 from polymarket_tui.models.portfolio import ActivityItem, OpenOrder, Position
 
 POSITIONS_TTL = 30.0
@@ -66,7 +68,9 @@ class PortfolioService:
             return None
         now = time.monotonic()
         if force or now - self._balance_at > VALUE_TTL:
-            self._balance = await self._authed.usdc_balance()
+            # py-clob rides requests with no timeout - a stalled call would
+            # otherwise pin "loading balances..." (and the header) forever.
+            self._balance = await asyncio.wait_for(self._authed.usdc_balance(), timeout=10)
             self._balance_at = now
         return self._balance
 
@@ -80,7 +84,7 @@ class PortfolioService:
             return []
         now = time.monotonic()
         if force or now - self._orders_at > ORDERS_TTL:
-            self._orders = await self._authed.open_orders()
+            self._orders = await asyncio.wait_for(self._authed.open_orders(), timeout=10)
             self._orders_at = now
         return self._orders
 
@@ -100,3 +104,28 @@ class PortfolioService:
             for p in self._positions
             if p.condition_id and p.size >= 0.01 and not p.resolved_loss
         }
+
+    async def flag_slugs(self, events: list[Event]) -> tuple[set[str], set[str]]:
+        """(ordered, held) slugs among `events` for list-row flags: resting
+        orders need full auth, holdings show in observer mode too."""
+        ordered_cond: set[str] = set()
+        held_cond: set[str] = set()
+        if self._settings.can_auth:
+            try:
+                await self.open_orders()
+                ordered_cond = self.order_condition_ids()
+            except Exception:
+                pass
+        if self._settings.can_read_portfolio:
+            try:
+                await self.positions()
+                held_cond = self.position_condition_ids()
+            except Exception:
+                pass
+
+        def slugs(cond: set[str]) -> set[str]:
+            if not cond:
+                return set()
+            return {e.slug for e in events if any(m.condition_id in cond for m in e.markets)}
+
+        return slugs(ordered_cond), slugs(held_cond)

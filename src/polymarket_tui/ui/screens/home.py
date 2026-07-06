@@ -115,32 +115,6 @@ class HomePane(TierAware, Vertical):
         status.append(" refreshing...", style="dim")
         self.query_one("#status-line", Static).update(status)
 
-    async def _flag_slugs(self, events: list) -> tuple[set[str], set[str]]:
-        """(ordered, held) slugs among the listed events: resting orders need
-        full auth, holdings show in observer mode too (funder only)."""
-        app = self.app
-        ordered_cond: set[str] = set()
-        held_cond: set[str] = set()
-        if app.settings.can_auth:
-            try:
-                await app.portfolio.open_orders()
-                ordered_cond = app.portfolio.order_condition_ids()
-            except Exception:
-                pass
-        if app.settings.can_read_portfolio:
-            try:
-                await app.portfolio.positions()
-                held_cond = app.portfolio.position_condition_ids()
-            except Exception:
-                pass
-
-        def slugs(cond: set[str]) -> set[str]:
-            if not cond:
-                return set()
-            return {e.slug for e in events if any(m.condition_id in cond for m in e.markets)}
-
-        return slugs(ordered_cond), slugs(held_cond)
-
     def action_order(self, side: str) -> None:
         event = self.table.highlighted_event()
         if event is not None:
@@ -198,7 +172,7 @@ class HomePane(TierAware, Vertical):
                 for e in events
                 if e.top_market is not None and (e.end_date is None or e.end_date > now)
             ]
-            ordered, held = await self._flag_slugs(events)
+            ordered, held = await app.portfolio.flag_slugs(events)
             if not alive(self):
                 return  # the pane was torn down (root swap) while we fetched
             self.table.set_events(
@@ -206,7 +180,11 @@ class HomePane(TierAware, Vertical):
             )
             if not append:
                 browser = self.query_one(EventsBrowser)
-                browser.preview.show_event(events[0] if events else None)
+                # Follow the (possibly restored) cursor, not row 0 - a reload
+                # keeps the cursor on its event, so the preview must match.
+                browser.preview.show_event(
+                    self.table.highlighted_event() or (events[0] if events else None)
+                )
                 cache.save_events(self._cache_key(), events)
                 self.query_one("#status-line", Static).update(self._status_line())
         finally:
