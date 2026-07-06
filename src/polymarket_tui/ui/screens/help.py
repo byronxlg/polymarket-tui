@@ -30,8 +30,8 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 The footer keeps the two vocabularies apart: contextual keys for the
 current screen on the left; Global navigation (blue, Capitalized - Quit,
 Search, Portfolio, Watched, Back, Help, Refresh) on the right. Global
-letter keys are capitals (W, P, Q, R, H, A, L, T); lowercase letters are
-always contextual.
+letter keys are capitals (W, P, Q, R, H, A, L, T, F); lowercase letters
+are always contextual.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), open the buy form on a market outcome or order from
@@ -40,7 +40,7 @@ the book level (market), toggle BUY/SELL (order panel), show/hide rules
 outcome with the arrows or y/n; right on an outcome flows into the book.
 
 left always steps out one level: order panel -> market -> previous screen;
-expanded trades collapse before the screen closes.
+expanded trades and full screen (F) collapse before the screen closes.
 
 ## Going places
 
@@ -53,6 +53,7 @@ expanded trades collapse before the screen closes.
 | A | auth / credentials |
 | L | toggle DRY/LIVE (going live asks for confirmation; the mode persists) |
 | T | toggle condensed/spacious density (spacious: two-line rows with market metadata; persists) |
+| F | full screen the focused pane; F or left/esc restores the split |
 | ? | this help |
 | Q | quit |
 
