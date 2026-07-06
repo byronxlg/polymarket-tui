@@ -206,8 +206,17 @@ class WatchlistPane(TierAware, Vertical):
             return  # pane torn down while we fetched
         events = [e for e in results if e is not None and not isinstance(e, BaseException)]
         failed = len(slugs) - len(events)
-        self.table.set_events(events, set(slugs))
-        browser.preview.show_event(events[0] if events else None)
+        # Same o/+ flags as home: the watchlist is a workspace, and a row you
+        # hold or have an order resting on must say so here too.
+        ordered, held = await self.app.portfolio.flag_slugs(events)
+        if not alive(self):
+            return
+        self.table.set_events(events, set(slugs), ordered=ordered, held=held)
+        # Follow the (possibly restored) cursor, not row 0 - reloads keep
+        # the cursor on its event, so the preview must match.
+        browser.preview.show_event(
+            self.table.highlighted_event() or (events[0] if events else None)
+        )
         self.refresh_bindings()
         if failed:
             self.notify(f"{failed} watched event(s) could not be loaded", severity="warning")

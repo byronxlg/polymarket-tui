@@ -57,7 +57,9 @@ class TraderOverview(Static):
         else:
             self._value = value
             self._top = sorted(
-                (p for p in positions if p.size >= 0.01),
+                # Resolved losses are dust, not holdings - same filter as
+                # the portfolio table (Byron, UX audit 2026-07-06).
+                (p for p in positions if p.size >= 0.01 and not p.resolved_loss),
                 key=lambda p: p.current_value,
                 reverse=True,
             )[:TOP_POSITIONS]

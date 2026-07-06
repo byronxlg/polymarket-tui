@@ -141,7 +141,9 @@ class UserPane(TierAware, Vertical):
         density = self.app.density
         height = 2 if density == "spacious" else 1
         for pos in sorted(self._positions, key=lambda p: p.current_value, reverse=True):
-            if pos.size < 0.01:
+            # Resolved losses are dust, not holdings - same filter as the
+            # portfolio table (Byron, UX audit 2026-07-06).
+            if pos.size < 0.01 or pos.resolved_loss:
                 continue
             positions_table.add_row(
                 *position_row(pos, columns=self._pos_spec, density=density),

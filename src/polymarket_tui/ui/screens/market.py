@@ -936,13 +936,25 @@ class MarketPane(TierAware, Vertical):
         )
 
     def _owned_outcome_index(self) -> int | None:
-        """Index of the outcome you hold (largest position wins a rare tie)."""
+        """Index of the outcome you hold (largest position wins a rare tie).
+
+        Falls back to the service's last-known positions: a fill event
+        invalidates the cache mid-open, and s pressed while load_position
+        refetches would otherwise silently target the wrong side (C7 flake).
+        """
         tokens = list(self._market.clob_token_ids)
         held = [
             (p.size, tokens.index(p.asset))
             for p in self._my_positions
             if p.asset in tokens
         ]
+        if not held:
+            held = [
+                (pos.size, idx)
+                for idx, token in enumerate(tokens)
+                if (pos := self.app.portfolio.position_for(token)) is not None
+                and pos.size >= 0.01
+            ]
         if not held:
             return None
         return max(held)[1]

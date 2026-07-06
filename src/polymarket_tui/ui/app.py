@@ -80,6 +80,9 @@ class PolymarketApp(App):
         self.reconcile_target: ReconcileTarget | None = None
         # Live own-order/fill updates over the /ws/user socket (issue #1).
         self.user_channel: UserChannel | None = None
+        # Trade ids already toasted: the socket re-emits each trade as its
+        # status walks MATCHED -> MINED -> CONFIRMED (dict = ordered set).
+        self._toasted_trades: dict[str, None] = {}
 
     def get_default_screen(self) -> NavHost:
         return NavHost()
@@ -186,6 +189,11 @@ class PolymarketApp(App):
                 timeout=6,
             )
         elif kind == "trade" and isinstance(msg, UserTradeMessage):
+            if msg.id in self._toasted_trades:
+                return  # same fill, later status - already toasted and refreshed
+            self._toasted_trades[msg.id] = None
+            if len(self._toasted_trades) > 200:
+                self._toasted_trades.pop(next(iter(self._toasted_trades)))
             self.notify(
                 f"Fill: {msg.side} {msg.size} {msg.outcome} @ {float(msg.price) * 100:.1f}c",
                 timeout=6,
