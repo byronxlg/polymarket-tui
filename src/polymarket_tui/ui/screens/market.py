@@ -920,11 +920,20 @@ class MarketPane(TierAware, Vertical):
                 return
         preset_price = preset_size = None
         if self._pending_order_size is not None:
-            # Cashout from the portfolio: prefill the full position at the
-            # bid so the sell can fill immediately; both fields stay editable
-            # and review + enter still confirm.
             preset_size, self._pending_order_size = self._pending_order_size, None
-            if Side(side) is Side.SELL and self._book is not None and self._book.best_bid:
+        if Side(side) is Side.SELL:
+            # Selling means getting out: prefill the full held size at the
+            # live bid so the order can fill immediately (s -> enter -> enter
+            # cashes out). Both fields stay editable - trim the size, bump
+            # the price, or type '50%' over it; review + enter still confirm.
+            if preset_size is None:
+                held = next(
+                    (p.size for p in self._my_positions if p.asset == self._token_id),
+                    None,
+                )
+                if held is not None:
+                    preset_size = Decimal(str(held))
+            if self._book is not None and self._book.best_bid:
                 preset_price = Decimal(str(self._book.best_bid.price))
         panel.open(
             self._market,
