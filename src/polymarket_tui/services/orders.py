@@ -186,11 +186,12 @@ class OrderService:
         issues: list[Issue] = []
         market = draft.market
 
-        # 1. market open
+        # 1. market open. Gamma's acceptingOrders is the exchange's own gate;
+        # a past endDate is NOT one - markets awaiting resolution trade past it.
         if not market.active or market.closed:
             issues.append(Issue(IssueLevel.BLOCK, "Market is closed."))
-        if market.end_date is not None and market.end_date < datetime.now(UTC):
-            issues.append(Issue(IssueLevel.BLOCK, "Market has ended."))
+        if not market.accepting_orders:
+            issues.append(Issue(IssueLevel.BLOCK, "Market is not accepting orders."))
 
         # 4. price bounds (checked before tick so the message is clearer)
         if not Decimal("0") < draft.price < Decimal("1"):

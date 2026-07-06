@@ -57,6 +57,9 @@ class Market(BaseModel):
     end_date: datetime | None = Field(default=None, alias="endDate")
     active: bool = True
     closed: bool = False
+    # CLOB order gate. Independent of end_date: markets awaiting resolution
+    # (e.g. yesterday's weather) keep accepting orders past endDate.
+    accepting_orders: bool = Field(default=True, alias="acceptingOrders")
     description: str = ""
     order_price_min_tick_size: float | None = Field(default=None, alias="orderPriceMinTickSize")
     order_min_size: float | None = Field(default=None, alias="orderMinSize")

@@ -91,11 +91,19 @@ class TestValidation:
         assert IssueLevel.BLOCK in {i.level for i in issues}
         assert "closed" in messages(issues).lower()
 
-    def test_ended_market_blocks(self, service):
-        past = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
-        draft = make_draft(market=make_market(endDate=past))
+    def test_not_accepting_orders_blocks(self, service):
+        draft = make_draft(market=make_market(acceptingOrders=False))
         issues = service.validate(draft, make_book(), 100.0, None)
-        assert "ended" in messages(issues).lower()
+        assert IssueLevel.BLOCK in {i.level for i in issues}
+        assert "not accepting orders" in messages(issues).lower()
+
+    def test_past_end_date_still_accepting_passes(self, service):
+        # Markets awaiting resolution (e.g. yesterday's weather) trade past
+        # endDate; the exchange accepts, so we must not block.
+        past = (datetime.now(UTC) - timedelta(hours=20)).isoformat()
+        draft = make_draft(market=make_market(endDate=past, acceptingOrders=True))
+        issues = service.validate(draft, make_book(), 100.0, None)
+        assert issues == []
 
     def test_price_out_of_bounds_blocks(self, service):
         for bad in (Decimal("0"), Decimal("1"), Decimal("1.5"), Decimal("-0.1")):

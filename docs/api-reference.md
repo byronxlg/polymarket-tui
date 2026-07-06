@@ -57,8 +57,12 @@ Verified fields we rely on:
   "spread": 0.001,
   "oneDayPriceChange": 0.023,
   "volume24hr": 5011906.4,
-  "endDate": "...",
+  "endDate": "...",                   // expected resolution time, NOT a trading cutoff
   "active": true, "closed": false,
+  "acceptingOrders": true,            // the CLOB's actual order gate; stays true past
+                                      // endDate while resolution is pending (verified
+                                      // 2026-07-06: weather market, endDate passed,
+                                      // live book, acceptingOrders=true)
   "orderPriceMinTickSize": 0.001,     // verify at impl; used for order validation
   "orderMinSize": 5                   // verify at impl
 }
