@@ -626,10 +626,11 @@ class OrderPanel(Vertical):
             elif result.ok:
                 app.portfolio.invalidate()
                 app.refresh_account_status()
-                # Refresh the market pane's YOUR POSITION strip so the fill shows
-                # without leaving and re-entering it.
-                if getattr(pane, "is_mounted", False) and hasattr(pane, "load_position"):
-                    pane.load_position()
+                # Refresh the market pane's YOUR POSITION strip and book
+                # stars; positions re-poll with backoff because data-api
+                # indexes fills late. Also covers a down /ws/user socket.
+                if getattr(pane, "is_mounted", False) and hasattr(pane, "refresh_after_fill"):
+                    pane.refresh_after_fill()
                 app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
             elif result.status_unknown:
                 # The post may have landed; never auto-retry. Offer to reconcile.

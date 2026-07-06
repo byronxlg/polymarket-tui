@@ -206,6 +206,14 @@ class PolymarketApp(App):
         if host is not None:
             for pane in host.query(PortfolioPane):
                 pane.load_orders()
+            # The market pane shows YOUR POSITION and starred book levels:
+            # refresh them for the touched market, with backoff on the
+            # positions (data-api indexes fills a few seconds late).
+            for market_pane in host.query(MarketPane):
+                if market_pane.involves(
+                    getattr(msg, "asset_id", ""), getattr(msg, "market", "")
+                ):
+                    market_pane.refresh_after_fill()
 
     def _schedule_ntp_refresh(self) -> None:
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
