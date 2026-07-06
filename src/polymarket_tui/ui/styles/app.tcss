@@ -10,7 +10,17 @@ DataTable {
     height: 1fr;
 }
 
+/* Cursor row: a clear blue tint on the focused table; a much fainter
+   marker when blurred so an inactive table's selection stays locatable
+   (the home preview rail follows it) without painting a full-width blue
+   line at the bottom of every table on screen. Textual gates its own
+   cursor background on :focus the same way; the unscoped override we used
+   to have defeated that and tinted the cursor row on blurred tables too. */
 DataTable > .datatable--cursor {
+    background: $primary 12%;
+}
+
+DataTable:focus > .datatable--cursor {
     background: $primary 25%;
 }
 
