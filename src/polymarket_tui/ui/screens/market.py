@@ -108,7 +108,6 @@ class MarketPane(TierAware, Vertical):
         Binding("R", "related", "related", show=False, key_display="R"),
         Binding("O", "open_web", "web", show=False, key_display="O"),
         Binding("e", "open_event", "event", show=False),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(
@@ -679,8 +678,12 @@ class MarketPane(TierAware, Vertical):
                 self.load_history()
 
     def action_refresh(self) -> None:
+        """The global r: everything this pane shows, not just book+chart."""
         self.load_book()
         self.load_history()
+        self.load_trades()
+        self.load_position()
+        self.load_own_orders()
 
     # -- order book navigation & cancel -----------------------------------------
 
