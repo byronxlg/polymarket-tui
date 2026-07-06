@@ -22,12 +22,13 @@ then installs `polymarket-tui` as a uv tool):
 curl -sSL https://raw.githubusercontent.com/byronxlg/polymarket-tui/main/install.sh | bash
 ```
 
-**Homebrew** (this repo doubles as the tap):
+**Homebrew** (one command - auto-taps and installs):
 
 ```sh
-brew tap byronxlg/polymarket-tui https://github.com/byronxlg/polymarket-tui
-brew install polymarket-tui
+brew install byronxlg/tap/polymarket-tui
 ```
+
+Add `--HEAD` to track `main` instead of the latest release.
 
 **From source** (for development):
 
