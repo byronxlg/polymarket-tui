@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from polymarket_tui.core.fileio import write_atomic
+
 DATA_DIR = Path.home() / ".local" / "share" / "polymarket-tui"
 
 
@@ -31,8 +33,10 @@ class Watchlist:
             ]
 
     def _save(self) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(json.dumps({"events": self._slugs, "users": self._users}, indent=2))
+        # Atomic: a crash mid-write must not truncate the file - _load treats
+        # corrupt JSON as empty and the next toggle would persist the wipe.
+        payload = {"events": self._slugs, "users": self._users}
+        write_atomic(self._path, json.dumps(payload, indent=2))
 
     # -- events ---------------------------------------------------------------
 

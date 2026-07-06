@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 
+from polymarket_tui.core.fileio import write_atomic
+
 DATA_DIR = Path.home() / ".local" / "share" / "polymarket-tui"
 
 DENSITIES = ("condensed", "spacious")
@@ -29,7 +31,7 @@ def _save_pref(key: str, value: str, path: Path | None) -> None:
     except (OSError, json.JSONDecodeError):
         data = {}
     data[key] = value
-    p.write_text(json.dumps(data, indent=2))
+    write_atomic(p, json.dumps(data, indent=2))
 
 
 def load_density(path: Path | None = None) -> str:
