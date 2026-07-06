@@ -679,6 +679,10 @@ class PortfolioPane(TierAware, Vertical):
                 )
             elif result.ok:
                 app.notify("Order cancelled")
+                # Freed reservation moves the header cash strip and cached
+                # order flags - same post-cancel refresh as the market pane.
+                app.portfolio.invalidate()
+                app.refresh_account_status()
             else:
                 app.notify(f"Cancel failed: {result.error}", severity="error", timeout=8)
             if pane.is_mounted:

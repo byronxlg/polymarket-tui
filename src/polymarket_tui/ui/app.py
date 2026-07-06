@@ -219,11 +219,17 @@ class PolymarketApp(App):
         else:
             return
         self.portfolio.invalidate()
-        # Refresh the open-orders tab live if a portfolio pane is mounted.
+        # Refresh a mounted portfolio pane live: a fill moves positions, PnL,
+        # balances, and history - not just the open-orders tab. Order events
+        # (resting/canceled) only move the orders tab and the cash reserve.
         host = self._nav_host()
         if host is not None:
             for pane in host.query(PortfolioPane):
-                pane.load_orders()
+                if kind == "trade":
+                    pane.load_all()
+                else:
+                    pane.load_orders()
+                    pane.load_balances()
             # The market pane shows YOUR POSITION and starred book levels:
             # refresh them for the touched market, with backoff on the
             # positions (data-api indexes fills a few seconds late).
