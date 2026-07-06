@@ -14,6 +14,7 @@ from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
 from polymarket_tui.api.ws import UserChannel
+from polymarket_tui.core import fmt
 from polymarket_tui.core.auth import derive_l2_creds
 from polymarket_tui.core.config import Mode, Settings, get_settings
 from polymarket_tui.models.market import Event, Market
@@ -202,7 +203,7 @@ class PolymarketApp(App):
             )
             self.notify(
                 f"Order {verb}: {msg.side} {msg.original_size} {msg.outcome} @ "
-                f"{float(msg.price) * 100:.1f}c",
+                f"{fmt.cents_exact(float(msg.price))}",
                 timeout=6,
             )
         elif kind == "trade" and isinstance(msg, UserTradeMessage):
@@ -212,7 +213,7 @@ class PolymarketApp(App):
             if len(self._toasted_trades) > 200:
                 self._toasted_trades.pop(next(iter(self._toasted_trades)))
             self.notify(
-                f"Fill: {msg.side} {msg.size} {msg.outcome} @ {float(msg.price) * 100:.1f}c",
+                f"Fill: {msg.side} {msg.size} {msg.outcome} @ {fmt.cents_exact(float(msg.price))}",
                 timeout=6,
             )
         else:

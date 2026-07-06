@@ -29,6 +29,8 @@ from polymarket_tui.services.orders import (
     Side,
     Tif,
     format_cents_input,
+    format_price_cents,
+    format_shares,
     parse_price,
     price_decimals,
     round_to_tick,
@@ -482,9 +484,8 @@ class OrderPanel(Vertical):
                 and self._position_size
                 and not self.app.settings.polymarket_hide_balances
             ):
-                hint.append(
-                    f"   held {self._position_size:,.0f} - size 50% sells half", style=AMBER
-                )
+                held = format_shares(Decimal(str(self._position_size)))
+                hint.append(f"   held {held} - size 50% sells half", style=AMBER)
             if self._side is Side.SELL and self._position_won:
                 hint.append(
                     "\nwon - redeems at 100c on the web; selling here takes the bid",
@@ -493,9 +494,9 @@ class OrderPanel(Vertical):
             info.update(hint)
             return
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"{draft.size:,.0f} ", style="bold")
+        out.append(f"{format_shares(draft.size)} ", style="bold")
         out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
-        out.append(f"@ {draft.price * 100:.1f}c ", style="bold")
+        out.append(f"@ {format_price_cents(draft.market, draft.price)} ", style="bold")
         out.append(f"({kind})", style="dim")
         summary.update(out)
 
@@ -544,11 +545,11 @@ class OrderPanel(Vertical):
             out.append(" · signs, never posts", style="dim")
         out.append("\n\n")
         out.append(f"{draft.side.value} ", style=self._side_style)
-        out.append(f"{draft.size:,.0f} ", style="bold")
+        out.append(f"{format_shares(draft.size)} ", style="bold")
         out.append(draft.outcome_label.upper(), style=self._outcome_style)
         out.append("\n")
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"@ {draft.price * 100:.1f}c", style="bold")
+        out.append(f"@ {format_price_cents(draft.market, draft.price)}", style="bold")
         out.append(f"   {kind}", style="dim")
         out.append("\n\n")
         if draft.side is Side.BUY:

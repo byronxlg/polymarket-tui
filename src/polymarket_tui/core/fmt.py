@@ -22,6 +22,17 @@ def cents(price: float | None, signed: bool = False) -> str:
     return f"{c:.1f}c"
 
 
+def cents_exact(price: float | None) -> str:
+    """Cents keeping sub-tenth precision (own-order fills/toasts): a 33.45c
+    fill must not read as 33.4c. Trailing zeros trimmed to one place."""
+    if price is None:
+        return "-"
+    text = f"{price * 100:.2f}".rstrip("0")
+    if text.endswith("."):
+        text += "0"
+    return text + "c"
+
+
 def money(value: float | None) -> str:
     if value is None:
         return "-"

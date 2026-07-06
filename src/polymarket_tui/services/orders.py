@@ -65,8 +65,8 @@ class OrderDraft:
     def summary(self) -> str:
         kind = "MARKET" if self.is_market_order else f"LIMIT {self.tif}"
         return (
-            f"{self.side} {self.size:,.0f} {self.outcome_label.upper()}"
-            f" @ {self.price * 100:.1f}c ({kind})"
+            f"{self.side} {format_shares(self.size)} {self.outcome_label.upper()}"
+            f" @ {format_price_cents(self.market, self.price)} ({kind})"
         )
 
 
@@ -162,6 +162,22 @@ def price_decimals(market: Market) -> int:
     return max(0, -exponent) if isinstance(exponent, int) else 0
 
 
+def format_price_cents(market: Market, price: Decimal) -> str:
+    """A dollar price as cents at the market's tick resolution (min 1 place).
+
+    What the user confirms must be exactly what is signed: fmt.cents' fixed
+    .1f would show 33.45c as 33.4c on a 0.01c-tick market.
+    """
+    return f"{price * 100:.{max(1, price_decimals(market))}f}c"
+
+
+def format_shares(size: Decimal) -> str:
+    """Shares for display: whole when whole, any fraction kept (12.5 sells
+    from a '50%' entry must not confirm as '12')."""
+    text = f"{size:,.2f}".rstrip("0").rstrip(".")
+    return text or "0"
+
+
 def format_cents_input(raw: str, decimals: int) -> str:
     """Reformat a partially-typed CENTS price as the user types.
 
@@ -245,16 +261,17 @@ class OrderService:
             issues.append(
                 Issue(
                     IssueLevel.BLOCK,
-                    f"Price must be a multiple of {tick} - nearest valid {nearest * 100:.1f}c.",
+                    f"Price must be a multiple of {tick} - nearest valid"
+                    f" {format_price_cents(market, nearest)}.",
                 )
             )
 
-        # 3. min size
+        # 3. min size (a non-positive size reports only the positivity block)
         min_size = Decimal(str(market.order_min_size or 5))
-        if draft.size < min_size:
-            issues.append(Issue(IssueLevel.BLOCK, f"Minimum {min_size:,.0f} shares."))
         if draft.size <= 0:
             issues.append(Issue(IssueLevel.BLOCK, "Size must be positive."))
+        elif draft.size < min_size:
+            issues.append(Issue(IssueLevel.BLOCK, f"Minimum {min_size:,.0f} shares."))
 
         # 5. funds / inventory
         if draft.side is Side.BUY and cash_balance is not None:
