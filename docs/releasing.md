@@ -9,13 +9,14 @@ builds, and uploads to PyPI. The version shipped is whatever is in
 Channels: **PyPI** only (npm was considered and skipped - a Python TUI on npm
 needs a Node shim that bootstraps Python, with no benefit over PyPI + Homebrew +
 the uv one-liner). A PyPI release also unlocks `pip install polymarket-tui`,
-`uv tool install polymarket-tui`, and gives the homebrew-core formula a stable
-sdist to source from (see [homebrew-core.md](homebrew-core.md)).
+`uv tool install polymarket-tui`, and the Homebrew tap
+([byronxlg/homebrew-tap](https://github.com/byronxlg/homebrew-tap)) auto-bumps
+its formula to the new sdist.
 
 ## One-time: PyPI Trusted Publishing (no token stored)
 
-We use OIDC Trusted Publishing, so no PyPI token lives in GitHub secrets. Because
-the project does not exist on PyPI yet, register a **pending** publisher first:
+We use OIDC Trusted Publishing, so no PyPI token lives in GitHub secrets. This
+was configured once via a **pending** publisher (kept here for reference):
 
 1. Log in to PyPI -> https://pypi.org/manage/account/publishing/
 2. Add a **pending publisher** with exactly:
@@ -47,8 +48,9 @@ pending publisher into an active one.
 needs to be retried (PyPI rejects re-uploading an existing version, so bump
 first).
 
-## After the first PyPI release
+## After a release
 
-- Update the homebrew-core formula's `url`/`sha256` from PyPI - see
-  [homebrew-core.md](homebrew-core.md) step 2.
-- `pip install polymarket-tui` / `uv tool install polymarket-tui` now work.
+- The Homebrew tap's daily workflow repoints its formula at the new sdist
+  automatically ([byronxlg/homebrew-tap](https://github.com/byronxlg/homebrew-tap));
+  `gh workflow run bump.yml -R byronxlg/homebrew-tap` bumps it immediately.
+- `pip install polymarket-tui` / `uv tool install polymarket-tui` serve the new version.
