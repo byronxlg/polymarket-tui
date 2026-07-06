@@ -3,12 +3,8 @@ class PolymarketTui < Formula
 
   desc "Terminal client for Polymarket prediction markets"
   homepage "https://github.com/byronxlg/polymarket-tui"
-  # SOURCE: fill after publishing the release to PyPI (`uv publish`). Get the
-  # exact hashed url + sha256 with:
-  #   curl -s https://pypi.org/pypi/polymarket-tui/0.1.0/json \
-  #     | jq -r '.urls[] | select(.packagetype=="sdist") | .url, .digests.sha256'
-  url "https://files.pythonhosted.org/packages/source/p/polymarket-tui/polymarket_tui-0.1.0.tar.gz"
-  sha256 "PLACEHOLDER_FILL_FROM_PYPI_AFTER_PUBLISH"
+  url "https://files.pythonhosted.org/packages/94/5b/bc8e26bfb0ca9f97b2d54fcf3432244f6567f0fc0140d56979816fedfc92/polymarket_tui-0.1.0.tar.gz"
+  sha256 "2818c5000a09cf1aacccc9b6155ab8ed400f05219a71f38d0aea8120a4d853fc"
   license "MIT"
 
   depends_on "python@3.12"
