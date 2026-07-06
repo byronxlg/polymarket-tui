@@ -157,6 +157,9 @@ ACTIVITY_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     ),
     "compact": (
         ("when", "When", 13),
+        # 1-wide B/S letter (the trades-rail idiom): a trade feed without
+        # buy-vs-sell is unreadable, even as drill context.
+        ("side", "S", 1),
         ("market", "Market", 22),
         ("usdc", "USDC", 10),
     ),
@@ -206,7 +209,11 @@ def activity_row(
     cells = {
         "when": item.when.astimezone().strftime("%b %d %H:%M"),
         "type": item.type,
-        "side": Text(item.side, style=UP if item.side == "BUY" else DOWN)
+        # A 1-wide compact column shows the B/S letter, wider tiers the word.
+        "side": Text(
+            item.side[:1] if widths.get("side", 5) <= 2 else item.side,
+            style=UP if item.side == "BUY" else DOWN,
+        )
         if item.side
         else "-",
         "market": fmt.trunc(item.title, widths["market"]),
