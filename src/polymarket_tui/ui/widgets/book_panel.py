@@ -53,6 +53,7 @@ class BookPanel(Static):
         Binding("down", "cursor(1)", "down", show=False),
         Binding("space", "order_here", "order", show=True),
         Binding("x", "cancel_here", "cancel", show=True),
+        Binding("m", "center", "mid", show=True),
         Binding("left", "focus_above", "back", show=False),
     ]
 
@@ -89,6 +90,12 @@ class BookPanel(Static):
         self._ask_depth = DEPTH
         self._bid_depth = DEPTH
         self._more_asks_line = False  # "· n more" above the asks (scroll math)
+        # The first book render (per outcome) drops the cursor at the mid -
+        # the touch is what a trader acts on, not the deepest visible ask.
+        self._cursor_centered = False
+        # Cents decimal places at the market's tick (set_price_decimals);
+        # 1 matches the app-wide default until the pane pins the real tick.
+        self._price_decimals = 1
         # Whether the row cursor should draw. Tracked here, set synchronously in
         # on_focus/on_blur, rather than read from the has_focus reactive: on the
         # focus that on_focus itself handles, has_focus is not True yet, so the
@@ -120,9 +127,19 @@ class BookPanel(Static):
 
     def reset_depth(self) -> None:
         """Back to the default window (call when the shown token changes -
-        an outcome flip must not inherit the other book's explored depth)."""
+        an outcome flip must not inherit the other book's explored depth).
+        The next render re-centers the cursor on the new book's mid."""
         self._ask_depth = DEPTH
         self._bid_depth = DEPTH
+        self._cursor_centered = False
+
+    def set_price_decimals(self, decimals: int) -> None:
+        """Pin the market's tick resolution: the book shows tick-true prices
+        (a 1c-tick market reads 33c, never a padded 33.0c)."""
+        if decimals != self._price_decimals:
+            self._price_decimals = decimals
+            if self._book is not None:
+                self._render_book()
 
     def set_own_orders(self, orders: list[OpenOrder]) -> None:
         """Your resting orders on this token: star their levels and enable x."""
@@ -195,6 +212,20 @@ class BookPanel(Static):
     def action_focus_above(self) -> None:
         self.post_message(self.FocusAbove())
 
+    def _center_row(self) -> int:
+        """Row hugging the mid: the best ask (the buy touch), or the best
+        bid when the ask side is empty."""
+        n_asks = sum(1 for kind, _ in self._levels if kind == "ask")
+        return max(0, n_asks - 1)
+
+    def action_center(self) -> None:
+        """m: jump back to the mid after browsing depth."""
+        if not self._levels:
+            return
+        self._cursor = self._center_row()
+        self.post_message(self.CursorMoved())  # drop a stale armed cancel
+        self._render_book()
+
     def action_order_here(self) -> None:
         if not (self.has_focus and self._levels):
             return
@@ -214,6 +245,21 @@ class BookPanel(Static):
         width = self.size.width or (MIN_BAR_WIDTH + FIXED_COLS + 2)
         return max(MIN_BAR_WIDTH, min(MAX_BAR_WIDTH, width - FIXED_COLS))
 
+    def _fmt_price(self, price: float) -> str:
+        """A level price in cents at the market's tick resolution."""
+        return f"{price * 100:.{self._price_decimals}f}c"
+
+    def _fmt_mid(self, value: float | None) -> str:
+        """Mid/spread in cents: tick resolution, plus one place when the mid
+        lands on a half-tick (a 1c book with a 1c spread mids at x.5c)."""
+        if value is None:
+            return "-"
+        c = value * 100
+        decimals = self._price_decimals
+        if abs(c - round(c, decimals)) > 1e-9:
+            decimals += 1
+        return f"{c:.{decimals}f}c"
+
     def _level_line(
         self,
         level: BookLevel,
@@ -231,7 +277,7 @@ class BookPanel(Static):
         line = Text()
         line.append(" " * (bar_w - filled))
         line.append("█" * filled, style=bar_style)
-        line.append(f" {fmt.cents(level.price):>7}", style=style)
+        line.append(f" {self._fmt_price(level.price):>7}", style=style)
         line.append(f" {fmt.compact_size(level.size):>10}")
         if self._orders_at(level.price):
             line.append(" *", style=f"bold {AMBER}")
@@ -264,6 +310,10 @@ class BookPanel(Static):
         # Selectable rows in display order: asks top-to-bottom (best ask nearest
         # the mid), then bids best-first. The mid divider is not a cursor stop.
         self._levels = [("ask", lvl) for lvl in reversed(asks)] + [("bid", lvl) for lvl in bids]
+        if not self._cursor_centered and self._levels:
+            # First render of this book: start at the mid, not the deepest ask.
+            self._cursor_centered = True
+            self._cursor = self._center_row()
         if self._cursor >= len(self._levels):
             self._cursor = max(0, len(self._levels) - 1)
         focused = self._focused
@@ -281,7 +331,8 @@ class BookPanel(Static):
 
         if book.midpoint is not None:
             out.append(
-                f"---- mid {fmt.cents(book.midpoint)}  spread {fmt.cents(book.spread)} ----\n",
+                f"---- mid {self._fmt_mid(book.midpoint)}"
+                f"  spread {self._fmt_mid(book.spread)} ----\n",
                 style=f"bold {AMBER}",
             )
         elif not asks and not bids:

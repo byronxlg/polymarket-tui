@@ -118,6 +118,7 @@ async def test_cursor_near_bottom_reveals_more_bids() -> None:
         book.update_book(_deep_book(30))
         book.focus()
         await pilot.pause()
+        book.focus_top()  # pin the start: the first render centers on the mid
         # Walk to the last visible row; entering the margin reveals a chunk.
         for _ in range(len(book._levels) - 1):
             book.action_cursor(1)
@@ -191,3 +192,74 @@ async def test_reset_depth_restores_the_default_window() -> None:
         kinds = [kind for kind, _ in book._levels]
         assert kinds.count("ask") == DEPTH
         assert kinds.count("bid") == DEPTH
+
+
+async def test_first_render_centers_cursor_on_the_best_ask() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_deep_book(30))
+        await pilot.pause()
+        kind, level = book._levels[book._cursor]
+        assert kind == "ask"
+        assert level.price == 0.331  # best ask = the row hugging the mid
+
+
+async def test_m_recenters_after_browsing_depth() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_deep_book(30))
+        book.focus()
+        await pilot.pause()
+        for _ in range(8):
+            book.action_cursor(1)  # wander into the bids
+        assert book._levels[book._cursor][0] == "bid"
+        book.action_center()
+        kind, level = book._levels[book._cursor]
+        assert kind == "ask" and level.price == 0.331
+
+
+async def test_outcome_reset_recenters_on_the_new_book() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_deep_book(30))
+        await pilot.pause()
+        for _ in range(5):
+            book.action_cursor(1)
+        book.reset_depth()  # outcome flip
+        book.update_book(_deep_book(30))
+        assert book._levels[book._cursor][1].price == 0.331
+
+
+async def test_book_prices_render_true_to_tick() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        rendered: list = []
+        original = book.update
+
+        def spy(renderable="", *args, **kwargs):
+            rendered.append(renderable)
+            return original(renderable, *args, **kwargs)
+
+        book.update = spy  # type: ignore[method-assign]
+        book.set_price_decimals(0)  # a 1c-tick market
+        book.update_book(_book())  # bids 32/31c, asks 34/35c -> mid 33c
+        await pilot.pause()
+        text = str(rendered[-1])
+        assert "34c" in text and "32c" in text
+        assert "33.0c" not in text and "34.0c" not in text
+        assert "mid 33c" in text  # whole-cent mid stays whole
+
+        # A half-tick mid keeps one extra place instead of rounding.
+        book.update_book(
+            OrderBook.model_validate(
+                {
+                    "bids": [{"price": "0.32", "size": "10"}],
+                    "asks": [{"price": "0.33", "size": "10"}],
+                }
+            )
+        )
+        assert "mid 32.5c" in str(rendered[-1])

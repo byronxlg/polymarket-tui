@@ -37,8 +37,8 @@ pane must never render clipped columns.
 - Arrows do everything first: up/down move and flow into adjacent panels
   (category bar, chart inspect, search box); right/enter drill in; left/esc
   step OUT one level (panel -> expanded view -> screen -> previous screen).
-- tab / shift+tab cycle the screen's primary selector (category, timeframe,
-  pane, search mode).
+- tab / shift+tab cycle the screen's primary selector (category, the YES/NO
+  outcome pair, pane, search mode).
 - space is the contextual toggle: star a list row, flip the YES/NO book,
   flip BUY/SELL in the order panel, show rules, follow a trader.
 - New keybinds only when they earn their place; no aliases, no vim keys.
