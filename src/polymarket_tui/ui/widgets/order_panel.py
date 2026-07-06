@@ -28,7 +28,9 @@ from polymarket_tui.services.orders import (
     ReconcileTarget,
     Side,
     Tif,
+    format_cents_input,
     parse_price,
+    price_decimals,
     round_to_tick,
     tick_size,
 )
@@ -279,9 +281,9 @@ class OrderPanel(Vertical):
         # Prefilled from a book level (space on the order book): both fields are
         # the level's price and size, ready to review or tweak.
         if preset_price is not None:
-            price_input.value = f"{preset_price * 100:.1f}"
+            price_input.value = self._fmt_price(preset_price)
         elif book is not None and book.midpoint is not None and not price_input.value:
-            price_input.value = f"{round_to_tick(market, Decimal(str(book.midpoint))) * 100:.1f}"
+            price_input.value = self._fmt_price(round_to_tick(market, Decimal(str(book.midpoint))))
         if preset_size is not None:
             size_input.value = _fmt_size(preset_size)
         self.query_one("#op-issues", Static).update("")
@@ -363,6 +365,14 @@ class OrderPanel(Vertical):
 
     def _screen_book(self) -> OrderBook | None:
         return getattr(self._market_pane(), "_book", None)
+
+    def _price_decimals(self) -> int:
+        """Cents decimal places this market's tick allows (1 if not set yet)."""
+        return price_decimals(self._market) if self._market else 1
+
+    def _fmt_price(self, dollars: Decimal) -> str:
+        """A tick-aligned dollar price as a cents string at market resolution."""
+        return f"{dollars * 100:.{self._price_decimals()}f}"
 
     def _current_draft(self) -> tuple[OrderDraft | None, str]:
         market = self._market
@@ -527,6 +537,15 @@ class OrderPanel(Vertical):
     # -- events --------------------------------------------------------------------
 
     def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "op-price":
+            # Auto-place the decimal (334 -> 33.4) and cap to the market's tick
+            # resolution as the user types. Re-assigning value re-posts Changed;
+            # it re-enters with the canonical string, which formats to itself, so
+            # there is no loop.
+            formatted = format_cents_input(event.value, self._price_decimals())
+            if formatted != event.value:
+                event.input.value = formatted
+                event.input.cursor_position = len(formatted)
         self._set_confirming(None)
         self._refresh_summary()
 
@@ -560,7 +579,7 @@ class OrderPanel(Vertical):
             current = round_to_tick(self._market, Decimal(str(book.midpoint)))
         tick = tick_size(self._market)
         bumped = max(tick, min(Decimal("1") - tick, current + tick * direction))
-        price_input.value = f"{bumped * 100:.1f}"
+        price_input.value = self._fmt_price(bumped)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "op-price":

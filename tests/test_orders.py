@@ -16,8 +16,10 @@ from polymarket_tui.services.orders import (
     OrderService,
     Side,
     Tif,
+    format_cents_input,
     map_error,
     parse_price,
+    price_decimals,
     round_to_tick,
 )
 
@@ -352,3 +354,57 @@ class TestBuilderCode:
     def test_builder_code_is_not_a_settings_field(self):
         # No env/config override exists to redirect attribution away from us.
         assert "polymarket_builder_code" not in Settings.model_fields
+
+
+class TestPriceDecimals:
+    def test_common_ticks(self):
+        assert price_decimals(make_market(orderPriceMinTickSize=0.01)) == 0
+        assert price_decimals(make_market(orderPriceMinTickSize=0.001)) == 1
+        assert price_decimals(make_market(orderPriceMinTickSize=0.0001)) == 2
+
+    def test_missing_tick_defaults_to_one_cent(self):
+        # _tick falls back to 0.01 (1c) -> whole-cent prices, 0 decimals.
+        assert price_decimals(make_market(orderPriceMinTickSize=0)) == 0
+
+
+class TestFormatCentsInput:
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("", ""),
+            ("3", "3"),
+            ("33", "33"),
+            ("334", "33.4"),  # decimal auto-inserted before the 3rd digit
+            ("999", "99.9"),
+            ("3345", "33.4"),  # 4th digit past 0.1c resolution is dropped
+            ("100", "10.0"),  # 100c is not placeable; two whole-cent digits max
+            ("5.5", "5.5"),  # an explicit dot is honoured
+            ("33.", "33."),  # trailing dot kept so a fraction can follow
+            ("05", "5"),  # leading zero stripped
+        ],
+    )
+    def test_one_decimal_resolution(self, raw, expected):
+        assert format_cents_input(raw, 1) == expected
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("334", "33"),  # no fractional cents at a 1c tick
+            ("33.4", "33"),  # a typed dot cannot add precision the tick lacks
+            ("99", "99"),
+            (".", ""),
+        ],
+    )
+    def test_whole_cent_resolution(self, raw, expected):
+        assert format_cents_input(raw, 0) == expected
+
+    def test_two_decimal_resolution(self):
+        assert format_cents_input("3345", 2) == "33.45"
+        assert format_cents_input("33456", 2) == "33.45"
+
+    def test_result_always_reparses_to_the_shown_value(self):
+        # Whatever the field shows must parse back (no display-only artifacts).
+        for raw in ("334", "999", "5.5", "33."):
+            shown = format_cents_input(raw, 1)
+            if shown and shown != "33.":
+                assert parse_price(shown) is not None
