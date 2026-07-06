@@ -22,6 +22,10 @@ TRADES_POLL_SECONDS = 5.0
 
 
 def _ago(dt: datetime) -> str:
+    if dt.tzinfo is None:
+        # API timestamps are UTC; a naive parse must not TypeError the
+        # aware-minus-naive subtraction below.
+        dt = dt.replace(tzinfo=UTC)
     seconds = (datetime.now(UTC) - dt).total_seconds()
     if seconds < 60:
         return f"{seconds:.0f}s"
@@ -82,6 +86,8 @@ class ActivityPanel(VerticalScroll):
 
     @work(exclusive=True, group="activity")
     async def refresh_content(self) -> None:
+        if not alive(self):
+            return  # the poll interval can fire in the teardown window
         if self._mode == "trades":
             await self._load_trades()
         elif self._mode == "comments":
@@ -133,7 +139,7 @@ class ActivityPanel(VerticalScroll):
         for comment in comments:
             profile = comment.get("profile") or {}
             name = profile.get("name") or profile.get("pseudonym") or "anon"
-            created = comment.get("createdAt", "")
+            created = str(comment.get("createdAt") or "")  # null-safe
             when = ""
             try:
                 when = _ago(datetime.fromisoformat(created.replace("Z", "+00:00")))
