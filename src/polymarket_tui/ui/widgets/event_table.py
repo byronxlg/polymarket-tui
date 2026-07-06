@@ -177,8 +177,8 @@ class EventsTable(VimDataTable):
             # A reload (cache->live swap at boot, r refresh) must not snap
             # the cursor to the top: remember the highlighted event and
             # restore it by key below if the new list still has it.
-            held = self.highlighted_event()
-            keep_slug = held.slug if held is not None else None
+            highlighted = self.highlighted_event()
+            keep_slug = highlighted.slug if highlighted is not None else None
             self.clear()
             self.events_by_slug.clear()
             self._events = []
