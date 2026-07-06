@@ -189,6 +189,35 @@ class MarketPane(TierAware, Vertical):
     def focus_inner(self) -> None:
         self.query_one("#outcomes-table", VimDataTable).focus()
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Only advertise (and honor) keys whose effect is visible right now.
+
+        At compact every panel except the outcome list is hidden, so the
+        order/trades/rules/chart keys would act on invisible widgets -
+        space used to open the order panel with focus in a hidden price
+        field. `i` also changes nothing while the rules rail is auto-shown
+        (wide terminals, see _apply_visibility), the trades view is
+        expanded, or an order is open.
+        """
+        if self.tier == "compact" and action in (
+            "order",
+            "enter_key",
+            "toggle_trades",
+            "toggle_rules",
+            "cycle_interval",
+            "toggle_activity",
+        ):
+            return False
+        if action in ("toggle_trades", "toggle_rules") and self._order_panel_open():
+            return False
+        if action == "toggle_rules" and (self._trades_expanded or self.size.width >= 170):
+            return False
+        return True
+
+    def _order_panel_open(self) -> bool:
+        panel = self.query(OrderPanel)
+        return bool(panel) and panel.first(OrderPanel).is_open
+
     @property
     def current_book(self) -> OrderBook | None:
         return self._book
@@ -221,6 +250,7 @@ class MarketPane(TierAware, Vertical):
     def on_tier_changed(self, tier: Tier) -> None:
         self._apply_visibility()
         self._schedule_refit()
+        self.refresh_bindings()  # the footer gates on tier (check_action)
 
     def _schedule_refit(self) -> None:
         # Measure after layout settles: the slot tier is a cap, the column
@@ -414,6 +444,7 @@ class MarketPane(TierAware, Vertical):
         self._apply_visibility()
         if self._tier_ready:
             self._schedule_refit()
+        self.refresh_bindings()  # the i-rules gate follows the pane width
 
     def on_mount(self) -> None:
         self.query_one("#market-cancel-strip", Static).display = False
@@ -846,6 +877,10 @@ class MarketPane(TierAware, Vertical):
         self.notify(f"Opened {url}", timeout=3)
 
     def action_order(self, side: str) -> None:
+        # Reached via RowSelected (enter) as well as the gated bindings: at
+        # compact the order panel is hidden - never open an invisible form.
+        if self.tier == "compact":
+            return
         app = self.app
         if not app.settings.can_auth:
             app.notify(
