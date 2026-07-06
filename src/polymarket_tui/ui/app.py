@@ -21,7 +21,7 @@ from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.prefs import load_density, save_density
 from polymarket_tui.state.watchlist import Watchlist
-from polymarket_tui.ui.screens.auth import AuthScreen
+from polymarket_tui.ui.screens.auth import AuthModal
 from polymarket_tui.ui.screens.event import EventPane
 from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.market import MarketPane
@@ -104,7 +104,7 @@ class PolymarketApp(App):
                 return False
         if action == "help" and isinstance(self.screen, HelpScreen):
             return False
-        if action == "auth" and isinstance(self.screen, AuthScreen):
+        if action == "auth" and isinstance(self.screen, AuthModal):
             return False
         if action == "refresh_data":
             target = self._refresh_target()
@@ -368,7 +368,7 @@ class PolymarketApp(App):
             host.set_root(WatchlistPane(), "Watched")
 
     def reconfigure(self, settings: Settings) -> None:
-        """Swap credentials at runtime (auth screen). Rebuilds the authed stack."""
+        """Swap credentials at runtime (auth pop-out). Rebuilds the authed stack."""
         self.settings = settings
         self.authed = AuthedClobClient(settings) if settings.can_auth else None
         self.portfolio = PortfolioService(settings, self.data, self.authed)
@@ -378,7 +378,8 @@ class PolymarketApp(App):
         self.start_user_channel()  # reconnect /ws/user with the new creds
 
     def action_auth(self) -> None:
-        self._push_unless_current(AuthScreen, AuthScreen)
+        """A: auth is a pop-out - apply or esc lands back where you were."""
+        self._push_unless_current(AuthModal, AuthModal)
 
     def action_toggle_live(self) -> None:
         """DRY/LIVE flip: going live is confirmed, dropping to DRY is instant.
