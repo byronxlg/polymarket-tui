@@ -8,14 +8,18 @@ Screen {
 
 DataTable {
     height: 1fr;
+    /* Tables fit their columns to the pane (fit_columns / effective_tier);
+       they never scroll sideways. Left on auto, a hair of horizontal
+       overflow - often just the vertical scrollbar eating a column of
+       width - docks a horizontal scrollbar whose blue thumb reads as a
+       stray highlight line hugging the table's bottom edge. */
+    overflow-x: hidden;
 }
 
-/* Cursor row: a clear blue tint on the focused table; a much fainter
-   marker when blurred so an inactive table's selection stays locatable
-   (the home preview rail follows it) without painting a full-width blue
-   line at the bottom of every table on screen. Textual gates its own
-   cursor background on :focus the same way; the unscoped override we used
-   to have defeated that and tinted the cursor row on blurred tables too. */
+/* Cursor row: a clear blue tint on the focused table, a much fainter
+   marker when blurred - matching how Textual gates its own block cursor on
+   :focus. The old unscoped rule painted the bright tint on every table at
+   all times, defeating that. */
 DataTable > .datatable--cursor {
     background: $primary 12%;
 }
