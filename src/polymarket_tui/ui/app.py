@@ -7,6 +7,7 @@ from decimal import Decimal
 from rich.text import Text
 from textual.app import App
 from textual.binding import Binding
+from textual.theme import Theme
 
 from polymarket_tui.api.clob import ClobPublicClient
 from polymarket_tui.api.clob_auth import AuthedClobClient
@@ -19,7 +20,7 @@ from polymarket_tui.models.market import Event, Market
 from polymarket_tui.models.ws import UserOrderMessage, UserTradeMessage
 from polymarket_tui.services.orders import OrderService, ReconcileTarget
 from polymarket_tui.services.portfolio import PortfolioService
-from polymarket_tui.state.prefs import load_density, save_density
+from polymarket_tui.state.prefs import load_density, load_theme, save_density, save_theme
 from polymarket_tui.state.watchlist import Watchlist
 from polymarket_tui.ui.screens.auth import AuthModal
 from polymarket_tui.ui.screens.event import EventPane
@@ -59,7 +60,11 @@ class PolymarketApp(App):
     def __init__(self) -> None:
         super().__init__()
         self.register_theme(PMTUI_THEME)
-        self.theme = "pmtui"
+        # Restore the last theme picked from the command palette (Ctrl+P).
+        # Fall back to pmtui if the saved name is not one this Textual build
+        # knows (built-in themes vary by version).
+        saved_theme = load_theme()
+        self.theme = saved_theme if saved_theme in self.available_themes else "pmtui"
         # Layout density: the app root carries a density-<name> class so
         # app.tcss can restyle spacing declaratively (spacious block there).
         self.density = load_density()
@@ -154,6 +159,8 @@ class PolymarketApp(App):
         super().notify(message, **kwargs)
 
     def on_mount(self) -> None:
+        # Remember a theme picked from the command palette across restarts.
+        self.theme_changed_signal.subscribe(self, self._persist_theme)
         self.run_worker(self._refresh_ntp_offset(), group="ntp", exclusive=True)
         self.set_interval(900, self._schedule_ntp_refresh)
         self.refresh_account_status()
@@ -166,6 +173,10 @@ class PolymarketApp(App):
                 severity="warning",
                 timeout=10,
             )
+
+    def _persist_theme(self, theme: Theme) -> None:
+        """Save the active theme so the next session opens in the same one."""
+        save_theme(theme.name)
 
     def start_user_channel(self) -> None:
         """Connect the authenticated /ws/user socket for live own-order updates."""
