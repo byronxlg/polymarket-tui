@@ -169,16 +169,27 @@ class EventPane(TierAware, Vertical):
         app = self.app
         return app.portfolio.order_condition_ids() if app.settings.can_auth else set()
 
+    @property
+    def _held_condition_ids(self) -> set[str]:
+        """Markets here you hold a position in (observer mode counts too)."""
+        app = self.app
+        if not app.settings.can_read_portfolio:
+            return set()
+        return app.portfolio.position_condition_ids()
+
     @work(exclusive=True, group="own-orders")
     async def load_own_orders(self) -> None:
-        """Refresh the cached open orders, then re-mark the outcome rows."""
+        """Refresh cached orders + positions, then re-mark the outcome rows."""
+        app = self.app
         try:
-            await self.app.portfolio.open_orders()
+            await app.portfolio.open_orders()
+            if app.settings.can_read_portfolio:
+                await app.portfolio.positions()
         except Exception:
             return
         if not alive(self):
             return  # pane torn down while we fetched
-        if self._ordered_condition_ids:
+        if self._ordered_condition_ids or self._held_condition_ids:
             table = self.query_one(DataTable)
             cursor = table.cursor_row
             self._fill_table()
@@ -245,14 +256,19 @@ class EventPane(TierAware, Vertical):
         columns = self._columns_spec
         outcome_width = dict((k, w) for k, _, w in columns)["outcome"]
         ordered = self._ordered_condition_ids
+        held = self._held_condition_ids
         for market in self._event.active_markets:
-            # Constant-width flag prefix so titles don't shift when a resting
-            # order appears ('o' = you have an open order on this outcome).
-            title = fmt.trunc(market.display_title, outcome_width - 2)
-            if market.condition_id in ordered:
-                outcome_cell = Text("o ", style=f"bold {BLUE}")
-            else:
-                outcome_cell = Text("  ")
+            # Constant-width flag prefix so titles don't shift ('o' = you
+            # have an open order here, '+' = you hold a position here).
+            title = fmt.trunc(market.display_title, outcome_width - 3)
+            outcome_cell = Text()
+            outcome_cell.append(
+                "o" if market.condition_id in ordered else " ", style=f"bold {BLUE}"
+            )
+            outcome_cell.append(
+                "+" if market.condition_id in held else " ", style=f"bold {UP}"
+            )
+            outcome_cell.append(" ")
             outcome_cell.append(title)
             cells = {
                 "outcome": outcome_cell,

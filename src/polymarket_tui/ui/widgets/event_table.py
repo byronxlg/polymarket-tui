@@ -24,7 +24,7 @@ def change_text(change: float | None) -> Text:
 # lowest-value column (Ends) and narrows the text columns.
 TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     "full": (
-        ("star", " ", 2),
+        ("star", " ", 3),
         ("event", "Event", 46),
         ("outcome", "Top outcome", 24),
         ("price", "Price", 7),
@@ -32,7 +32,7 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
         ("vol", "Vol 24h", 9),
     ),
     "medium": (
-        ("star", " ", 2),
+        ("star", " ", 3),
         ("event", "Event", 38),
         ("outcome", "Top outcome", 18),
         ("price", "Price", 7),
@@ -40,7 +40,7 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
         ("vol", "Vol 24h", 9),
     ),
     "compact": (
-        ("star", " ", 2),
+        ("star", " ", 3),
         ("event", "Event", 26),
         ("price", "Price", 7),
         ("change", "24h", 7),
@@ -53,19 +53,19 @@ TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
 # change stacks under the price, so the freed width goes to full titles.
 SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     "full": (
-        ("star", " ", 2),
+        ("star", " ", 3),
         ("event", "Event", 52),
         ("outcome", "Top outcome", 22),
         ("price", "Price", 8),
     ),
     "medium": (
-        ("star", " ", 2),
+        ("star", " ", 3),
         ("event", "Event", 42),
         ("outcome", "Top outcome", 16),
         ("price", "Price", 8),
     ),
     "compact": (
-        ("star", " ", 2),
+        ("star", " ", 3),
         ("event", "Event", 26),
         ("price", "Price", 8),
     ),
@@ -110,6 +110,7 @@ class EventsTable(VimDataTable):
         self._events: list[Event] = []
         self._watched: set[str] = set()
         self._ordered: set[str] = set()  # slugs where the user has a resting order
+        self._held: set[str] = set()  # slugs where the user holds a position
 
     def on_mount(self) -> None:
         self._density = getattr(self.app, "density", "condensed")
@@ -169,6 +170,7 @@ class EventsTable(VimDataTable):
         watched: set[str],
         clear: bool = True,
         ordered: set[str] | None = None,
+        held: set[str] | None = None,
     ) -> None:
         keep_slug: str | None = None
         if clear:
@@ -185,6 +187,8 @@ class EventsTable(VimDataTable):
             # Appended pages carry flags for their own events only - merge,
             # or earlier rows would lose their resting-order flag on rebuild.
             self._ordered = set(ordered) if clear else self._ordered | set(ordered)
+        if held is not None:
+            self._held = set(held) if clear else self._held | set(held)
         fresh = [e for e in events if e.slug not in self.events_by_slug]
         for event in fresh:
             self.events_by_slug[event.slug] = event
@@ -241,10 +245,11 @@ class EventsTable(VimDataTable):
         }
 
     def _flag_cell(self, slug: str) -> Text:
-        """Two-char flag: * watched, o resting order."""
+        """Three-char flag: * watched, o resting order, + position held."""
         out = Text()
         out.append("*" if slug in self._watched else " ", style=AMBER)
         out.append("o" if slug in self._ordered else " ", style=f"bold {BLUE}")
+        out.append("+" if slug in self._held else " ", style=f"bold {UP}")
         return out
 
     def highlighted_event(self) -> Event | None:

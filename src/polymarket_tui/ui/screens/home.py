@@ -115,19 +115,31 @@ class HomePane(TierAware, Vertical):
         status.append(" refreshing...", style="dim")
         self.query_one("#status-line", Static).update(status)
 
-    async def _ordered_slugs(self, events: list) -> set[str]:
-        """Slugs of listed events holding one of your resting orders."""
+    async def _flag_slugs(self, events: list) -> tuple[set[str], set[str]]:
+        """(ordered, held) slugs among the listed events: resting orders need
+        full auth, holdings show in observer mode too (funder only)."""
         app = self.app
-        if not app.settings.can_auth:
-            return set()
-        try:
-            await app.portfolio.open_orders()
-        except Exception:
-            return set()
-        cond = app.portfolio.order_condition_ids()
-        if not cond:
-            return set()
-        return {e.slug for e in events if any(m.condition_id in cond for m in e.markets)}
+        ordered_cond: set[str] = set()
+        held_cond: set[str] = set()
+        if app.settings.can_auth:
+            try:
+                await app.portfolio.open_orders()
+                ordered_cond = app.portfolio.order_condition_ids()
+            except Exception:
+                pass
+        if app.settings.can_read_portfolio:
+            try:
+                await app.portfolio.positions()
+                held_cond = app.portfolio.position_condition_ids()
+            except Exception:
+                pass
+
+        def slugs(cond: set[str]) -> set[str]:
+            if not cond:
+                return set()
+            return {e.slug for e in events if any(m.condition_id in cond for m in e.markets)}
+
+        return slugs(ordered_cond), slugs(held_cond)
 
     def action_order(self, side: str) -> None:
         event = self.table.highlighted_event()
@@ -186,11 +198,11 @@ class HomePane(TierAware, Vertical):
                 for e in events
                 if e.top_market is not None and (e.end_date is None or e.end_date > now)
             ]
-            ordered = await self._ordered_slugs(events)
+            ordered, held = await self._flag_slugs(events)
             if not alive(self):
                 return  # the pane was torn down (root swap) while we fetched
             self.table.set_events(
-                events, set(app.watchlist.slugs), clear=not append, ordered=ordered
+                events, set(app.watchlist.slugs), clear=not append, ordered=ordered, held=held
             )
             if not append:
                 browser = self.query_one(EventsBrowser)
