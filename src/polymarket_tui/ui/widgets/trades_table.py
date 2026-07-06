@@ -32,9 +32,29 @@ class TradesTable(VimDataTable):
             self.add_column("USDC", width=9, key="usdc")
             self.add_column("Trader", width=24, key="trader")
 
+    @staticmethod
+    def _trade_keys(trades: list[ActivityItem]) -> list[str]:
+        """Stable per-trade keys (identical across polls, unlike an index
+        prefix) so the cursor survives the 5s refresh. Duplicate fingerprints
+        get a counter; the address|name tail keeps trader_at_cursor working."""
+        seen: dict[str, int] = {}
+        keys = []
+        for trade in trades:
+            fp = f"{trade.timestamp}:{trade.side}:{trade.size}:{trade.price}"
+            n = seen.get(fp, 0)
+            seen[fp] = n + 1
+            keys.append(f"{fp}:{n}|{trade.proxy_wallet}|{trade.trader}")
+        return keys
+
     def set_trades(self, trades: list[ActivityItem]) -> None:
+        keys = self._trade_keys(trades)
+        if keys == [key.value for key in self.rows]:
+            return  # nothing new - keep the table (and the user's cursor) as is
+        cursor_key: str | None = None
+        if self.row_count and self.cursor_row is not None:
+            cursor_key = str(self.coordinate_to_cell_key((self.cursor_row, 0)).row_key.value)
         self.clear()
-        for i, trade in enumerate(trades):
+        for key, trade in zip(keys, trades, strict=True):
             side_char = trade.side[:1] if self.compact else trade.side
             side_text = Text(side_char, style=UP if trade.side == "BUY" else DOWN)
             row = [
@@ -46,8 +66,10 @@ class TradesTable(VimDataTable):
             if not self.compact:
                 row.append(fmt.money(trade.usdc_size) if trade.usdc_size else "-")
                 row.append(fmt.trunc(trade.trader, 24))
-            self.add_row(*row, key=f"{i}|{trade.proxy_wallet}|{trade.trader}")
-        if trades:
+            self.add_row(*row, key=key)
+        if cursor_key in set(keys):
+            self.move_cursor(row=self.get_row_index(cursor_key))
+        elif trades:
             self.move_cursor(row=0)
 
     def trader_at_cursor(self) -> tuple[str, str] | None:
