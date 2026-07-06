@@ -56,12 +56,6 @@ MARKETS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
 }
 
 
-class MarketsTable(VimDataTable):
-    """Outcome list: enter drills into the market - the footer must say so."""
-
-    BINDINGS = [Binding("enter", "select_cursor", "open")]
-
-
 class EventPane(TierAware, Vertical):
     """Event detail body - hosted as a drill pane by NavHost."""
 
@@ -92,7 +86,7 @@ class EventPane(TierAware, Vertical):
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title")
         with Horizontal(id="event-body"):
-            yield MarketsTable(cursor_type="row", zebra_stripes=True, id="markets-table")
+            yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
             pane = VerticalScroll(
                 MarketPreview(id="market-preview"),
                 Static(id="rules-panel"),

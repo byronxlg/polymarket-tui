@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from rich.text import Text
-from textual.binding import Binding
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
@@ -96,10 +95,6 @@ class EventsTable(VimDataTable):
     that both the cap allows and its measured width fits (DataTable columns
     can't be changed from CSS).
     """
-
-    # DataTable hides its enter binding; the primary action must be visible
-    # in the footer for casual users (journey review, 2026-07-05).
-    BINDINGS = [Binding("enter", "select_cursor", "open")]
 
     def __init__(self, **kwargs) -> None:
         super().__init__(cursor_type="row", zebra_stripes=True, **kwargs)

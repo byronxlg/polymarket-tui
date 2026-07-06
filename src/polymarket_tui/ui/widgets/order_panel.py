@@ -136,7 +136,7 @@ class OrderPanel(Vertical):
         Binding("ctrl+g", "cycle_tif", "tif", show=False),
         # Fires only while confirming - in edit state the inputs own enter
         # (submit advances price -> size -> review).
-        Binding("enter", "confirm_yes", "place"),
+        Binding("enter", "confirm_yes", "place", show=False),
         Binding("b", "side('BUY')", "buy", show=False),
         Binding("s", "side('SELL')", "sell", show=False),
         Binding("space", "flip_side", "buy/sell"),

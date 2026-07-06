@@ -13,7 +13,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Footer, Input, Label, Select, Static
+from textual.widgets import Input, Label, Select, Static
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.core import fmt
@@ -26,6 +26,7 @@ from polymarket_tui.core.credstore import (
 )
 from polymarket_tui.core.proxy import check_pairing
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
+from polymarket_tui.ui.widgets.app_footer import AppFooter
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
 
@@ -142,7 +143,7 @@ class AuthScreen(Screen):
                     id="live-select",
                 )
             yield Static(id="auth-result")
-        yield Footer()
+        yield AppFooter()
 
     def on_mount(self) -> None:
         self.title = "auth"

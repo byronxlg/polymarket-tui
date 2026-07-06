@@ -30,6 +30,24 @@ FooterKey {
     color: $text-muted;
 }
 
+/* Global vs contextual hotkeys (ui/widgets/app_footer.py): the spacer
+   right-aligns the Global group behind a divider; Global chips take the
+   blue accent so the two vocabularies read apart at a glance. */
+#footer-split {
+    width: 1fr;
+    min-width: 2;
+    height: 1;
+    border-right: vkey $foreground 20%;
+}
+
+FooterKey.-global .footer-key--key {
+    color: $primary;
+}
+
+FooterKey.-global .footer-key--description {
+    color: $primary 65%;
+}
+
 Toast {
     background: $panel;
 }

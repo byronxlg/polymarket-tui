@@ -98,7 +98,6 @@ class PositionsTable(VimDataTable):
     advertises it while this table is focused (won positions redeem on the web)."""
 
     BINDINGS = [
-        Binding("enter", "select_cursor", "open market"),
         Binding("s", "sell_position", "sell"),
         Binding("o", "open_on_web", "open on web"),
     ]

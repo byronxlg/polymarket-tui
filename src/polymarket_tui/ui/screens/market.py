@@ -97,7 +97,7 @@ class MarketPane(TierAware, Vertical):
         Binding("space", "order('BUY')", "buy"),
         Binding("y", "select_outcome(0)", "yes", show=False),
         Binding("n", "select_outcome(1)", "no", show=False),
-        Binding("enter", "enter_key", "buy", priority=False),
+        Binding("enter", "enter_key", "buy", show=False, priority=False),
         Binding("b", "order('BUY')", "buy", show=False),
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_trades", "trades"),
