@@ -21,7 +21,14 @@ from polymarket_tui.models.market import Event
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
-from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.tiers import (
+    ColumnSpec,
+    Tier,
+    TierAware,
+    effective_tier,
+    fit_columns,
+    usable_width,
+)
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
@@ -227,7 +234,7 @@ class EventPane(TierAware, Vertical):
         if not alive(self):
             return  # call_after_refresh can fire after the pane is torn down
         table = self.query_one(DataTable)
-        width = table.size.width
+        width = usable_width(table)
         if width <= 0 or not table.columns:
             return
         tier = effective_tier(self.tier, width, MARKETS_TIER_COLUMNS)

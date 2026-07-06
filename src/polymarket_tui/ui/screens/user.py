@@ -115,7 +115,7 @@ class UserPane(TierAware, Vertical):
     def _refit(self) -> None:
         if not alive(self):
             return  # call_after_refresh can fire after the pane is torn down
-        width = self.size.width - 2  # border + slack
+        width = self.size.width - 3  # border + the tables' vertical scrollbar
         if width <= 0:
             return
         pos_columns = self._pos_columns()

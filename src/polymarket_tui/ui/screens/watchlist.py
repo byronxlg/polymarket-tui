@@ -162,7 +162,7 @@ class WatchlistPane(TierAware, Vertical):
     def _refit_users(self) -> None:
         if not alive(self):
             return  # call_after_refresh can fire after the pane is torn down
-        width = self.size.width - 2
+        width = self.size.width - 3  # border + the table's vertical scrollbar
         if width <= 0:
             return
         tier = effective_tier(self.tier, width, USERS_TIER_COLUMNS)

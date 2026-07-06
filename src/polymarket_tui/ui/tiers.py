@@ -29,6 +29,20 @@ def columns_need(columns: tuple[ColumnSpec, ...] | list[ColumnSpec], pad: int = 
     return sum(width for _, _, width in columns) + 2 * pad * len(columns)
 
 
+def usable_width(table) -> int:
+    """Width actually available to a table's columns.
+
+    size.width includes the vertical scrollbar's column; fitting columns to
+    it hands that column away and the last cell's final character renders
+    under the scrollbar (a compact 24h cell showed "-2.6" for "-2.6c").
+    scrollable_content_region excludes shown scrollbars; fall back to
+    size.width before layout."""
+    region = getattr(table, "scrollable_content_region", None)
+    if region is not None and region.width:
+        return region.width
+    return table.size.width
+
+
 def effective_tier(
     cap: Tier,
     width: int,
