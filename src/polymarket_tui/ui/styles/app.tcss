@@ -140,7 +140,7 @@ PriceChartPanel {
     width: 1fr;
 }
 
-#outcomes-table {
+#outcomes-toggle {
     width: 1fr;
     height: auto;
     max-height: 6;

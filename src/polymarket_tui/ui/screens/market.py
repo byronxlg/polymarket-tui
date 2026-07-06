@@ -12,11 +12,17 @@ import contextlib
 import time
 from decimal import Decimal
 
+from rich import box
+from rich.align import Align
+from rich.console import RenderableType
+from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.message import Message
 from textual.widgets import Static, Tab, Tabs
 
 from polymarket_tui.api.clob import INTERVALS
@@ -25,8 +31,8 @@ from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
-from polymarket_tui.ui.theme import AMBER, DOWN, UP
-from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
+from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
@@ -35,51 +41,142 @@ from polymarket_tui.ui.widgets.order_panel import OrderPanel
 from polymarket_tui.ui.widgets.price_chart import PriceChartPanel
 from polymarket_tui.ui.widgets.trader_overview import TraderOverview
 from polymarket_tui.ui.widgets.trades_table import TradesTable
-from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 BOOK_POLL_SECONDS = 3.0
 
-# (key, label, width) per width tier. Compact (30% parent slot) keeps only
-# outcome + price + 24h; the book, chart, and rails are hidden by CSS there.
-OUTCOMES_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
-    "full": (
-        ("outcome", "Outcome", 24),
-        ("price", "Price", 7),
-        ("change", "24h", 7),
-        ("bid", "Bid", 7),
-        ("ask", "Ask", 7),
-        ("spread", "Spread", 7),
-        ("vol", "Vol 24h", 9),
-    ),
-    "medium": (
-        ("outcome", "Outcome", 24),
-        ("price", "Price", 7),
-        ("change", "24h", 7),
-        ("bid", "Bid", 7),
-        ("ask", "Ask", 7),
-        ("spread", "Spread", 7),
-        ("vol", "Vol 24h", 9),
-    ),
-    "compact": (
-        ("outcome", "Outcome", 14),
-        ("price", "Price", 7),
-        ("change", "24h", 7),
-    ),
-}
+CHIP_WIDTH = 18  # each YES/NO chip; two side-by-side + a 2-col gap = 38
 
 
-class OutcomesTable(VimDataTable):
-    """The market's outcome selector.
+class OutcomesToggle(Static):
+    """The market's YES/NO selector, drawn as two side-by-side chips.
 
-    right no longer opens an order - space does that now (consistent with the
-    book, where space also starts an order). Like down past the last row, right
-    flows into the order book below.
+    A Polymarket market is always a single binary pair, so the old two-row
+    DataTable (a header + grid to show two rows, half of them a mechanical
+    complement of the other) was more chrome than the data earned. Here the
+    focused chip IS the selected outcome; the order book below carries the
+    live depth, so a chip only needs the price and 24h move.
+
+    left/right flip sides (left off YES steps out, right off NO drops into
+    the book); down also drops into the book; enter/space bubble up to the
+    pane's order bindings. y/n jump straight to a side via `select`.
     """
 
-    BINDINGS = [Binding("right", "into_book", "book", show=False)]
+    can_focus = True
+
+    BINDINGS = [
+        Binding("left", "prev", "prev", show=False),
+        Binding("right", "next", "next", show=False),
+        Binding("down", "into_book", "book", show=False),
+    ]
+
+    class OutcomeChanged(Message):
+        """The selected side moved - flip the book/order panel/chart to it."""
+
+        def __init__(self, index: int) -> None:
+            super().__init__()
+            self.index = index
+
+    class IntoBook(Message):
+        """down, or right off the last chip: flow focus into the book below."""
+
+    class StepOut(Message):
+        """left off the first chip: step out one level (nav back)."""
+
+    def __init__(self, market: Market, index: int = 0, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._market = market
+        self._index = index  # 0 = YES/first outcome, 1 = NO
+        self._live_yes_mid: float | None = None  # live book mid overrides the snapshot
+
+    # -- selection ----------------------------------------------------------
+
+    def select(self, index: int) -> None:
+        """Move the selection (y/n, cashout retarget). Emits only on a change."""
+        index = 0 if index <= 0 else 1
+        if index == self._index:
+            return
+        self._index = index
+        self.refresh()
+        self.post_message(self.OutcomeChanged(index))
+
+    def action_prev(self) -> None:
+        if self._index == 0:
+            self.post_message(self.StepOut())
+        else:
+            self.select(0)
+
+    def action_next(self) -> None:
+        if self._index == 1:
+            self.post_message(self.IntoBook())
+        else:
+            self.select(1)
 
     def action_into_book(self) -> None:
-        self.post_message(self.BottomReached(self))
+        self.post_message(self.IntoBook())
+
+    # -- live prices --------------------------------------------------------
+
+    def update_from_book(self, index: int, book: OrderBook) -> None:
+        """Track the live book mid on the headline chips (best bid/ask avg).
+
+        The book streams one token; the sibling outcome is its complement, so
+        one book refreshes both chips. No-ops if it is not the shown side."""
+        if index != self._index:
+            return
+        bid = book.best_bid.price if book.best_bid else None
+        ask = book.best_ask.price if book.best_ask else None
+        if bid is None or ask is None:
+            return
+        mid = (bid + ask) / 2
+        yes_mid = mid if index == 0 else 1 - mid
+        if yes_mid != self._live_yes_mid:
+            self._live_yes_mid = yes_mid
+            self.refresh()
+
+    # -- rendering ----------------------------------------------------------
+
+    def _chip(self, idx: int) -> Panel:
+        m = self._market
+        names = m.outcomes or ["Yes", "No"]
+        label = names[idx] if idx < len(names) else ("Yes", "No")[idx]
+        is_yes = idx == 0
+        selected = idx == self._index
+        base_yes = self._live_yes_mid if self._live_yes_mid is not None else m.yes_price
+        price = base_yes if is_yes else (None if base_yes is None else 1 - base_yes)
+        change = m.one_day_price_change
+        delta = change if is_yes else (None if change is None else -change)
+        color = UP if is_yes else DOWN
+        body = Text()
+        body.append(fmt.cents(price), style="bold")
+        body.append("  ")
+        body.append_text(change_text(delta))
+        return Panel(
+            Align.center(body),
+            title=Text(label.upper(), style=f"bold {color}"),
+            title_align="left",
+            border_style=BLUE if selected else "dim",
+            box=box.HEAVY if selected else box.ROUNDED,
+            style="" if selected else "dim",
+            width=CHIP_WIDTH,
+            height=3,
+            padding=(0, 1),
+        )
+
+    def render(self) -> RenderableType:
+        grid = Table.grid()
+        if (self.size.width or 80) < 2 * CHIP_WIDTH + 2:
+            grid.add_column()
+            grid.add_row(self._chip(0))
+            grid.add_row(self._chip(1))
+        else:
+            grid.add_column()
+            grid.add_column(width=2)  # gap
+            grid.add_column()
+            grid.add_row(self._chip(0), "", self._chip(1))
+        return grid
+
+    def on_resize(self) -> None:
+        self.refresh()  # side-by-side vs stacked follows the measured width
 
 
 class MarketPane(TierAware, Vertical):
@@ -134,17 +231,12 @@ class MarketPane(TierAware, Vertical):
         self._pending_order_size = order_size  # prefill (cashout: the full position)
         self._my_positions: list = []  # your holdings here (load_position)
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
-        self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
         # Throttled cursor-follows: the ws-cached book renders instantly on an
         # outcome flip, but the REST refresh / history / own-orders fetches
         # and the trader overview only fire once the cursor settles.
         self._outcome_follow = CursorFollow(self, self._load_outcome_data, 0.2)
         self._trade_follow = CursorFollow(self, self._refresh_trade_overview, 0.2)
         self.drill_key = ("market", market.slug)
-        # True while a tier rebuild is restoring the cursor; row-highlight
-        # events are ignored until the cursor lands on _outcome_index so the
-        # rebuild can't flip the selected outcome (and reload book/history).
-        self._syncing_cursor = False
         # Cancel from the market page: x on a book level arms this, y confirms.
         self._pending_cancel: list | None = None
         self._cancel_armed_at = 0.0
@@ -159,7 +251,7 @@ class MarketPane(TierAware, Vertical):
             # Book in the hero column (actionable prices first), trades in the
             # rail (live context) - swapped 2026-07-05 on Byron's request.
             with Vertical(id="market-left"):
-                yield OutcomesTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
+                yield OutcomesToggle(self._market, self._outcome_index, id="outcomes-toggle")
                 yield Static(id="position-line")
                 yield Static(id="orders-note")
                 with Vertical(id="book-pane"):
@@ -198,7 +290,7 @@ class MarketPane(TierAware, Vertical):
         yield Static(self._info_line(), id="market-info", classes="subtle")
 
     def focus_inner(self) -> None:
-        self.query_one("#outcomes-table", VimDataTable).focus()
+        self.query_one(OutcomesToggle).focus()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Only advertise (and honor) keys whose effect is visible right now.
@@ -252,39 +344,20 @@ class MarketPane(TierAware, Vertical):
             bits.append(self._event.title.strip())  # .screen-title wraps: full name shows
         return "  |  ".join(bits)
 
-    def _build_outcome_columns(self) -> None:
-        table = self.query_one("#outcomes-table", VimDataTable)
-        table.clear(columns=True)
-        for key, label, width in self._columns_spec:
-            table.add_column(label, width=width, key=key)
-
     def on_tier_changed(self, tier: Tier) -> None:
         self._apply_visibility()
         self._schedule_refit()
         self.refresh_bindings()  # the footer gates on tier (check_action)
 
     def _schedule_refit(self) -> None:
-        # Measure after layout settles: the slot tier is a cap, the column
-        # set follows the outcome table's real width.
+        # The outcome selector reflows itself; only the inline trades rail
+        # still needs a measured refit once the layout settles.
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
         if not alive(self):
             return  # call_after_refresh can fire after the pane is torn down
         self._refit_trades()
-        table = self.query_one("#outcomes-table", VimDataTable)
-        width = table.size.width
-        if width <= 0 or not table.columns:
-            return
-        tier = effective_tier(self.tier, width, OUTCOMES_TIER_COLUMNS)
-        spec = fit_columns(OUTCOMES_TIER_COLUMNS[tier], width, "outcome")
-        if spec == self._columns_spec:
-            return
-        self._columns_spec = spec
-        self._syncing_cursor = True
-        self._build_outcome_columns()
-        self._fill_outcomes()
-        table.move_cursor(row=self._outcome_index)
 
     def _refit_trades(self) -> None:
         """Slim trade columns when the inline rail can't fit the full set."""
@@ -324,47 +397,21 @@ class MarketPane(TierAware, Vertical):
         self.query_one("#market-chart-strip").display = not compact
         self.query_one("#market-info").display = not compact
 
-    def _fill_outcomes(self) -> None:
-        """Outcome rows exactly like the event page; the cursor is the selector."""
-        m = self._market
-        table = self.query_one("#outcomes-table", VimDataTable)
-        table.clear()
-        columns = self._columns_spec
-        yes = m.yes_price
-        change = m.one_day_price_change
-        for idx, label in enumerate((m.outcomes or ["Yes", "No"])[:2]):
-            price = yes if idx == 0 else (None if yes is None else 1 - yes)
-            bid = m.best_bid if idx == 0 else (None if m.best_ask is None else 1 - m.best_ask)
-            ask = m.best_ask if idx == 0 else (None if m.best_bid is None else 1 - m.best_bid)
-            delta = change if idx == 0 else (None if change is None else -change)
-            cells = {
-                "outcome": Text(label, style=f"bold {UP}" if idx == 0 else f"bold {DOWN}"),
-                "price": Text(fmt.cents(price), style="bold"),
-                "change": change_text(delta),
-                "bid": Text(fmt.cents(bid), style=UP),
-                "ask": Text(fmt.cents(ask), style=DOWN),
-                "spread": fmt.cents(m.spread),
-                "vol": fmt.vol(m.volume_24hr),
-            }
-            table.add_row(*(cells[key] for key, _, _ in columns), key=str(idx))
+    def on_outcomes_toggle_outcome_changed(self, message: OutcomesToggle.OutcomeChanged) -> None:
+        self._apply_outcome(message.index)
+
+    def on_outcomes_toggle_into_book(self, message: OutcomesToggle.IntoBook) -> None:
+        self._focus_book()
+
+    def on_outcomes_toggle_step_out(self, message: OutcomesToggle.StepOut) -> None:
+        self.app.action_nav_back()
 
     def on_data_table_row_highlighted(self, event) -> None:
-        if event.data_table.id == "trades-table":
-            if self._trades_expanded:
-                self._trade_follow()  # show_trader fetches - never per key-repeat row
-            return
-        if event.data_table.id != "outcomes-table" or event.cursor_row is None:
-            return
-        if self._syncing_cursor:
-            if event.cursor_row == self._outcome_index:
-                self._syncing_cursor = False
-            return
-        self._apply_outcome(event.cursor_row)
+        if event.data_table.id == "trades-table" and self._trades_expanded:
+            self._trade_follow()  # show_trader fetches - never per key-repeat row
 
     def on_data_table_row_selected(self, event) -> None:
-        if event.data_table.id == "outcomes-table":
-            self.action_order("BUY")
-        elif event.data_table.id == "trades-table":
+        if event.data_table.id == "trades-table":
             trader = self.query_one(TradesTable).trader_at_cursor()
             if trader is not None:
                 self.app.open_user(*trader)
@@ -393,12 +440,6 @@ class MarketPane(TierAware, Vertical):
         self.load_book()
         self.load_history()
         self.load_own_orders()
-
-    def on_vim_data_table_bottom_reached(self, message) -> None:
-        # Down past the last outcome flows into the order book (cursor through
-        # the levels); the chart no longer captures focus on the market page.
-        if message.table.id == "outcomes-table":
-            self._focus_book()
 
     def _focus_book(self) -> None:
         book = self.query_one(BookPanel)
@@ -440,6 +481,8 @@ class MarketPane(TierAware, Vertical):
         bits = []
         if m.volume_24hr is not None:
             bits.append(f"vol24h {fmt.vol(m.volume_24hr)}")
+        if m.spread is not None:
+            bits.append(f"spread {fmt.cents(m.spread)}")
         if m.liquidity is not None:
             bits.append(f"liquidity {fmt.vol(m.liquidity)}")
         if m.order_price_min_tick_size:
@@ -460,17 +503,10 @@ class MarketPane(TierAware, Vertical):
     def on_mount(self) -> None:
         self.query_one("#market-cancel-strip", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
-        table = self.query_one("#outcomes-table", VimDataTable)
-        self._columns_spec = list(OUTCOMES_TIER_COLUMNS[self.tier])
-        self._build_outcome_columns()
-        self._fill_outcomes()
-        if self._outcome_index:
-            # Opened onto a specific outcome (cashout): land the cursor there;
-            # the initial row-0 highlight must not flip the selection back.
-            self._syncing_cursor = True
-            table.move_cursor(row=self._outcome_index)
+        # The toggle renders _outcome_index selected from birth (a cashout
+        # opens straight onto the held side), so no cursor restore is needed.
         self._apply_visibility()
-        table.focus()
+        self.query_one(OutcomesToggle).focus()
         self.tier_ready()
         self._schedule_refit()
         self.query_one(ActivityPanel).configure(self._market, self._event)
@@ -507,24 +543,12 @@ class MarketPane(TierAware, Vertical):
                 self._book = book
                 self.query_one(BookPanel).update_book(book)
                 self._refresh_book_badge()
-                self._refresh_outcome_prices(asset_id, book)
+                with contextlib.suppress(Exception):
+                    self.query_one(OutcomesToggle).update_from_book(self._outcome_index, book)
 
     def _refresh_book_badge(self) -> None:
         with contextlib.suppress(Exception):
             self.query_one("#book-title", Static).update(self._book_header())
-
-    def _refresh_outcome_prices(self, asset_id: str, book: OrderBook) -> None:
-        """Keep the outcome table's bid/ask in step with the live book."""
-        if self._token_id != asset_id:
-            return
-        table = self.query_one("#outcomes-table", VimDataTable)
-        bb = book.best_bid.price if book.best_bid else None
-        ba = book.best_ask.price if book.best_ask else None
-        with contextlib.suppress(Exception):
-            if bb is not None:
-                table.update_cell(str(self._outcome_index), "bid", fmt.cents(bb))
-            if ba is not None:
-                table.update_cell(str(self._outcome_index), "ask", fmt.cents(ba))
 
     @work(exclusive=True, group="position")
     async def load_position(self, force: bool = False) -> None:
@@ -709,7 +733,7 @@ class MarketPane(TierAware, Vertical):
         # them) must not flip the outcome under the order.
         if self.query_one(OrderPanel).is_open:
             return
-        self.query_one("#outcomes-table", VimDataTable).move_cursor(row=index)
+        self.query_one(OutcomesToggle).select(index)
 
     def action_set_interval_key(self, key: str) -> None:
         self._interval = key
@@ -742,7 +766,7 @@ class MarketPane(TierAware, Vertical):
     def on_book_panel_focus_above(self, message) -> None:
         """up-at-top / left in the book returns to the outcome table."""
         self._clear_pending_cancel()
-        self.query_one("#outcomes-table", VimDataTable).focus()
+        self.query_one(OutcomesToggle).focus()
 
     def on_book_panel_cursor_moved(self, message) -> None:
         # Retargeting the cursor invalidates any armed cancel from another level.
@@ -860,7 +884,7 @@ class MarketPane(TierAware, Vertical):
             table.focus()
             self._refresh_trade_overview()
         else:
-            self.query_one("#outcomes-table", VimDataTable).focus()
+            self.query_one(OutcomesToggle).focus()
 
     def _refresh_trade_overview(self) -> None:
         trader = self.query_one(TradesTable).trader_at_cursor()
@@ -878,7 +902,7 @@ class MarketPane(TierAware, Vertical):
             return True
         # In the order book, esc steps back to the outcome table before the pane.
         if self.query_one(BookPanel).has_focus:
-            self.query_one("#outcomes-table", VimDataTable).focus()
+            self.query_one(OutcomesToggle).focus()
             return True
         # At compact the trades view is suspended (not visible), so esc
         # should step out of the pane, not invisibly collapse it.
