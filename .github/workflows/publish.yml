@@ -1,0 +1,38 @@
+name: Publish
+
+# Cut a GitHub release -> build and publish the package. Version comes from
+# pyproject.toml, so bump it and tag before releasing.
+#
+# PyPI uses Trusted Publishing (OIDC): no token is stored. One-time setup at
+# https://pypi.org/manage/account/publishing/ - add a pending publisher for
+# project "polymarket-tui", owner "byronxlg", repo "polymarket-tui",
+# workflow "publish.yml", environment "pypi". See docs/releasing.md.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/polymarket-tui/
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          python-version: "3.12"
+      - name: Test
+        run: uv run pytest -q
+      - name: Build sdist + wheel
+        run: uv build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

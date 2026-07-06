@@ -9,6 +9,12 @@ Built with Python 3.12 and [Textual](https://textual.textualize.io/).
 
 ## Install
 
+**PyPI** (installs the CLI in an isolated environment):
+
+```sh
+uv tool install polymarket-tui   # or: pipx install polymarket-tui / pip install polymarket-tui
+```
+
 **One-line install** (installs [uv](https://docs.astral.sh/uv/) if missing,
 then installs `polymarket-tui` as a uv tool):
 
