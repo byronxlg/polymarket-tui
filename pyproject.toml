@@ -1,7 +1,7 @@
 [project]
 name = "polymarket-tui"
 version = "0.1.0"
-description = "Terminal client for Polymarket"
+description = "Fast, keyboard-driven terminal client for Polymarket"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -9,6 +9,28 @@ authors = [
     { name = "Byron Smith", email = "byron.lg.smith@gmail.com" }
 ]
 requires-python = ">=3.12"
+keywords = [
+    "polymarket",
+    "prediction-markets",
+    "tui",
+    "terminal",
+    "textual",
+    "trading",
+    "cli",
+    "order-book",
+    "betting",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Terminals",
+]
 dependencies = [
     "textual>=1.0",
     "httpx[http2]>=0.27",
@@ -21,6 +43,12 @@ dependencies = [
 
 [project.scripts]
 polymarket-tui = "polymarket_tui.__main__:main"
+
+[project.urls]
+Homepage = "https://byronxlg.github.io/polymarket-tui/"
+Repository = "https://github.com/byronxlg/polymarket-tui"
+Issues = "https://github.com/byronxlg/polymarket-tui/issues"
+Changelog = "https://github.com/byronxlg/polymarket-tui/releases"
 
 [dependency-groups]
 dev = [
