@@ -77,10 +77,28 @@ class Market(BaseModel):
         _decode_json_list
     )
 
-    @field_validator("liquidity", "volume_24hr", "group_item_threshold", mode="before")
+    @field_validator("liquidity", "volume_24hr", mode="before")
     @classmethod
     def _num_str(cls, v: object) -> object:
-        return float(v) if isinstance(v, str) and v else v
+        # ""/garbage must become None, not be left for float coercion to choke
+        # on - one malformed market would reject the whole events payload.
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                return None
+        return v
+
+    @field_validator("group_item_threshold", mode="before")
+    @classmethod
+    def _num_str_zero(cls, v: object) -> object:
+        # Non-optional (sort key): ""/garbage degrades to 0.0, not None.
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                return 0.0
+        return v
 
     @property
     def display_title(self) -> str:
@@ -124,7 +142,13 @@ class Event(BaseModel):
     @field_validator("liquidity", "volume_24hr", mode="before")
     @classmethod
     def _num_str(cls, v: object) -> object:
-        return float(v) if isinstance(v, str) and v else v
+        # See Market._num_str: ""/garbage degrades to None, not a model failure.
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                return None
+        return v
 
     @property
     def active_markets(self) -> list[Market]:

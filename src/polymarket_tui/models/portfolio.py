@@ -104,7 +104,14 @@ class OpenOrder(BaseModel):
     @field_validator("price", "original_size", "size_matched", mode="before")
     @classmethod
     def _num(cls, v: object) -> object:
-        return float(v) if isinstance(v, str) and v else v
+        # ""/garbage degrades to 0.0 (fields are non-optional) rather than
+        # failing the model and dropping the whole open-orders response.
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                return 0.0
+        return v
 
     @property
     def remaining(self) -> float:

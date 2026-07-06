@@ -385,6 +385,14 @@ class OrderPanel(Vertical):
     def _screen_book(self) -> OrderBook | None:
         return getattr(self._market_pane(), "_book", None)
 
+    def _outcome_label(self) -> str:
+        """Label for the selected outcome, safe against short outcome lists
+        (malformed Gamma data must not IndexError the order panel)."""
+        outcomes = (self._market.outcomes if self._market else None) or ["Yes", "No"]
+        if self._outcome_index < len(outcomes):
+            return outcomes[self._outcome_index]
+        return "Yes" if self._outcome_index == 0 else "No"
+
     def _price_decimals(self) -> int:
         """Cents decimal places this market's tick allows (1 if not set yet)."""
         return price_decimals(self._market) if self._market else 1
@@ -400,8 +408,7 @@ class OrderPanel(Vertical):
         token_id = market.token_id(self._outcome_index)
         if token_id is None:
             return None, "no token for this outcome"
-        outcomes = market.outcomes or ["Yes", "No"]
-        outcome_label = outcomes[self._outcome_index]
+        outcome_label = self._outcome_label()
 
         raw_price = self.query_one("#op-price", PriceInput).value.strip()
         book = self._screen_book()
@@ -474,8 +481,7 @@ class OrderPanel(Vertical):
         out = Text()
         out.append(f"{self._side.value} ", style=self._side_style)
         if draft is None:
-            outcomes = (self._market.outcomes if self._market else None) or ["Yes", "No"]
-            out.append(f"{outcomes[self._outcome_index]}  ", style=self._outcome_style)
+            out.append(f"{self._outcome_label()}  ", style=self._outcome_style)
             out.append(error, style="dim")
             summary.update(out)
             hint = Text("up/down step \u00b7 space side \u00b7 enter review", style="dim")
