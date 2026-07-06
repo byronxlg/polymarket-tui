@@ -64,7 +64,11 @@ jumps straight into the market with the panel open |
 | R | event, market | related markets (series siblings for dailies) |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
 | x | market book / portfolio orders | cancel a resting order (details shown, enter confirms) |
+| s | portfolio positions | cash out: sell form prefilled with the full position at the bid |
 | r | anywhere | refresh |
+
+List rows carry flags: * watched, o resting order, + position held (home
+and event outcome lists; holdings show in observer mode too).
 
 ## Order entry
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rich.text import Text
 from textual.app import App
 from textual.binding import Binding
@@ -259,11 +261,22 @@ class PolymarketApp(App):
         self._drill(EventPane(event), event.title)
 
     def open_market(
-        self, market: Market, event: Event | None = None, order_side: str | None = None
+        self,
+        market: Market,
+        event: Event | None = None,
+        order_side: str | None = None,
+        order_size: Decimal | None = None,
+        outcome_index: int | None = None,
     ) -> None:
         # A pending order side must reach a fresh pane - skip child reuse then.
         self._drill(
-            MarketPane(market, event, order_side=order_side),
+            MarketPane(
+                market,
+                event,
+                order_side=order_side,
+                order_size=order_size,
+                outcome_index=outcome_index,
+            ),
             market.display_title,
             reuse=order_side is None,
         )

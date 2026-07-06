@@ -91,3 +91,12 @@ class PortfolioService:
     def order_condition_ids(self) -> set[str]:
         """Condition ids with at least one resting order (cached view)."""
         return {o.market for o in self._orders if o.market}
+
+    def position_condition_ids(self) -> set[str]:
+        """Condition ids you hold shares in (cached view - callers await
+        positions() first). Resolved losses are dust, not holdings."""
+        return {
+            p.condition_id
+            for p in self._positions
+            if p.condition_id and p.size >= 0.01 and not p.resolved_loss
+        }

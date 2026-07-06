@@ -8,6 +8,7 @@ the portfolio as the 30% parent and left/esc steps back into it.
 from __future__ import annotations
 
 import time
+from decimal import Decimal
 
 from rich.text import Text
 from textual import work
@@ -98,12 +99,13 @@ class PositionsTable(VimDataTable):
 
     BINDINGS = [
         Binding("enter", "select_cursor", "open market"),
+        Binding("s", "sell_position", "sell"),
         Binding("o", "open_on_web", "open on web"),
     ]
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        """Empty positions list - nothing to open on the web."""
-        if action == "open_on_web" and self.row_count == 0:
+        """Empty positions list - nothing to sell or open on the web."""
+        if action in ("open_on_web", "sell_position") and self.row_count == 0:
             return False
         return super().check_action(action, parameters)
 
@@ -111,6 +113,11 @@ class PositionsTable(VimDataTable):
         pane = _pane_of(self)
         if pane is not None:
             pane.action_open_on_web()
+
+    def action_sell_position(self) -> None:
+        pane = _pane_of(self)
+        if pane is not None:
+            pane.action_sell_position()
 
 
 class PortfolioPane(TierAware, Vertical):
@@ -511,7 +518,9 @@ class PortfolioPane(TierAware, Vertical):
         self.open_position_market(slug, asset)
 
     @work(exclusive=True, group="open-market")
-    async def open_position_market(self, slug: str, asset: str) -> None:
+    async def open_position_market(
+        self, slug: str, asset: str, sell: Position | None = None
+    ) -> None:
         condition_id = ""
         try:
             for pos in await self.app.portfolio.positions():
@@ -531,6 +540,17 @@ class PortfolioPane(TierAware, Vertical):
             return
         if market is None:
             self.notify("Market is no longer listed (resolved)", severity="warning")
+            return
+        if sell is not None:
+            # Cashout: open onto the held outcome with the sell form armed.
+            tokens = list(market.clob_token_ids)
+            index = tokens.index(sell.asset) if sell.asset in tokens else sell.outcome_index
+            self.app.open_market(
+                market,
+                order_side="SELL",
+                order_size=Decimal(str(sell.size)),
+                outcome_index=index,
+            )
             return
         self.app.open_market(market)
 
@@ -554,6 +574,31 @@ class PortfolioPane(TierAware, Vertical):
         note = "Opened" if opened else "Copied" if copied else "URL"
         suffix = "  (copied)" if copied and opened else ""
         self.notify(f"{note} {url}{suffix}", timeout=6)
+
+    def action_sell_position(self) -> None:
+        """s: cash out - open the market with the sell form prefilled to the
+        full position at the bid; review + a deliberate enter still confirm."""
+        if self._active_pane() != "pane-positions":
+            return
+        table = self.query_one("#positions-table", PositionsTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+        row_key = table.coordinate_to_cell_key((table.cursor_row, 0)).row_key
+        slug, _, asset = str(row_key.value).partition("|")
+        pos = next((p for p in self._positions if p.asset == asset), None)
+        if pos is None:
+            return
+        if pos.redeemable:
+            # A resolved market takes no orders - cashing out means redeeming.
+            self.notify("Won - redeem on polymarket.com (o opens it)", timeout=4)
+            return
+        if not self.app.settings.can_auth:
+            self.notify(
+                "Trading needs a private key + funder - press A to authenticate",
+                severity="warning",
+            )
+            return
+        self.open_position_market(slug, asset, sell=pos)
 
     def action_cancel_order(self) -> None:
         """x arms an inline confirm strip (no modal); enter within it cancels.

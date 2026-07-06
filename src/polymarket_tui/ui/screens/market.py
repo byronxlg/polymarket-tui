@@ -116,18 +116,23 @@ class MarketPane(TierAware, Vertical):
         market: Market,
         event: Event | None = None,
         order_side: str | None = None,
+        order_size: Decimal | None = None,
+        outcome_index: int | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self._market = market
         self._event = event
-        self._outcome_index = 0  # 0 = YES/first outcome, 1 = NO
+        # 0 = YES/first outcome, 1 = NO; a portfolio cashout lands directly
+        # on the outcome the position holds.
+        self._outcome_index = outcome_index or 0
         self._interval = "ALL"  # full history first; tab/shift+tab narrows
         self._history: list = []
         self._book = None
         self._trades_expanded = False
         self._rules_visible = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
+        self._pending_order_size = order_size  # prefill (cashout: the full position)
         self._my_positions: list = []  # your holdings here (load_position)
         self._channel: MarketChannel | None = None  # live book over websockets (issue #1)
         self._columns_spec: list[ColumnSpec] = list(OUTCOMES_TIER_COLUMNS["full"])
@@ -453,6 +458,11 @@ class MarketPane(TierAware, Vertical):
         self._columns_spec = list(OUTCOMES_TIER_COLUMNS[self.tier])
         self._build_outcome_columns()
         self._fill_outcomes()
+        if self._outcome_index:
+            # Opened onto a specific outcome (cashout): land the cursor there;
+            # the initial row-0 highlight must not flip the selection back.
+            self._syncing_cursor = True
+            table.move_cursor(row=self._outcome_index)
         self._apply_visibility()
         table.focus()
         self.tier_ready()
@@ -905,7 +915,22 @@ class MarketPane(TierAware, Vertical):
                 self.action_select_outcome(owned)
                 self.notify(f"Selling your {outcomes[owned]} position", timeout=3)
                 return
-        panel.open(self._market, Side(side), self._outcome_index, self._book)
+        preset_price = preset_size = None
+        if self._pending_order_size is not None:
+            # Cashout from the portfolio: prefill the full position at the
+            # bid so the sell can fill immediately; both fields stay editable
+            # and review + enter still confirm.
+            preset_size, self._pending_order_size = self._pending_order_size, None
+            if Side(side) is Side.SELL and self._book is not None and self._book.best_bid:
+                preset_price = Decimal(str(self._book.best_bid.price))
+        panel.open(
+            self._market,
+            Side(side),
+            self._outcome_index,
+            self._book,
+            preset_price=preset_price,
+            preset_size=preset_size,
+        )
 
     def _owned_outcome_index(self) -> int | None:
         """Index of the outcome you hold (largest position wins a rare tie)."""
