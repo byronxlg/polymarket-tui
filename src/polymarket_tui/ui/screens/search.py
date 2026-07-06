@@ -54,9 +54,12 @@ class SearchScreen(Screen):
 
     def check_action(self, action: str, parameters) -> bool:
         # space is text while typing in the input; only advertise (and honor)
-        # star/follow while a result list has focus.
+        # star/follow while a non-empty result list has focus.
         if action == "toggle_watch":
-            return self.is_mounted and self.active_table().has_focus
+            if not self.is_mounted:
+                return False
+            table = self.active_table()
+            return table.has_focus and table.row_count > 0
         return True
 
     def __init__(self) -> None:

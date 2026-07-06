@@ -193,6 +193,7 @@ class EventsTable(VimDataTable):
         self._refit()  # the longest title may have changed
         if keep_slug is not None and keep_slug in self.events_by_slug:
             self.move_cursor(row=self.get_row_index(keep_slug))
+        self.refresh_bindings()  # the enter/open hint gates on row_count
 
     def _render_rows(self, events: list[Event]) -> None:
         widths = {key: width for key, _, width in self._columns_spec}

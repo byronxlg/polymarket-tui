@@ -81,6 +81,27 @@ class PolymarketApp(App):
     def get_default_screen(self) -> NavHost:
         return NavHost()
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Hide global bindings where pressing them would do nothing.
+
+        Textual drops printable-key bindings from the footer (and dispatch)
+        while a text field has focus, but its key->character table misses
+        "slash", so `/` needs the same treatment by hand. The screens opened
+        with _push_unless_current gate their own opener: `/` is dead on
+        Search, `?` on Help, `A` on Auth.
+        """
+        if action == "search":
+            focused = self.focused
+            if focused is not None and focused.check_consume_key("slash", "/"):
+                return False
+            if isinstance(self.screen, SearchScreen):
+                return False
+        if action == "help" and isinstance(self.screen, HelpScreen):
+            return False
+        if action == "auth" and isinstance(self.screen, AuthScreen):
+            return False
+        return True
+
     def notify(self, message: str, **kwargs) -> None:
         """Toasts render literally by default: API/validation errors carry
         [bracketed] text that Textual would parse as markup and crash the

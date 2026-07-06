@@ -74,6 +74,12 @@ class OrdersTable(VimDataTable):
         Binding("enter", "confirm_or_select", "confirm", show=False),
     ]
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """No open orders - nothing to cancel; don't advertise x."""
+        if action == "cancel_order" and self.row_count == 0:
+            return False
+        return super().check_action(action, parameters)
+
     def action_cancel_order(self) -> None:
         pane = _pane_of(self)
         if pane is not None:
@@ -94,6 +100,12 @@ class PositionsTable(VimDataTable):
         Binding("enter", "select_cursor", "open market"),
         Binding("o", "open_on_web", "open on web"),
     ]
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Empty positions list - nothing to open on the web."""
+        if action == "open_on_web" and self.row_count == 0:
+            return False
+        return super().check_action(action, parameters)
 
     def action_open_on_web(self) -> None:
         pane = _pane_of(self)
@@ -308,6 +320,7 @@ class PortfolioPane(TierAware, Vertical):
             if full:
                 row.append(self._resolution_flag(pos))
             table.add_row(*row, key=f"{pos.slug}|{pos.asset}", height=height)
+        table.refresh_bindings()  # the open-on-web hint gates on row_count
         note = self.query_one("#lost-note", Static)
         # Compact tier is context-only (primary list survives); inline display
         # flags override stylesheet rules, so the tier gate lives here too.
@@ -378,6 +391,7 @@ class PortfolioPane(TierAware, Vertical):
                 "placed": order.when.astimezone().strftime("%b %d %H:%M") if order.when else "-",
             }
             table.add_row(*(cells[key] for key, _, _ in self._ord_spec), key=order.id)
+        table.refresh_bindings()  # the x-cancel hint gates on row_count
 
     async def _order_titles(self, orders: list[OpenOrder]) -> dict[str, str]:
         """Resolve condition ids to market questions via positions, then Gamma."""

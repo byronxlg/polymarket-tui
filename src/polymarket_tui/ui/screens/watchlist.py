@@ -46,10 +46,13 @@ class WatchlistPane(TierAware, Vertical):
     """Starred events + followed traders - an alternate root drill pane."""
 
     header_title = "watchlist"
+    # An emptied tab hides its table; the pane itself takes focus then so
+    # tab/esc keep dispatching (bindings need focus inside the pane).
+    can_focus = True
 
     BINDINGS = [
         Binding("escape", "app.nav_back", "back", show=False),
-        Binding("space", "toggle_watch", "unstar"),
+        Binding("space", "toggle_watch", "unwatch"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "next_pane", "prev pane", show=False),
         Binding("b", "order('BUY')", "buy", show=False),
@@ -94,16 +97,49 @@ class WatchlistPane(TierAware, Vertical):
         self.tier_ready()
         self._schedule_refit()
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """An empty tab has nothing to unwatch - don't advertise space (the
+        empty-note is telling the user to go star things instead)."""
+        if action == "toggle_watch" and self.is_mounted:
+            if self._active_pane() == "pane-watch-users":
+                table = next(iter(self.query("#users-table")), None)
+            else:
+                table = next(iter(self.query(EventsTable)), None)
+            return table is not None and table.row_count > 0
+        return True
+
     def focus_inner(self) -> None:
         if self._active_pane() == "pane-watch-users":
-            self.query_one("#users-table", VimDataTable).focus()
+            table = self.query_one("#users-table", VimDataTable)
         else:
-            self.table.focus()
+            table = self.table
+        # A hidden (emptied) table cannot take focus - the pane does instead.
+        if table.display:
+            table.focus()
+        else:
+            self.focus()
         # Stars/follows may have changed while a drill child had focus.
         if set(self.app.watchlist.slugs) != self._loaded_slugs:
             self.load_watchlist()
         if {u["address"] for u in self.app.watchlist.users} != self._loaded_users:
             self.load_users()
+
+    def _reclaim_focus(self) -> None:
+        """A just-emptied tab hid the focused table - keep focus in the pane
+        so tab (next pane) and esc keep working; never steal it from a
+        drill child that legitimately has it. Deferred: Textual blurs the
+        hidden table only on the next refresh, so deciding now would read
+        stale focus (and the footer would keep the stale hints)."""
+
+        def _later() -> None:
+            if not alive(self):
+                return
+            focused = self.app.focused
+            if focused is None or self in focused.ancestors_with_self:
+                self.focus_inner()
+            self.refresh_bindings()
+
+        self.call_after_refresh(_later)
 
     # -- width tiers ----------------------------------------------------------
 
@@ -161,6 +197,8 @@ class WatchlistPane(TierAware, Vertical):
         if not slugs:
             self.table.clear()
             self.table.events_by_slug.clear()
+            self._reclaim_focus()
+            self.refresh_bindings()  # space gates on row_count (check_action)
             return
         results = await asyncio.gather(
             *(self.app.gamma.event_by_slug(s) for s in slugs), return_exceptions=True
@@ -171,6 +209,7 @@ class WatchlistPane(TierAware, Vertical):
         failed = len(slugs) - len(events)
         self.table.set_events(events, set(slugs))
         browser.preview.show_event(events[0] if events else None)
+        self.refresh_bindings()
         if failed:
             self.notify(f"{failed} watched event(s) could not be loaded", severity="warning")
 
@@ -187,6 +226,8 @@ class WatchlistPane(TierAware, Vertical):
         self._users_rows = []
         if not watched:
             table.clear()
+            self._reclaim_focus()
+            self.refresh_bindings()  # space gates on row_count (check_action)
             return
         values = await asyncio.gather(
             *(self.app.data.portfolio_value(u["address"]) for u in watched),
@@ -198,6 +239,7 @@ class WatchlistPane(TierAware, Vertical):
             shown = "-" if isinstance(value, BaseException) or value is None else fmt.money(value)
             self._users_rows.append((user.get("name") or user["address"], user["address"], shown))
         self._render_users()
+        self.refresh_bindings()
 
     def _render_users(self) -> None:
         table = self.query_one("#users-table", VimDataTable)
@@ -252,6 +294,7 @@ class WatchlistPane(TierAware, Vertical):
             self.query_one("#users-table", VimDataTable).focus()
         elif idx == 0 and self.app.watchlist.slugs:
             self.table.focus()
+        self.refresh_bindings()  # the space gate follows the active tab
 
     def action_refresh(self) -> None:
         self.load_watchlist()
