@@ -20,19 +20,19 @@ from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import PricePoint
-from polymarket_tui.ui.theme import DOWN, UP
+from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP, rgb
 from polymarket_tui.ui.widgets.linechart import render_chart
 
 MAX_SERIES = 6
 
 # One palette, used for both the chart lines and the Rich legend swatches.
-# Softened to sit on the navy theme (ui/theme.py): accent blue first, then
-# amber/green/red matching AMBER/UP/DOWN.
+# The first four derive from the theme constants (an edit there follows
+# through here); purple/sky are chart-only fill-ins for series 5-6.
 PALETTE: list[tuple[int, int, int]] = [
-    (91, 142, 247),  # accent blue
-    (224, 175, 104),  # amber
-    (63, 207, 142),  # green
-    (248, 113, 122),  # red
+    rgb(BLUE),
+    rgb(AMBER),
+    rgb(UP),
+    rgb(DOWN),
     (187, 154, 247),  # purple
     (122, 207, 255),  # sky
 ]

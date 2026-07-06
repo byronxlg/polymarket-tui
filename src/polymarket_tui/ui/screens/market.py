@@ -327,10 +327,10 @@ class MarketPane(TierAware, Vertical):
 
     # -- labels ------------------------------------------------------------
 
-    def _outcome_label(self) -> str:
+    def _outcome_label(self, index: int | None = None) -> str:
         outcomes = self._market.outcomes or ["Yes", "No"]
         try:
-            return outcomes[self._outcome_index]
+            return outcomes[self._outcome_index if index is None else index]
         except IndexError:
             return "?"
 
@@ -537,6 +537,8 @@ class MarketPane(TierAware, Vertical):
         """Called on the event loop when a market frame is applied."""
         if self._channel is None or asset_id != self._token_id:
             return
+        if not alive(self):
+            return  # a frame can land in the teardown window (children pruned)
         if kind in ("book", "price_change"):
             book = self._channel.book(asset_id)
             if book is not None:
@@ -695,6 +697,12 @@ class MarketPane(TierAware, Vertical):
             return
         if not alive(self):
             return  # pane torn down while we fetched
+        if self._channel is not None and self._channel.status() == "live":
+            # The socket recovered while REST was in flight: its book is
+            # newer - keep it rather than clobbering with the snapshot.
+            self._refresh_book_badge()
+            self._maybe_open_pending_order()
+            return
         self._book = book
         panel.update_book(book)
         self._refresh_book_badge()
@@ -998,10 +1006,9 @@ class MarketPane(TierAware, Vertical):
             # there first (the book reload then reopens the panel pending).
             owned = self._owned_outcome_index()
             if owned is not None and owned != self._outcome_index:
-                outcomes = self._market.outcomes or ["Yes", "No"]
                 self._pending_order_side = side
                 self.action_select_outcome(owned)
-                self.notify(f"Selling your {outcomes[owned]} position", timeout=3)
+                self.notify(f"Selling your {self._outcome_label(owned)} position", timeout=3)
                 return
         preset_price = preset_size = None
         if self._pending_order_size is not None:
@@ -1060,8 +1067,3 @@ class MarketPane(TierAware, Vertical):
         if not held:
             return None
         return max(held)[1]
-
-    def action_toggle_watch(self) -> None:
-        slug = self._event.slug if self._event else self._market.slug
-        watched = self.app.watchlist.toggle(slug)
-        self.notify("Watching" if watched else "Unwatched", timeout=2)

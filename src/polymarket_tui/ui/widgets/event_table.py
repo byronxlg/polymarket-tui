@@ -7,7 +7,7 @@ from rich.text import Text
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
-from polymarket_tui.ui.tiers import ColumnSpec, Tier, effective_tier, fit_columns
+from polymarket_tui.ui.tiers import ColumnSpec, Tier, effective_tier, fit_columns, usable_width
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 
@@ -141,7 +141,7 @@ class EventsTable(VimDataTable):
         return self._density == "spacious"
 
     def _refit(self) -> None:
-        width = self.size.width
+        width = usable_width(self)
         if width <= 0:
             return  # not laid out yet; the first real resize refits
         tier_columns = SPACIOUS_TIER_COLUMNS if self._spacious else TIER_COLUMNS

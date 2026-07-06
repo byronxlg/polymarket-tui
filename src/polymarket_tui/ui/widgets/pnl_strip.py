@@ -13,12 +13,13 @@ from textual.widgets import Static
 
 from polymarket_tui.models.market import PricePoint
 from polymarket_tui.ui.liveness import alive
-from polymarket_tui.ui.theme import DOWN, UP
+from polymarket_tui.ui.theme import DOWN, UP, rgb
 from polymarket_tui.ui.widgets.linechart import render_chart
 
-# rgb tuples for the line chart, matching theme UP/DOWN
-GREEN = (63, 207, 142)
-RED = (248, 113, 122)
+# rgb tuples for the line chart, derived from the theme so an edit there
+# cannot silently desync the chart from the rest of the UI
+GREEN = rgb(UP)
+RED = rgb(DOWN)
 
 
 class PnlStrip(Vertical):

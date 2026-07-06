@@ -115,7 +115,7 @@ class UserPane(TierAware, Vertical):
     def _refit(self) -> None:
         if not alive(self):
             return  # call_after_refresh can fire after the pane is torn down
-        width = self.size.width - 2  # border + slack
+        width = self.size.width - 3  # border + the tables' vertical scrollbar
         if width <= 0:
             return
         pos_columns = self._pos_columns()
@@ -205,8 +205,9 @@ class UserPane(TierAware, Vertical):
     def action_toggle_watch(self) -> None:
         watched = self.app.watchlist.toggle_user(self._address, self._name)
         self.notify(f"{'Watching' if watched else 'Unwatched'} {self._name}", timeout=3)
+        # Following changes nothing about the trader's data - update the
+        # title only, no refetch of value/positions/activity.
         self.query_one("#user-title", Static).update(self._title_line())
-        self.load_user()
 
     def action_next_pane(self) -> None:
         tabbed = self.query_one(TabbedContent)

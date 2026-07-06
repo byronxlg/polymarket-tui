@@ -17,6 +17,8 @@ from polymarket_tui.services.orders import (
     Side,
     Tif,
     format_cents_input,
+    format_price_cents,
+    format_shares,
     map_error,
     parse_price,
     price_decimals,
@@ -265,7 +267,44 @@ class FakeSigner:
         return {"success": True, "status": "matched", "orderID": "0x1"}
 
 
+class TimeoutPoster:
+    """Signs fine; posting raises (a network timeout after the request left)."""
+
+    async def sign_order(self, order_args) -> object:
+        return object()
+
+    async def create_and_post_order(self, order_args, order_type) -> dict:
+        raise TimeoutError("read timed out")
+
+
 class TestPlace:
+    @pytest.mark.asyncio
+    async def test_live_post_timeout_is_status_unknown_and_audited(self):
+        """The dangerous path: a timed-out post may have landed. It must be
+        flagged status-unknown (drives the reconcile modal), keep the seeded
+        duplicate fingerprint, and land in the audit log - never retried."""
+        import json as json_module
+
+        import polymarket_tui.services.orders as orders_module
+
+        live = Settings(
+            polymarket_execution_live=True,
+            polymarket_funder="0xf",
+            polymarket_private_key="deadbeef" * 8,
+        )
+        service = OrderService(live, TimeoutPoster())
+        result = await service.place(make_draft())
+        assert not result.ok and not result.dry_run
+        assert result.status_unknown
+        # Seeded BEFORE the post: it may have landed, so an identical order
+        # within the window must warn.
+        assert len(service._recent) == 1
+        entry = json_module.loads(
+            orders_module.AUDIT_PATH.read_text().strip().splitlines()[-1]
+        )
+        assert entry["ok"] is False
+        assert "status unknown" in entry["error"].lower()
+
     @pytest.mark.asyncio
     async def test_dry_run_does_not_post_or_seed_duplicate_guard(self):
         # A dry run signs but places nothing, so it must not seed the duplicate
@@ -354,6 +393,55 @@ class TestBuilderCode:
     def test_builder_code_is_not_a_settings_field(self):
         # No env/config override exists to redirect attribution away from us.
         assert "polymarket_builder_code" not in Settings.model_fields
+
+
+class TestConfirmFormatting:
+    """What the confirm card shows must be exactly what is signed."""
+
+    def test_price_keeps_tick_resolution(self):
+        # 33.45c on a 0.01c-tick market must not display rounded to 33.4c.
+        market = make_market(orderPriceMinTickSize=0.0001)
+        assert format_price_cents(market, Decimal("0.3345")) == "33.45c"
+
+    def test_price_min_one_decimal(self):
+        # Coarser ticks keep the app-wide one-decimal cents convention.
+        assert format_price_cents(make_market(orderPriceMinTickSize=0.01), Decimal("0.33")) == (
+            "33.0c"
+        )
+        assert format_price_cents(make_market(orderPriceMinTickSize=0.001), Decimal("0.333")) == (
+            "33.3c"
+        )
+
+    def test_shares_keep_fractions(self):
+        # A 50% sell of a 25.5-share position is 12.75 shares - not "13".
+        assert format_shares(Decimal("12.75")) == "12.75"
+        assert format_shares(Decimal("12.5")) == "12.5"
+        assert format_shares(Decimal("10")) == "10"
+        assert format_shares(Decimal("1234")) == "1,234"
+
+    def test_summary_round_trips_fine_prices_and_sizes(self):
+        draft = make_draft(
+            market=make_market(orderPriceMinTickSize=0.0001),
+            price=Decimal("0.3345"),
+            size=Decimal("12.5"),
+        )
+        assert "33.45c" in draft.summary()
+        assert "12.5" in draft.summary()
+
+    def test_zero_size_reports_single_block(self):
+        service = OrderService(Settings(pmtui_max_notional=500), authed=None)
+        issues = service.validate(make_draft(size=Decimal("0")), make_book(), 100.0, None)
+        blocks = [i for i in issues if i.level is IssueLevel.BLOCK]
+        assert len(blocks) == 1
+        assert "positive" in blocks[0].message
+
+    def test_tick_suggestion_keeps_resolution(self):
+        market = make_market(orderPriceMinTickSize=0.0001)
+        draft = make_draft(market=market, price=Decimal("0.33455"))
+        service = OrderService(Settings(pmtui_max_notional=500), authed=None)
+        issues = service.validate(draft, make_book(), 100.0, None)
+        # nearest valid is 33.46c (round half up) - shown at full resolution
+        assert "33.46c" in messages(issues)
 
 
 class TestPriceDecimals:

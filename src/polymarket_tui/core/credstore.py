@@ -11,11 +11,11 @@ announces a LIVE start loudly.
 
 from __future__ import annotations
 
-import os
 import tomllib
 from pathlib import Path
 
 from polymarket_tui.core import keychain
+from polymarket_tui.core.fileio import write_atomic
 
 CONFIG_DIR = Path.home() / ".config" / "polymarket-tui"
 CRED_PATH = CONFIG_DIR / "credentials.toml"
@@ -40,11 +40,11 @@ def _write_toml(
     lines.append(f"signature_type = {signature_type}")
     lines.append(f"execution_live = {str(execution_live).lower()}")
     body = "\n".join(lines) + "\n"
-    # Create with restrictive permissions before writing any secret.
-    fd = os.open(CRED_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        f.write(body)
-    CRED_PATH.chmod(0o600)
+    # Atomic and 0600 from birth: the temp file carries the tight mode into
+    # the rename, so the secret is never readable more loosely (even when a
+    # previous run left the file with looser permissions), and a crash
+    # mid-write cannot truncate saved credentials.
+    write_atomic(CRED_PATH, body, mode=0o600)
     return CRED_PATH
 
 
@@ -62,7 +62,10 @@ def load_credentials() -> dict | None:
         return None
 
     funder = str(data.get("funder", ""))
-    signature_type = int(data.get("signature_type", 1))
+    try:
+        signature_type = int(data.get("signature_type", 1))
+    except (TypeError, ValueError):
+        signature_type = 1  # a hand-edited value must not crash startup
     file_key = str(data.get("private_key", ""))
 
     # Reverse migration: a key still in the legacy Keychain entry moves back

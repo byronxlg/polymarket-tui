@@ -104,6 +104,32 @@ async def test_channel_reconnects_after_drop():
 
 
 @pytest.mark.asyncio
+async def test_flapping_connection_keeps_escalating_backoff(monkeypatch):
+    """An accept-then-close server (e.g. rejected ws auth) must keep escalating.
+
+    Resetting the backoff on the handshake alone turned this into a tight
+    reconnect hammer at the first backoff step, forever."""
+    import polymarket_tui.api.ws as ws_mod
+
+    connects = 0
+
+    async def fake_connect(url: str) -> FakeWS:
+        nonlocal connects
+        connects += 1
+        return FakeWS([], drop_when_empty=True)  # accepted, then drops at once
+
+    monkeypatch.setattr(ws_mod, "_BACKOFF", [0.01, 10.0])
+    ch = MarketChannel(["A"], lambda *_: None, connect=fake_connect)
+    ch.start()
+    await asyncio.sleep(0.3)
+    await ch.stop()
+    # First drop waits 0.01s, then the delay escalates to 10s and stays there:
+    # only ~2 connects fit in 300ms. Before the fix attempt reset on every
+    # accept, so the 0.01s step repeated dozens of times.
+    assert connects <= 3
+
+
+@pytest.mark.asyncio
 async def test_status_down_before_connect():
     ch = MarketChannel(["A"], lambda *_: None, connect=None)
     assert ch.status() == "down"

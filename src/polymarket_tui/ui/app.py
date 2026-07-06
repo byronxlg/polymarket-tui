@@ -14,6 +14,7 @@ from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.api.data import DataApiClient
 from polymarket_tui.api.gamma import GammaClient
 from polymarket_tui.api.ws import UserChannel
+from polymarket_tui.core import fmt
 from polymarket_tui.core.auth import derive_l2_creds
 from polymarket_tui.core.config import Mode, Settings, get_settings
 from polymarket_tui.models.market import Event, Market
@@ -202,7 +203,7 @@ class PolymarketApp(App):
             )
             self.notify(
                 f"Order {verb}: {msg.side} {msg.original_size} {msg.outcome} @ "
-                f"{float(msg.price) * 100:.1f}c",
+                f"{fmt.cents_exact(float(msg.price))}",
                 timeout=6,
             )
         elif kind == "trade" and isinstance(msg, UserTradeMessage):
@@ -212,17 +213,23 @@ class PolymarketApp(App):
             if len(self._toasted_trades) > 200:
                 self._toasted_trades.pop(next(iter(self._toasted_trades)))
             self.notify(
-                f"Fill: {msg.side} {msg.size} {msg.outcome} @ {float(msg.price) * 100:.1f}c",
+                f"Fill: {msg.side} {msg.size} {msg.outcome} @ {fmt.cents_exact(float(msg.price))}",
                 timeout=6,
             )
         else:
             return
         self.portfolio.invalidate()
-        # Refresh the open-orders tab live if a portfolio pane is mounted.
+        # Refresh a mounted portfolio pane live: a fill moves positions, PnL,
+        # balances, and history - not just the open-orders tab. Order events
+        # (resting/canceled) only move the orders tab and the cash reserve.
         host = self._nav_host()
         if host is not None:
             for pane in host.query(PortfolioPane):
-                pane.load_orders()
+                if kind == "trade":
+                    pane.load_all()
+                else:
+                    pane.load_orders()
+                    pane.load_balances()
             # The market pane shows YOUR POSITION and starred book levels:
             # refresh them for the touched market, with backoff on the
             # positions (data-api indexes fills a few seconds late).
@@ -416,7 +423,7 @@ class PolymarketApp(App):
                 severity="warning",
             )
             return
-        from polymarket_tui.core.credstore import save_execution_live
+        from polymarket_tui.core.credstore import load_credentials, save_execution_live
 
         if self.settings.mode is Mode.TRADER_LIVE:
             self.reconfigure(
@@ -425,10 +432,19 @@ class PolymarketApp(App):
             save_execution_live(False)
             self.notify("DRY - orders are signed but never posted", timeout=4)
             return
+        # Persistence rides the credentials file; env-only auth has nowhere to
+        # save the flag, so the modal must not promise it will be remembered.
+        persistable = load_credentials() is not None
         body = Text()
         body.append("Orders and cancels will be posted to the exchange for real.\n")
         body.append("Dry-run protection is OFF.", style=f"bold {DOWN}")
-        body.append(" This choice is remembered across sessions.")
+        if persistable:
+            body.append(" This choice is remembered across sessions.")
+        else:
+            body.append(
+                " Env-based credentials: this lasts for this session only"
+                " (set POLYMARKET_EXECUTION_LIVE=1 to persist)."
+            )
 
         def _confirmed(ok: bool | None) -> None:
             if ok:

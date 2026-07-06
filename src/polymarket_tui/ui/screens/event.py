@@ -21,7 +21,14 @@ from polymarket_tui.models.market import Event
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
-from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.tiers import (
+    ColumnSpec,
+    Tier,
+    TierAware,
+    effective_tier,
+    fit_columns,
+    usable_width,
+)
 from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
@@ -227,7 +234,7 @@ class EventPane(TierAware, Vertical):
         if not alive(self):
             return  # call_after_refresh can fire after the pane is torn down
         table = self.query_one(DataTable)
-        width = table.size.width
+        width = usable_width(table)
         if width <= 0 or not table.columns:
             return
         tier = effective_tier(self.tier, width, MARKETS_TIER_COLUMNS)
@@ -321,11 +328,20 @@ class EventPane(TierAware, Vertical):
         except Exception as exc:
             self.notify(f"Refresh failed: {exc}", severity="error")
             return
-        if fresh is not None and self.is_mounted:
-            self._event = fresh
-            self._fill_table()
-            self.query_one(ActivityPanel).configure(None, fresh)
-            self._schedule_refit()  # fresh titles may change the flex width
+        if fresh is None or not alive(self):
+            return
+        # R must not snap the cursor to the top (the 15s own-orders interval
+        # already preserves it) - restore by slug key across the rebuild.
+        table = self.query_one(DataTable)
+        keep: str | None = None
+        if table.cursor_row is not None and table.row_count:
+            keep = str(table.coordinate_to_cell_key((table.cursor_row, 0)).row_key.value)
+        self._event = fresh
+        self._fill_table()
+        if keep is not None and any(m.slug == keep for m in fresh.active_markets):
+            table.move_cursor(row=table.get_row_index(keep))
+        self.query_one(ActivityPanel).configure(None, fresh)
+        self._schedule_refit()  # fresh titles may change the flex width
 
     # -- actions ------------------------------------------------------------------
 

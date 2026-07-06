@@ -10,7 +10,7 @@ from textual.widgets import DataTable, Static
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.follow import CursorFollow
-from polymarket_tui.ui.theme import BLUE, DOWN, UP
+from polymarket_tui.ui.theme import BLUE, DOWN, TRACK, UP
 from polymarket_tui.ui.widgets.event_table import EventsTable
 
 PREVIEW_OUTCOMES = 18
@@ -24,7 +24,7 @@ def prob_bar(price: float | None, width: int = BAR_W) -> Text:
         return out.append(" " * width)
     filled = round(max(0.0, min(1.0, price)) * width)
     out.append("\u2588" * filled, style=BLUE)
-    out.append("\u00b7" * (width - filled), style="grey30")
+    out.append("\u00b7" * (width - filled), style=TRACK)
     return out
 
 
@@ -125,7 +125,9 @@ class EventPreview(Static):
             change = market.one_day_price_change
             if change:
                 style = UP if change > 0 else DOWN
-                out.append(f" {change * 100:>+6.1f}", style=style)
+                # Same format as every other 24h column (event table, market
+                # preview): signed cents with the unit.
+                out.append(f" {fmt.cents(change, signed=True):>7}", style=style)
             out.append("\n")
         if len(markets) > PREVIEW_OUTCOMES:
             out.append(f"... {len(markets) - PREVIEW_OUTCOMES} more\n", style="dim")

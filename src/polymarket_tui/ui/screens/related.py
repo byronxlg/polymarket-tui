@@ -8,6 +8,8 @@ back to exactly where you were, trail untouched.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -92,9 +94,12 @@ class RelatedModal(ModalScreen[None]):
             if series is not None:
                 events = await app.gamma.events_by_series(series.id)
                 # Soonest-resolving open events first, then the recent past.
+                # The key must not mix datetime and str (TypeError kills the
+                # whole pop-out) - dateless events sort last, by slug.
+                far_future = datetime.max.replace(tzinfo=UTC)
                 open_events = sorted(
                     (e for e in events if not e.closed),
-                    key=lambda e: e.end_date or e.slug,
+                    key=lambda e: (e.end_date or far_future, e.slug),
                 )
                 closed_events = [e for e in events if e.closed]
                 events = open_events + closed_events

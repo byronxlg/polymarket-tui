@@ -12,6 +12,7 @@ from __future__ import annotations
 from enum import StrEnum
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,6 +50,21 @@ class Settings(BaseSettings):
     # scripts/record_demo.sh so the public landing-page cast never carries
     # real balances. Trading behavior is unchanged.
     polymarket_hide_balances: bool = False
+
+    @field_validator(
+        "polymarket_signature_type",
+        "polymarket_execution_live",
+        "pmtui_max_notional",
+        "polymarket_hide_balances",
+        mode="before",
+    )
+    @classmethod
+    def _empty_env_is_unset(cls, v: object, info) -> object:
+        # `export POLYMARKET_SIGNATURE_TYPE=` (a common profile shape) must
+        # mean "unset", not a ValidationError that kills the app at launch.
+        if isinstance(v, str) and not v.strip():
+            return cls.model_fields[info.field_name].default
+        return v
 
     @property
     def mode(self) -> Mode:

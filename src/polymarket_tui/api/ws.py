@@ -36,8 +36,16 @@ log = logging.getLogger(__name__)
 MARKET_WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
 USER_WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/user"
 PING_INTERVAL_S = 10.0
-STALE_AFTER_S = 8.0  # no frames for this long -> considered stale
+# On a quiet market the only inbound frames are PONG replies to our keepalive,
+# arriving every PING_INTERVAL_S - so "stale" must allow for at least two full
+# keepalive cycles or a healthy idle socket flaps stale (and the UI falls back
+# to spurious REST fetches) for ~2s of every 10s.
+STALE_AFTER_S = 25.0
 _BACKOFF = [0.5, 1.0, 2.0, 5.0, 10.0]
+# A session must survive this long for the backoff to reset. Resetting on the
+# handshake alone turns an accept-then-close server (e.g. rejected ws auth)
+# into a tight 0.5s reconnect hammer.
+STABLE_SESSION_S = 30.0
 
 # (kind, asset_id) -> called on the event loop after a frame is applied.
 UpdateCallback = Callable[[str, str], None]
@@ -115,10 +123,11 @@ class MarketChannel:
     async def _run(self) -> None:
         attempt = 0
         while True:
+            session_started: float | None = None
             try:
                 self._ws = await self._connect(self._url)
                 self._connected = True
-                attempt = 0
+                session_started = time.monotonic()
                 await self._subscribe()
                 await self._read_loop()
             except asyncio.CancelledError:
@@ -127,6 +136,11 @@ class MarketChannel:
                 log.debug("market ws error: %s", exc)
             finally:
                 await self._close_ws()
+            # Backoff resets only after a session that held long enough to be
+            # healthy - never on the handshake alone (see STABLE_SESSION_S).
+            if session_started is not None:
+                if time.monotonic() - session_started >= STABLE_SESSION_S:
+                    attempt = 0
             delay = _BACKOFF[min(attempt, len(_BACKOFF) - 1)]
             attempt += 1
             try:
@@ -238,10 +252,11 @@ class UserChannel:
     async def _run(self) -> None:
         attempt = 0
         while True:
+            session_started: float | None = None
             try:
                 self._ws = await self._connect(self._url)
                 self._connected = True
-                attempt = 0
+                session_started = time.monotonic()
                 await self._ws.send(
                     json.dumps({"type": "user", "markets": [], "auth": self._creds})
                 )
@@ -252,6 +267,11 @@ class UserChannel:
                 log.debug("user ws error: %s", exc)
             finally:
                 await self._close_ws()
+            # As in MarketChannel: only a session that held resets the backoff.
+            # Rejected ws auth is an accept-then-close - it must keep escalating.
+            if session_started is not None:
+                if time.monotonic() - session_started >= STABLE_SESSION_S:
+                    attempt = 0
             delay = _BACKOFF[min(attempt, len(_BACKOFF) - 1)]
             attempt += 1
             await asyncio.sleep(delay)

@@ -18,6 +18,18 @@ DOWN = "#f8717a"
 BLUE = "#5b8ef7"
 # Warnings / DRY badge
 AMBER = "#e0af68"
+# Chart furniture (fixed RGB, never terminal ANSI): the empty stretch of a
+# probability bar and the inspect crosshair. Same values the widgets used as
+# rich "grey30"/"grey58" - named here so every grey traces back to the theme.
+TRACK = "#4e4e4e"
+CROSSHAIR = "#949494"
+
+
+def rgb(hex_color: str) -> tuple[int, int, int]:
+    """Theme hex -> (r, g, b) for chart renderers that paint by component -
+    charts derive from the constants above instead of hand-copied tuples."""
+    h = hex_color.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 PMTUI_THEME = Theme(
     name="pmtui",

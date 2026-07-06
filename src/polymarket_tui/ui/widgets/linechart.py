@@ -13,11 +13,12 @@ from datetime import datetime
 from rich.text import Text
 
 from polymarket_tui.models.market import PricePoint
+from polymarket_tui.ui.theme import CROSSHAIR, TRACK
 
 GUTTER = 7  # "  33.5┤"
 RGB = tuple[int, int, int]
 
-CROSSHAIR_BG = " on grey30"
+CROSSHAIR_BG = f" on {TRACK}"
 
 
 def _color(rgb: RGB) -> str:
@@ -113,7 +114,7 @@ def render_chart(
         for row in range(rows):
             if chars[row][inspect_col] == " ":
                 chars[row][inspect_col] = "│"
-                colors[row][inspect_col] = "grey58"
+                colors[row][inspect_col] = CROSSHAIR
 
     # y-axis labels on ~5 rows
     label_rows = {0, rows // 4, rows // 2, 3 * rows // 4, rows - 1}
