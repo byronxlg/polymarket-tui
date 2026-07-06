@@ -78,6 +78,12 @@ class BookPanel(Static):
         self._book: OrderBook | None = None
         self._levels: list[tuple[str, BookLevel]] = []  # display order: asks then bids
         self._cursor = 0
+        # Whether the row cursor should draw. Tracked here, set synchronously in
+        # on_focus/on_blur, rather than read from the has_focus reactive: on the
+        # focus that on_focus itself handles, has_focus is not True yet, so the
+        # first render into the book drew no cursor and the user had to press
+        # down again to see it (landing on row 1).
+        self._focused = False
 
     # -- state ------------------------------------------------------------------
 
@@ -104,10 +110,12 @@ class BookPanel(Static):
             self._render_book()
 
     def on_focus(self) -> None:
+        self._focused = True
         if self._book is not None:
             self._render_book()
 
     def on_blur(self) -> None:
+        self._focused = False
         if self._book is not None:
             self._render_book()
 
@@ -204,7 +212,7 @@ class BookPanel(Static):
         self._levels = [("ask", lvl) for lvl in reversed(asks)] + [("bid", lvl) for lvl in bids]
         if self._cursor >= len(self._levels):
             self._cursor = max(0, len(self._levels) - 1)
-        focused = self.has_focus
+        focused = self._focused
 
         out = Text()
         out.append(f"{'':>{bar_w}} {'price':>7} {'shares':>10}\n", style="bold dim")
