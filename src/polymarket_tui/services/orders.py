@@ -152,6 +152,46 @@ def round_to_tick(market: Market, price: Decimal) -> Decimal:
     return (price / tick).quantize(Decimal(1), rounding=ROUND_HALF_UP) * tick
 
 
+def price_decimals(market: Market) -> int:
+    """Decimal places a CENTS price can carry at this market's tick.
+
+    Cents resolution is the tick scaled to cents: 0.01$ tick -> 1c steps ->
+    0 places; 0.001$ -> 0.1c -> 1 place; 0.0001$ -> 0.01c -> 2 places.
+    """
+    exponent = (_tick(market) * 100).normalize().as_tuple().exponent
+    return max(0, -exponent) if isinstance(exponent, int) else 0
+
+
+def format_cents_input(raw: str, decimals: int) -> str:
+    """Reformat a partially-typed CENTS price as the user types.
+
+    The first two digits are whole cents and the decimal point is inserted
+    automatically before the third digit, so "334" -> "33.4" (every valid
+    Polymarket price is < 100c, so two whole-cent digits always suffice). An
+    explicitly typed "." is honoured, so sub-cent entries like "5.5" still
+    work. Fractional length is capped to `decimals` (the market's cent
+    resolution); at 0 the price is whole cents only. Empty in, empty out.
+    """
+    if not raw:
+        return ""
+    had_dot = "." in raw
+    if had_dot:
+        before, _, after = raw.partition(".")
+        int_digits = [c for c in before if c.isdigit()][:2]
+        frac_digits = [c for c in after if c.isdigit()][:decimals]
+    else:
+        digits = [c for c in raw if c.isdigit()]
+        if not digits:
+            return ""
+        int_digits = digits[:2]
+        frac_digits = digits[2 : 2 + decimals] if decimals else []
+    int_part = str(int("".join(int_digits))) if int_digits else ""
+    frac_part = "".join(frac_digits)
+    if frac_part or (had_dot and decimals):
+        return f"{int_part}.{frac_part}"
+    return int_part
+
+
 # Known CLOB rejection strings -> user-facing messages (trading.md).
 ERROR_MAP = [
     ("not enough balance", "Insufficient USDC balance/allowance."),
