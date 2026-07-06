@@ -3,6 +3,8 @@ name = "polymarket-tui"
 version = "0.1.0"
 description = "Terminal client for Polymarket"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Byron Smith", email = "byron.lg.smith@gmail.com" }
 ]
