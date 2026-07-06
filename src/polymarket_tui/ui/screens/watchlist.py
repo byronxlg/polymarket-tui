@@ -57,7 +57,6 @@ class WatchlistPane(TierAware, Vertical):
         Binding("shift+tab", "next_pane", "prev pane", show=False),
         Binding("b", "order('BUY')", "buy", show=False),
         Binding("s", "order('SELL')", "sell", show=False),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, **kwargs) -> None:
