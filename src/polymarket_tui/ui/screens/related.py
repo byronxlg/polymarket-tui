@@ -1,6 +1,9 @@
 """Related markets: series siblings (recurring markets like dailies) or same-tag events.
 
-Hosted as a drill pane by NavHost (30/70 split).
+A pop-out over the current pane (Byron, 2026-07-06): related is a
+transient lookup, not a navigation level - glance at the siblings, star
+one, or open one (which closes the pop-out and drills to it); esc drops
+back to exactly where you were, trail untouched.
 """
 
 from __future__ import annotations
@@ -9,35 +12,56 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
+from textual.screen import ModalScreen
 from textual.widgets import Static
 
 from polymarket_tui.models.market import Event
-from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
+from polymarket_tui.ui.widgets.order_details import action_hints
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 
 
-class RelatedPane(TierAware, Vertical):
-    """Series-sibling / same-tag events - a drill pane."""
-
-    header_title = "related"
+class RelatedModal(ModalScreen[None]):
+    """Series-sibling / same-tag events in a pop-out."""
 
     BINDINGS = [
-        Binding("escape", "app.nav_back", "back"),
+        Binding("escape", "dismiss_modal", "close"),
         Binding("space", "toggle_watch", "star"),
+        # Modal screens cut the binding chain, so the app's global R can't
+        # reach us - rebind it locally to keep refresh-anywhere true.
+        Binding("R", "refresh", "refresh", show=False, key_display="R"),
     ]
 
-    def __init__(self, event: Event, **kwargs) -> None:
-        super().__init__(**kwargs)
+    DEFAULT_CSS = """
+    RelatedModal {
+        align: center middle;
+        background: $background 40%;
+    }
+    RelatedModal > Vertical {
+        width: 80%;
+        max-width: 160;
+        height: 80%;
+        border: round $primary;
+        background: $surface;
+        padding: 0 1 0 1;
+    }
+    RelatedModal #related-hints {
+        height: 1;
+        padding: 0 1;
+    }
+    """
+
+    def __init__(self, event: Event) -> None:
+        super().__init__()
         self._event = event
-        self.drill_key = ("related", event.slug)
 
     def compose(self) -> ComposeResult:
-        yield Static(self._title_line(), classes="screen-title")
-        yield EventsBrowser(id="related-browser")
-
-    def focus_inner(self) -> None:
-        self.query_one(EventsTable).focus()
+        with Vertical():
+            yield Static(self._title_line(), classes="screen-title")
+            yield EventsBrowser(id="related-browser")
+            yield Static(
+                action_hints(("space", "star"), ("esc", "close")), id="related-hints"
+            )
 
     def _title_line(self) -> str:
         series = self._event.primary_series
@@ -50,17 +74,15 @@ class RelatedPane(TierAware, Vertical):
         return "RELATED"
 
     def on_mount(self) -> None:
-        self.table.apply_tier(self.tier)
         self.table.focus()
         self.load_related()
-        self.tier_ready()
-
-    def on_tier_changed(self, tier: Tier) -> None:
-        self.table.apply_tier(tier)
 
     @property
     def table(self) -> EventsTable:
         return self.query_one(EventsTable)
+
+    def action_dismiss_modal(self) -> None:
+        self.dismiss(None)
 
     @work(exclusive=True)
     async def load_related(self) -> None:
@@ -85,12 +107,16 @@ class RelatedPane(TierAware, Vertical):
         except Exception as exc:
             self.notify(f"Related lookup failed: {exc}", severity="error")
             return
+        if not self.is_mounted:
+            return  # dismissed while the lookup was in flight
         events = [e for e in events if e.slug != self._event.slug]
         self.table.set_events(events, set(app.watchlist.slugs))
         browser = self.query_one(EventsBrowser)
         browser.preview.show_event(events[0] if events else None)
 
     def on_data_table_row_selected(self, event) -> None:
+        # open_event pops overlay screens (this modal included) before it
+        # drills, so selecting a sibling closes the pop-out and opens it.
         selected = self.table.highlighted_event()
         if selected is not None:
             self.app.open_event(selected)
@@ -103,4 +129,5 @@ class RelatedPane(TierAware, Vertical):
         self.table.set_star(selected.slug, watched)
 
     def action_refresh(self) -> None:
+        """The global R reloads the pop-out's list in place."""
         self.load_related()

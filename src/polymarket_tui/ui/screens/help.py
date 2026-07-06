@@ -68,7 +68,7 @@ jumps straight into the market with the panel open |
 | i | market | show/hide the rules rail (auto-shown on wide terminals) |
 | c | market | comments in the chart strip |
 | e | market | open the parent event |
-| r | event, market | related markets (series siblings for dailies) |
+| r | event, market | related markets pop-out (series siblings for dailies); esc closes |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
 | x | market book / portfolio orders | cancel a resting order (details shown, enter confirms) |
 | s | portfolio positions | cash out: sell form prefilled with the full position at the bid |
