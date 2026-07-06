@@ -873,6 +873,13 @@ class MarketPane(TierAware, Vertical):
         self._trades_expanded = expanded
         self._apply_visibility()
         table = self.query_one(TradesTable)
+        # The expanded view is the trader view (right/enter opens the trader),
+        # so it always carries the full column set - USDC and Trader. Widen
+        # the columns now so the first load renders them; _schedule_refit
+        # re-slims back to the compact rail on collapse (width-driven).
+        if expanded and table.compact:
+            table.compact = False
+            table.build_columns()
         title = (
             " TRADES - right/enter opens trader, left collapses"
             if expanded
@@ -880,6 +887,7 @@ class MarketPane(TierAware, Vertical):
         )
         self.query_one("#trades-title", Static).update(title)
         self.load_trades()
+        self._schedule_refit()
         if expanded:
             table.focus()
             self._refresh_trade_overview()
