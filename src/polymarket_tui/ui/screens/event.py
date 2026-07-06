@@ -67,7 +67,7 @@ class EventPane(TierAware, Vertical):
         Binding("c", "toggle_activity('comments')", "comments", show=False),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
-        Binding("R", "related", "related", key_display="R"),
+        Binding("r", "related", "related"),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("O", "open_web", "web", show=False, key_display="O"),

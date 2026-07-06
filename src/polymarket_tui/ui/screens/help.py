@@ -29,7 +29,9 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 
 The footer keeps the two vocabularies apart: contextual keys for the
 current screen on the left; Global navigation (blue, Capitalized - Quit,
-Search, Portfolio, Watched, Back, Help, Refresh) on the right.
+Search, Portfolio, Watched, Back, Help, Refresh) on the right. Global
+letter keys are capitals (W, P, Q, R, H, A, L, T); lowercase letters are
+always contextual.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), open the buy form on a market outcome or order from
@@ -45,14 +47,14 @@ expanded trades collapse before the screen closes.
 | Key | Action |
 |-----|--------|
 | / | search |
-| p | portfolio (a top-level root like Home - drilling into a market keeps it as the parent) |
-| w | watchlist |
+| P | portfolio (a top-level root like Home - drilling into a market keeps it as the parent) |
+| W | watchlist |
 | H or Home | home screen |
 | A | auth / credentials |
 | L | toggle DRY/LIVE (going live asks for confirmation; the mode persists) |
 | T | toggle condensed/spacious density (spacious: two-line rows with market metadata; persists) |
 | ? | this help |
-| q | quit |
+| Q | quit |
 
 ## Extras where they matter
 
@@ -66,11 +68,11 @@ jumps straight into the market with the panel open |
 | i | market | show/hide the rules rail (auto-shown on wide terminals) |
 | c | market | comments in the chart strip |
 | e | market | open the parent event |
-| R | event, market | related markets (series siblings for dailies) |
+| r | event, market | related markets (series siblings for dailies) |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
 | x | market book / portfolio orders | cancel a resting order (details shown, enter confirms) |
 | s | portfolio positions | cash out: sell form prefilled with the full position at the bid |
-| r | any data screen | refresh what you're looking at (also refetches balances and flags) |
+| R | any data screen | refresh what you're looking at (also refetches balances and flags) |
 
 List rows carry flags: * watched, o resting order, + position held (home
 and event outcome lists; holdings show in observer mode too).

@@ -367,7 +367,7 @@ class PortfolioPane(TierAware, Vertical):
                 banner.add_class("active")
                 banner.update(
                     Text(
-                        f"COULD NOT CHECK - open orders unavailable ({exc}). Retry with r; "
+                        f"COULD NOT CHECK - open orders unavailable ({exc}). Retry with R; "
                         f"do not re-place {self.app.reconcile_target.summary} until confirmed.",
                         style=f"bold {AMBER}",
                     )
