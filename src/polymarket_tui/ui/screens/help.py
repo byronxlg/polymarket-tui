@@ -85,8 +85,10 @@ while typing in the fields.
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
 price empty for a market order at the touch. up/down bump by one tick or
-share, shift+up/down by ten. Selling: enter a percentage ('50%') to sell
-that fraction of your position - the held amount is shown in the panel.
+share, shift+up/down by ten. Selling: the form opens prefilled with your
+full position at the live bid (s, enter, enter cashes out) - trim the
+size, bump the price, or type a percentage ('50%') to sell that fraction;
+the held amount is shown in the panel.
 tab hops fields, enter reviews, a second enter places (the strip arms
 after a beat, so a held-down enter cannot), esc steps back. ctrl+g cycles
 TIF (GTC/FOK/FAK). The form sits top right; the book stays live beside it.
