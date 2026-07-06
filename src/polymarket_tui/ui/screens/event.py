@@ -111,6 +111,17 @@ class EventPane(TierAware, Vertical):
     def focus_inner(self) -> None:
         self.query_one("#markets-table", DataTable).focus()
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Compact hides the preview/rules pane and the chart strip (tier
+        CSS) - don't advertise or fire their toggles there."""
+        if self.tier == "compact" and action in (
+            "toggle_info",
+            "cycle_interval",
+            "toggle_activity",
+        ):
+            return False
+        return True
+
     def _title_line(self) -> str:
         e = self._event
         parts = [e.title.strip()]
@@ -197,6 +208,7 @@ class EventPane(TierAware, Vertical):
 
     def on_tier_changed(self, tier: Tier) -> None:
         self._schedule_refit()
+        self.refresh_bindings()  # the footer gates on tier (check_action)
 
     def on_resize(self) -> None:
         if self._tier_ready:

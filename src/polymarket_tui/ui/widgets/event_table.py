@@ -185,6 +185,7 @@ class EventsTable(VimDataTable):
         self._events.extend(fresh)
         self._render_rows(fresh)
         self._refit()  # the longest title may have changed
+        self.refresh_bindings()  # the enter/open hint gates on row_count
 
     def _render_rows(self, events: list[Event]) -> None:
         widths = {key: width for key, _, width in self._columns_spec}

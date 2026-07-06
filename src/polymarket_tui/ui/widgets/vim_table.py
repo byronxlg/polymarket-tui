@@ -38,6 +38,13 @@ class VimDataTable(DataTable):
         Binding("left", "app.nav_back", "back", show=False),
     ]
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """An empty table has nothing to open - don't advertise enter/right.
+        Subclasses that make enter visible in the footer inherit the gate."""
+        if action == "select_cursor" and self.row_count == 0:
+            return False
+        return True
+
     def action_cursor_up(self) -> None:
         if self.cursor_row == 0 or self.row_count == 0:
             self.post_message(self.TopReached(self))
