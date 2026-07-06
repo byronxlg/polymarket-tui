@@ -2,14 +2,30 @@
 
 ## Credentials
 
-Primary flow: press `A` in the app, enter funder address + private key, `ctrl+s`
-to apply and test. Applied credentials are persisted to
+Primary flow: press `A` anywhere to open the auth pop-out (a modal over the
+current pane - esc lands back where you were), enter funder address + private
+key, `ctrl+s` to apply and test. Applied credentials are persisted to
 `~/.config/polymarket-tui/credentials.toml` (created `0600`, directory `0700`,
 deliberately outside any git working tree) and loaded on the next start.
-`ctrl+d` on the auth screen clears both the session and the file.
+`ctrl+d` on the pop-out clears both the session and the file.
+
+### Where the values come from
+
+- **Funder**: the wallet address the Polymarket web UI shows on your profile
+  (also your USDC deposit address).
+- **Private key, email/Magic login**: polymarket.com -> Settings -> Export
+  Private Key (the reveal runs through reveal.magic.link). Signature type 1.
+- **Private key, browser wallet**: export from the wallet itself (e.g.
+  MetaMask account details). Signature type 2.
+- **Direct EOA** (no Polymarket proxy, typically API-first accounts): the
+  wallet's own key; funder is the same address. Signature type 0.
+- **Caveat**: accounts created since Polymarket's move to Privy embedded
+  wallets are signature type 3 - the UI export is only a threshold-key
+  share and py-clob-client cannot trade for them
+  (Polymarket/py-clob-client#344). Older type 0/1/2 accounts are unaffected.
 
 The execution-live flag is persisted in credentials.toml: the global `L`
-toggle and the auth screen's execution select both write it (going live is
+toggle and the auth pop-out's execution select both write it (going live is
 confirmed in the arming modal; dropping to DRY is instant). A session that
 starts LIVE announces it with a warning toast. The
 `POLYMARKET_EXECUTION_LIVE` env var also enables it.
@@ -24,7 +40,7 @@ otherwise the credentials file, otherwise read-only mode.
 |---|---|---|
 | `POLYMARKET_PRIVATE_KEY` | for trading + CLOB user state | Polygon EOA key. Never logged, never rendered. |
 | `POLYMARKET_FUNDER` | for portfolio + trading | proxy wallet address (the one the web UI shows) |
-| `POLYMARKET_SIGNATURE_TYPE` | default `1` | 1 = proxy wallet, 0 = EOA, 2 = Magic/email |
+| `POLYMARKET_SIGNATURE_TYPE` | default `1` | 1 = email/Magic (Polymarket proxy), 2 = browser wallet (Gnosis Safe), 0 = direct EOA - semantics pinned in `core/proxy.py` |
 | `POLYMARKET_EXECUTION_LIVE` | default unset | `1` enables real order posting; otherwise dry-run |
 | `POLYMARKET_HOST` | default `https://clob.polymarket.com` | override for testing |
 | `PMTUI_MAX_NOTIONAL` | default `500` | typed-confirm threshold in trading.md check 8 |

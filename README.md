@@ -48,15 +48,27 @@ and regenerate the demo with `bash scripts/record_demo.sh`. See
 
 ## Account setup
 
-Press `A` in the app:
+Press `A` in the app (a pop-out - esc drops you back where you were):
 
 - **Funder address only** -> observer mode: your positions, P&L, activity.
-  This is the wallet address shown in the Polymarket UI.
-- **Funder + private key** -> trading mode. The key is the Polygon key that
-  controls your Polymarket wallet (signature type 1 for the standard proxy
-  wallet). Applied credentials are saved to
+  This is the wallet address shown on your polymarket.com profile (also your
+  USDC deposit address).
+- **Funder + private key** -> trading mode. Where the key comes from depends
+  on how you log in to Polymarket:
+  - email/Magic login: polymarket.com -> Settings -> Export Private Key
+    (signature type 1, the default)
+  - browser wallet: export the key from the wallet itself, e.g. MetaMask
+    account details (signature type 2)
+  - trading straight from your own wallet with no Polymarket proxy: that
+    wallet's key, funder = the same address (signature type 0)
+
+  Applied credentials are saved to
   `~/.config/polymarket-tui/credentials.toml` (chmod 600, plaintext - treat
   the file like the key itself). `POLYMARKET_*` env vars override the file.
+
+  Note: accounts created since Polymarket switched to Privy embedded wallets
+  export only a threshold-key share; the trading API (and therefore this
+  client) does not support them yet.
 
 **Orders are dry-run until you go live**: fully validated and signed but
 never posted. Live posting requires the `L` toggle (confirmed) or

@@ -1,4 +1,9 @@
-"""Auth screen: credential status, credential entry, live toggle.
+"""Auth pop-out: credential status, credential entry, live toggle.
+
+A pop-out over the current pane (Byron, 2026-07-06): entering credentials
+is a transient task, not a navigation level - press A anywhere, apply or
+esc, and land exactly where you were. Same overlay semantics as the
+related pop-out; global keys are cut while it is open.
 
 Applied credentials are saved to ~/.config/polymarket-tui/credentials.toml
 (mode 0600, outside any git tree). The key input is masked and never logged.
@@ -12,7 +17,7 @@ from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.screen import Screen
+from textual.screen import ModalScreen
 from textual.widgets import Input, Label, Select, Static
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
@@ -26,14 +31,16 @@ from polymarket_tui.core.credstore import (
 )
 from polymarket_tui.core.proxy import check_pairing
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
-from polymarket_tui.ui.widgets.app_footer import AppFooter
-from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
+from polymarket_tui.ui.widgets.order_details import action_hints
 
+# Semantics pinned in core/proxy.py (verified against real accounts):
+# 1 = Polymarket proxy for email/Magic accounts, 2 = Gnosis Safe for
+# browser-wallet accounts, 0 = the signer trades as itself.
 SIG_TYPES = [
-    ("1 - Polymarket proxy wallet (default)", "1"),
+    ("1 - email/Magic login (default)", "1"),
+    ("2 - browser wallet (MetaMask etc.)", "2"),
     ("0 - direct EOA", "0"),
-    ("2 - Magic / email login", "2"),
 ]
 
 MODE_DESCRIPTIONS = {
@@ -61,43 +68,93 @@ def derive_signer(private_key: str) -> str | None:
         return None
 
 
-class AuthScreen(Screen):
+def _guidance() -> Text:
+    """Where the values live, per login type. Export path verified 2026-07-06
+    (help.polymarket.com article 13364258; the reveal goes through
+    reveal.magic.link). Privy caveat: py-clob-client issue #344 - post-Privy
+    accounts are signature type 3 and the export is a threshold-key share."""
+    rows = [
+        ("funder", ["your deposit address - polymarket.com profile, copy the 0x..."]),
+        (
+            "private key",
+            [
+                "email login: polymarket.com Settings -> Export Private Key (type 1)",
+                "browser wallet: export from the wallet app, e.g. MetaMask (type 2)",
+                "plain EOA wallet: its own key; funder = the same address (type 0)",
+            ],
+        ),
+        (
+            "note",
+            [
+                "accounts created since the Privy switch export only a key share -",
+                "the trading API does not support them yet",
+            ],
+        ),
+    ]
+    out = Text(style="dim")
+    out.append("where to find these")
+    for label, lines in rows:
+        for i, line in enumerate(lines):
+            out.append(f"\n  {label if i == 0 else '':<14}{line}")
+    return out
+
+
+class AuthModal(ModalScreen[None]):
+    """Credential entry and status in a pop-out."""
+
     BINDINGS = [
-        Binding("escape", "app.pop_screen", "back"),
+        Binding("escape", "dismiss_modal", "close"),
         Binding("ctrl+s", "apply", "apply & test"),
         Binding("ctrl+d", "clear_creds", "clear credentials"),
     ]
 
     DEFAULT_CSS = """
-    AuthScreen #auth-body {
-        padding: 1 2;
-        width: 90;
-        max-width: 100%;
+    AuthModal {
+        align: center middle;
+        background: $background 40%;
     }
-    AuthScreen .field-row {
+    AuthModal #auth-body {
+        width: 92;
+        max-width: 95%;
+        height: auto;
+        max-height: 95%;
+        border: round $primary;
+        background: $surface;
+        padding: 0 2 1 2;
+    }
+    AuthModal .field-row {
         height: 3;
     }
-    AuthScreen Label {
+    AuthModal Label {
         padding: 1 1 0 0;
         width: 12;
     }
-    AuthScreen Input {
+    AuthModal Input {
         width: 1fr;
         max-width: 70;
     }
-    AuthScreen Select {
+    AuthModal Select {
         width: 44;
     }
-    AuthScreen #auth-status {
+    AuthModal #auth-status {
+        margin-top: 1;
         margin-bottom: 1;
         height: auto;
     }
-    AuthScreen #auth-result {
+    AuthModal #auth-guidance {
+        height: auto;
+        margin-bottom: 1;
+    }
+    AuthModal #auth-result {
         margin-top: 1;
         height: auto;
         min-height: 2;
     }
-    AuthScreen .section-title {
+    AuthModal #auth-hints {
+        height: 1;
+        margin-top: 1;
+    }
+    AuthModal .section-title {
         text-style: bold;
         margin-top: 1;
     }
@@ -105,13 +162,16 @@ class AuthScreen(Screen):
 
     def compose(self) -> ComposeResult:
         settings = self.app.settings
-        yield AppHeader("auth")
         with Vertical(id="auth-body"):
+            yield Static("AUTH", classes="screen-title")
             yield Static(id="auth-status")
+            # The save path is on the status block's storage line - repeating
+            # CRED_PATH here wrapped the title to three lines.
             yield Static(
-                f"credentials  (saved on apply to {CRED_PATH}, chmod 600)",
+                "credentials  (saved on apply, chmod 600)",
                 classes="section-title",
             )
+            yield Static(_guidance(), id="auth-guidance")
             with Horizontal(classes="field-row"):
                 yield Label("funder")
                 yield Input(
@@ -143,12 +203,19 @@ class AuthScreen(Screen):
                     id="live-select",
                 )
             yield Static(id="auth-result")
-        yield AppFooter()
+            yield Static(
+                action_hints(
+                    ("ctrl+s", "apply & test"), ("ctrl+d", "clear"), ("esc", "close")
+                ),
+                id="auth-hints",
+            )
 
     def on_mount(self) -> None:
-        self.title = "auth"
         self._render_status()
         self.query_one("#funder-input", Input).focus()
+
+    def action_dismiss_modal(self) -> None:
+        self.dismiss(None)
 
     def _render_status(self, extra: Text | None = None) -> None:
         settings = self.app.settings
@@ -281,6 +348,9 @@ class AuthScreen(Screen):
                 report.append(f"funder lookup failed: {exc}\n", style=DOWN)
         else:
             report.append("no credentials - read-only mode\n", style=AMBER)
+
+        if not self.is_mounted:
+            return  # dismissed while testing - do not apply or touch widgets
 
         if ok:
             self.app.reconfigure(candidate)
