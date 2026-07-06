@@ -74,7 +74,7 @@ def test_position_meta_matches_condensed_columns() -> None:
 def test_position_row_condensed_unchanged() -> None:
     row = position_row(_position(), tier="full")
     assert len(row) == 7  # market, outcome, size, avg, cur, value, pnl
-    assert row[0] == "Will it rain tomorrow?"
+    assert row[0].plain == "Will it rain tomorrow?"
 
 
 def test_spacious_tiers_respect_wider_padding() -> None:
@@ -88,3 +88,21 @@ def test_spacious_tiers_respect_wider_padding() -> None:
 
 def test_positions_spacious_columns_defined_for_all_tiers() -> None:
     assert set(POSITIONS_SPACIOUS_TIER_COLUMNS) == {"full", "medium", "compact"}
+
+
+def _won_position() -> Position:
+    pos = _position()
+    return pos.model_copy(update={"redeemable": True, "cur_price": 1.0})
+
+
+def test_position_row_marks_redeemable_win_when_asked() -> None:
+    row = position_row(_won_position(), tier="medium", mark_won=True)
+    assert row[0].plain.endswith(" (won)")
+    # full tier has the verbose flag column instead - no marker unless asked
+    row = position_row(_won_position(), tier="full")
+    assert not row[0].plain.endswith("(won)")
+
+
+def test_position_row_spacious_meta_carries_redeem_hint() -> None:
+    row = position_row(_won_position(), tier="full", density="spacious", mark_won=True)
+    assert "won - redeem on web" in row[0].plain

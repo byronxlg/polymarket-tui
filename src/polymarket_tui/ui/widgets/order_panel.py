@@ -212,6 +212,7 @@ class OrderPanel(Vertical):
         self._tif: Tif = Tif.GTC
         self._confirming: OrderDraft | None = None
         self._position_size: float | None = None  # shares held of the selected token
+        self._position_won = False  # held token is resolved-won (redeemable)
 
     def compose(self):
         yield Static(id="op-summary")
@@ -314,6 +315,7 @@ class OrderPanel(Vertical):
     async def _load_position_size(self) -> None:
         """Cache shares held of the selected token so '50%' sells can resolve."""
         self._position_size = None
+        self._position_won = False
         market = self._market
         if market is None or not self.app.settings.can_read_portfolio:
             return
@@ -326,6 +328,9 @@ class OrderPanel(Vertical):
             return
         pos = self.app.portfolio.position_for(token)
         self._position_size = pos.size if pos else 0.0
+        # Won-and-resolved: selling takes the bid, redeeming on the web pays
+        # the full dollar - say so (advisory only, never a block).
+        self._position_won = bool(pos and pos.redeemable and pos.cur_price >= 0.5)
         self._refresh_summary()
 
     # -- draft ------------------------------------------------------------------
@@ -437,6 +442,11 @@ class OrderPanel(Vertical):
             ):
                 hint.append(
                     f"   held {self._position_size:,.0f} - size 50% sells half", style=AMBER
+                )
+            if self._side is Side.SELL and self._position_won:
+                hint.append(
+                    "\nwon - redeems at 100c on the web; selling here takes the bid",
+                    style=AMBER,
                 )
             info.update(hint)
             return
