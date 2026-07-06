@@ -41,6 +41,12 @@ def test_reconcile_ignores_size_for_partial_fills():
     assert target.matches(partial) is True
 
 
+def test_reconcile_matches_lowercase_side():
+    # The CLOB's side casing is not ours to assume on the reconcile path.
+    target = ReconcileTarget.from_draft(make_draft(token_id="111", price=Decimal("0.330")))
+    assert target.matches(OpenOrder(asset_id="111", side="buy", price=0.33)) is True
+
+
 def test_reconcile_no_match_on_different_token_side_or_price():
     target = ReconcileTarget.from_draft(make_draft(token_id="111", price=Decimal("0.330")))
     assert target.matches(OpenOrder(asset_id="222", side="BUY", price=0.33)) is False

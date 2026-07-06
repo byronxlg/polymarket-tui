@@ -267,7 +267,44 @@ class FakeSigner:
         return {"success": True, "status": "matched", "orderID": "0x1"}
 
 
+class TimeoutPoster:
+    """Signs fine; posting raises (a network timeout after the request left)."""
+
+    async def sign_order(self, order_args) -> object:
+        return object()
+
+    async def create_and_post_order(self, order_args, order_type) -> dict:
+        raise TimeoutError("read timed out")
+
+
 class TestPlace:
+    @pytest.mark.asyncio
+    async def test_live_post_timeout_is_status_unknown_and_audited(self):
+        """The dangerous path: a timed-out post may have landed. It must be
+        flagged status-unknown (drives the reconcile modal), keep the seeded
+        duplicate fingerprint, and land in the audit log - never retried."""
+        import json as json_module
+
+        import polymarket_tui.services.orders as orders_module
+
+        live = Settings(
+            polymarket_execution_live=True,
+            polymarket_funder="0xf",
+            polymarket_private_key="deadbeef" * 8,
+        )
+        service = OrderService(live, TimeoutPoster())
+        result = await service.place(make_draft())
+        assert not result.ok and not result.dry_run
+        assert result.status_unknown
+        # Seeded BEFORE the post: it may have landed, so an identical order
+        # within the window must warn.
+        assert len(service._recent) == 1
+        entry = json_module.loads(
+            orders_module.AUDIT_PATH.read_text().strip().splitlines()[-1]
+        )
+        assert entry["ok"] is False
+        assert "status unknown" in entry["error"].lower()
+
     @pytest.mark.asyncio
     async def test_dry_run_does_not_post_or_seed_duplicate_guard(self):
         # A dry run signs but places nothing, so it must not seed the duplicate

@@ -115,10 +115,12 @@ class ReconcileTarget:
 
     def matches(self, order: OpenOrder) -> bool:
         """True when a resting order looks like the one we attempted (token/side/
-        price). Size is not matched: a partial fill shrinks the resting size."""
+        price). Size is not matched: a partial fill shrinks the resting size.
+        Side compares case-insensitively - the CLOB's casing is not ours to
+        assume on the one path that decides whether a lost post landed."""
         return (
             order.asset_id == self.token_id
-            and order.side == self.side
+            and order.side.upper() == self.side.upper()
             and abs(Decimal(str(order.price)) - self.price) < Decimal("0.001")
         )
 
