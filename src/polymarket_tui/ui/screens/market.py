@@ -148,6 +148,10 @@ class MarketPane(TierAware, Vertical):
         # Cancel from the market page: x on a book level arms this, y confirms.
         self._pending_cancel: list | None = None
         self._cancel_armed_at = 0.0
+        # A fill is settling: positions snapshot to compare backoff polls
+        # against, and the pending poll timers (refresh_after_fill).
+        self._fill_baseline: dict[str, float] | None = None
+        self._fill_timers: list = []
 
     def compose(self) -> ComposeResult:
         yield Static(self._title_line(), classes="screen-title", id="market-title")
@@ -520,7 +524,7 @@ class MarketPane(TierAware, Vertical):
                 table.update_cell(str(self._outcome_index), "ask", fmt.cents(ba))
 
     @work(exclusive=True, group="position")
-    async def load_position(self) -> None:
+    async def load_position(self, force: bool = False) -> None:
         """Your holdings in this market, shown under the outcome table."""
         line = self.query_one("#position-line", Static)
         app = self.app
@@ -528,7 +532,7 @@ class MarketPane(TierAware, Vertical):
             line.update(Text(""))
             return
         try:
-            positions = await app.portfolio.positions()
+            positions = await app.portfolio.positions(force=force)
         except Exception:
             return
         if not alive(self):
@@ -536,6 +540,14 @@ class MarketPane(TierAware, Vertical):
         tokens = set(self._market.clob_token_ids)
         mine = [p for p in positions if p.asset in tokens and p.size >= 0.01]
         self._my_positions = mine
+        if self._fill_baseline is not None:
+            # A fill is settling: once data-api reflects a changed position,
+            # stop the backoff polls (refresh_after_fill).
+            if {p.asset: p.size for p in mine} != self._fill_baseline:
+                self._fill_baseline = None
+                for timer in self._fill_timers:
+                    timer.stop()
+                self._fill_timers = []
         if not mine:
             line.update(Text(" no position in this market", style="dim"))
             return
@@ -556,13 +568,13 @@ class MarketPane(TierAware, Vertical):
         line.update(out)
 
     @work(exclusive=True, group="own-orders")
-    async def load_own_orders(self) -> None:
+    async def load_own_orders(self, force: bool = False) -> None:
         """Star the book levels that hold one of your resting orders."""
         app = self.app
         if not app.settings.can_auth:
             return
         try:
-            await app.portfolio.open_orders()
+            await app.portfolio.open_orders(force=force)
         except Exception:
             return
         if not alive(self):
@@ -595,6 +607,43 @@ class MarketPane(TierAware, Vertical):
     @property
     def _token_id(self) -> str | None:
         return self._market.token_id(self._outcome_index)
+
+    # -- post-fill refresh ----------------------------------------------------
+
+    # data-api indexes fills a few seconds late, so one immediate refetch
+    # after a fill re-renders the stale holdings it just fetched. Positions
+    # re-poll on this backoff until they actually move; open orders come
+    # straight from the CLOB (no indexer), so one forced refetch suffices.
+    FILL_POLL_DELAYS = (2.0, 5.0, 10.0, 20.0)
+
+    def involves(self, asset_id: str, condition_id: str) -> bool:
+        """Does a user order/fill event touch this pane's market?"""
+        m = self._market
+        return bool(asset_id and asset_id in m.clob_token_ids) or bool(
+            condition_id and condition_id == m.condition_id
+        )
+
+    def refresh_after_fill(self) -> None:
+        """An order of ours changed (ws event / a post landed): refresh the
+        starred book levels now and poll positions with backoff until
+        data-api catches up. No optimistic rendering - the position line
+        only ever shows what the API returned (Byron, 2026-07-06)."""
+        tokens = {t for t in self._market.clob_token_ids if t}
+        self._fill_baseline = {
+            p.asset: p.size for p in self._my_positions if p.asset in tokens
+        }
+        self.load_own_orders(force=True)
+        self.load_position(force=True)
+        for timer in self._fill_timers:
+            timer.stop()
+        self._fill_timers = [
+            self.set_timer(delay, self._fill_poll) for delay in self.FILL_POLL_DELAYS
+        ]
+
+    def _fill_poll(self) -> None:
+        if self._fill_baseline is None:
+            return  # the changed position already landed - polls stopped
+        self.load_position(force=True)
 
     # -- data loaders --------------------------------------------------------
 
