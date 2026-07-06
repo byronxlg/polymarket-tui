@@ -315,6 +315,8 @@ class MarketPane(TierAware, Vertical):
             return False
         if action == "toggle_rules" and (self._trades_expanded or self.size.width >= 170):
             return False
+        if action in ("order", "enter_key") and self._market.closed:
+            return False  # nothing to place on a resolved market
         return True
 
     def _order_panel_open(self) -> bool:
@@ -337,9 +339,9 @@ class MarketPane(TierAware, Vertical):
     def _title_line(self) -> str:
         m = self._market
         bits = [m.question.strip()]
-        if m.end_date:
-            when = fmt.end_date(m.end_date)
-            bits.append(when if when == "ended" else f"ends {when}")
+        status = fmt.market_status(m)
+        if status:
+            bits.append(status)
         if self._event and self._event.title.strip() != m.question.strip():
             bits.append(self._event.title.strip())  # .screen-title wraps: full name shows
         return "  |  ".join(bits)
@@ -428,7 +430,9 @@ class MarketPane(TierAware, Vertical):
         # We subscribe to both tokens, so the flipped outcome's live book is
         # usually already available - render it instantly instead of "loading".
         live = self._channel.book(self._token_id) if self._channel else None
-        if live is not None:
+        if self._market.closed:
+            self._show_resolution()  # the flip must not clobber the summary
+        elif live is not None:
             self._book = live
             self.query_one(BookPanel).update_book(live)
         else:
@@ -454,6 +458,9 @@ class MarketPane(TierAware, Vertical):
         The word LIVE is reserved for the execution mode - a green LIVE next
         to the book read as real-money trading (journey review, 2026-07-05).
         Returned as Text (not markup) so the badge can't be parsed as a tag."""
+        if self._market.closed:
+            # The slot carries the resolution summary; no book, no feed.
+            return Text("RESOLUTION")
         head = Text(
             f"ORDER BOOK - {self._outcome_label().upper()}"
             "  (down to browse - space: order  x: cancel)"
@@ -467,6 +474,30 @@ class MarketPane(TierAware, Vertical):
             if badge:
                 head.append(badge[0], style=badge[1])
         return head
+
+    def _show_resolution(self) -> None:
+        """Fill the book slot with the resolution: closed markets have an
+        empty book, and the outcome is the one thing left worth reading."""
+        m = self._market
+        self.query_one("#book-title", Static).update(self._book_header())
+        out = Text()
+        winner = m.winning_outcome
+        if winner is not None:
+            side = m.outcomes.index(winner) if winner in m.outcomes else 0
+            out.append(f"{winner} won", style=f"bold {UP if side == 0 else DOWN}")
+        else:
+            out.append("market closed", style="bold")
+        when = fmt.date_abs(m.closed_time or m.end_date)
+        if when:
+            out.append(f"  {when}", style="dim")
+        out.append("\n")
+        status = m.uma_resolution_status
+        if status and status != "resolved":
+            # In-flight oracle states (proposed/disputed) - rare but loud.
+            out.append(f"oracle status: {status}\n", style=AMBER)
+        out.append("\nwinning shares redeem at 100c on polymarket.com", style="dim")
+        out.append("\n(O opens this market on the web)", style="dim")
+        self.query_one(BookPanel).show_notice(out)
 
     def _rules_text(self) -> Text:
         desc = (self._market.description or "").strip()
@@ -489,7 +520,10 @@ class MarketPane(TierAware, Vertical):
             bits.append(f"tick {m.order_price_min_tick_size}")
         if m.order_min_size:
             bits.append(f"min size {m.order_min_size:.0f}")
-        bits.append(f"book: live ws (fallback {BOOK_POLL_SECONDS:.0f}s REST)")
+        if m.closed:
+            bits.append("market closed - trading disabled")
+        else:
+            bits.append(f"book: live ws (fallback {BOOK_POLL_SECONDS:.0f}s REST)")
         return "  |  ".join(bits)
 
     # -- lifecycle ----------------------------------------------------------
@@ -512,15 +546,20 @@ class MarketPane(TierAware, Vertical):
         self.query_one(ActivityPanel).configure(self._market, self._event)
         self.load_trades()
         self.set_interval(5.0, self.load_trades)
-        self.load_book()
         self.load_history()
         self.load_position()
-        self.load_own_orders()
-        self.set_interval(BOOK_POLL_SECONDS, self.load_book)
-        self.set_interval(10.0, self.load_own_orders)
-        self._start_channel()
-        # Refresh the live/stale/polling badge even when no frames arrive.
-        self.set_interval(2.0, self._refresh_book_badge)
+        if self._market.closed:
+            # Resolved: the book is empty and nothing can rest on it - show
+            # the resolution in its slot and skip the whole feed machinery.
+            self._show_resolution()
+        else:
+            self.load_book()
+            self.load_own_orders()
+            self.set_interval(BOOK_POLL_SECONDS, self.load_book)
+            self.set_interval(10.0, self.load_own_orders)
+            self._start_channel()
+            # Refresh the live/stale/polling badge even when no frames arrive.
+            self.set_interval(2.0, self._refresh_book_badge)
 
     def _start_channel(self) -> None:
         tokens = [t for t in self._market.clob_token_ids if t]
@@ -599,6 +638,8 @@ class MarketPane(TierAware, Vertical):
     @work(exclusive=True, group="own-orders")
     async def load_own_orders(self, force: bool = False) -> None:
         """Star the book levels that hold one of your resting orders."""
+        if self._market.closed:
+            return  # the exchange cancels resting orders when a market closes
         app = self.app
         if not app.settings.can_auth:
             return
@@ -678,6 +719,8 @@ class MarketPane(TierAware, Vertical):
 
     @work(exclusive=True, group="book")
     async def load_book(self) -> None:
+        if self._market.closed:
+            return  # the book slot shows the resolution (_show_resolution)
         token = self._token_id
         panel = self.query_one(BookPanel)
         if token is None:
@@ -718,8 +761,17 @@ class MarketPane(TierAware, Vertical):
         token = self._token_id
         if token is None:
             return
+        # Closed market: relative windows anchor to the close, not to now
+        # (now-relative queries return nothing once trading stops).
+        end_ts: int | None = None
+        if self._market.closed:
+            anchor = self._market.closed_time or self._market.end_date
+            if anchor is not None:
+                end_ts = int(anchor.timestamp())
         try:
-            self._history = await self.app.clob.prices_history(token, self._interval)
+            self._history = await self.app.clob.prices_history(
+                token, self._interval, end_ts=end_ts
+            )
         except Exception as exc:
             self.notify(f"history unavailable: {exc}", severity="warning", timeout=4)
             self._history = []

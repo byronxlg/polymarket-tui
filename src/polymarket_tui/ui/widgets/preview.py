@@ -70,7 +70,7 @@ class MarketPreview(Static):
             ),
             ("vol 24h", fmt.vol(market.volume_24hr)),
             ("liquidity", fmt.vol(market.liquidity)),
-            ("ends", fmt.end_date(market.end_date)),
+            ("status", fmt.market_status(market) or "-"),
         ]
         if market.order_price_min_tick_size:
             rows.append(("tick", f"{market.order_price_min_tick_size}"))
@@ -105,8 +105,9 @@ class EventPreview(Static):
         out = Text()
         out.append(event.title + "\n", style="bold")
         meta = []
-        if event.end_date:
-            meta.append(f"ends {fmt.end_date(event.end_date)}")
+        status = fmt.event_status(event)
+        if status:
+            meta.append(status)
         if event.volume_24hr:
             meta.append(f"vol24h {fmt.vol(event.volume_24hr)}")
         if event.liquidity:

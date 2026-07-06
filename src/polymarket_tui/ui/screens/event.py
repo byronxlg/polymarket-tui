@@ -127,8 +127,9 @@ class EventPane(TierAware, Vertical):
         parts = [e.title.strip()]
         if e.volume_24hr:
             parts.append(f"vol24h {fmt.vol(e.volume_24hr)}")
-        if e.end_date:
-            parts.append(f"ends {fmt.end_date(e.end_date)}")
+        status = fmt.event_status(e)
+        if status:
+            parts.append(status)
         series = e.primary_series
         if series is not None:
             recurrence = f" {series.recurrence}" if series.recurrence else ""

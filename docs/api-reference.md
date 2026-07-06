@@ -115,6 +115,33 @@ Verified: `?market=<token_id>&interval=1h|6h|1d|1w|1m|max&fidelity=<minutes>` re
 Interval-to-fidelity mapping used by the web UI: 1h->1, 6h->10, 1d->60, 1w->360, 1m->1440
 (verify at impl).
 
+Quirks (all verified 2026-07-07 against the closed Trump-2024 market; every failure
+mode below returns `{"history": []}` with HTTP 200, never an error):
+
+- `interval` windows are anchored to **now**. On a closed market every relative
+  interval returns empty - except `max`, which spans the market's lifetime and
+  works regardless of state (needs an explicit `fidelity`; bare `interval=max`
+  returns empty).
+- Explicit ranges (`startTs`/`endTs`, epoch seconds, + `fidelity`) also work on
+  closed markets, but a single request caps at **15 days** of span - 16 days
+  returns empty. Longer windows must be stitched from consecutive requests
+  (`ClobPublicClient.prices_history(end_ts=...)` does this).
+- `fidelity` only accepts the known values (1, 10, 60, 360, 720, 1440);
+  in-between values like 500 return empty. Fine fidelities on long ranges also
+  return empty (interval=max + fidelity=60 fails, +720/1440 works) - there is a
+  server-side ceiling somewhere below ~900 returned points.
+
+### Market resolution lifecycle (Gamma fields)
+
+`endDate` passing changes nothing (see acceptingOrders above). A market closes when
+its oracle resolution finalizes: `closed` flips true, `closedTime` records the halt,
+`acceptingOrders` flips false, `outcomePrices` freeze at `["1", "0"]` (the 1 marks
+the winner), and the CLOB book empties. `umaResolutionStatus` is null until a
+resolution is proposed and reads "resolved" once final (every closed market sampled
+carries it). `closedTime` is postgres-style (`"2024-11-06 15:17:41+00"` - space
+separator, bare `+00` offset) and needs normalizing before ISO parsing
+(`Market._pg_datetime`).
+
 ### Authenticated (L2 creds)
 
 ```python

@@ -136,6 +136,13 @@ class BookPanel(Static):
         self._levels = []
         self.update(Text(message, style="dim"))
 
+    def show_notice(self, content: Text) -> None:
+        """Pane-supplied content in place of a book (closed-market resolution).
+        Clears the levels so the cursor/cancel keys have nothing to act on."""
+        self._book = None
+        self._levels = []
+        self.update(content)
+
     # -- actions ----------------------------------------------------------------
 
     def action_cursor(self, delta: int) -> None:
