@@ -45,7 +45,8 @@ from polymarket_tui.ui.widgets.trades_table import TradesTable
 
 BOOK_POLL_SECONDS = 3.0
 
-CHIP_WIDTH = 18  # each YES/NO chip; two side-by-side + a 2-col gap = 38
+CHIP_MIN_WIDTH = 18  # below two of these + the gap, the chips stack
+CHIP_GAP = 2
 
 
 class OutcomesToggle(Static):
@@ -136,7 +137,7 @@ class OutcomesToggle(Static):
 
     # -- rendering ----------------------------------------------------------
 
-    def _chip(self, idx: int) -> Panel:
+    def _chip(self, idx: int, width: int) -> Panel:
         m = self._market
         names = m.outcomes or ["Yes", "No"]
         label = names[idx] if idx < len(names) else ("Yes", "No")[idx]
@@ -158,22 +159,28 @@ class OutcomesToggle(Static):
             border_style=BLUE if selected else "dim",
             box=box.HEAVY if selected else box.ROUNDED,
             style="" if selected else "dim",
-            width=CHIP_WIDTH,
+            width=width,
             height=3,
             padding=(0, 1),
         )
 
     def render(self) -> RenderableType:
+        # The pair splits the measured width (the book below sets the column's
+        # visual width - fixed chips left a ragged gap beside it); too narrow
+        # for two minimum chips, they stack full-width instead.
+        total = self.size.width or 80
         grid = Table.grid()
-        if (self.size.width or 80) < 2 * CHIP_WIDTH + 2:
+        if total < 2 * CHIP_MIN_WIDTH + CHIP_GAP:
             grid.add_column()
-            grid.add_row(self._chip(0))
-            grid.add_row(self._chip(1))
+            grid.add_row(self._chip(0, total))
+            grid.add_row(self._chip(1, total))
         else:
+            half = (total - CHIP_GAP) // 2
             grid.add_column()
-            grid.add_column(width=2)  # gap
+            grid.add_column(width=CHIP_GAP)  # gap
             grid.add_column()
-            grid.add_row(self._chip(0), "", self._chip(1))
+            # Odd leftover column goes to the NO chip so the pair spans total.
+            grid.add_row(self._chip(0, half), "", self._chip(1, total - CHIP_GAP - half))
         return grid
 
     def on_resize(self) -> None:
