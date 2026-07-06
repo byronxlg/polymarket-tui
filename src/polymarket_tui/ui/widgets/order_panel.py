@@ -143,14 +143,30 @@ class OrderPanel(Vertical):
     ]
 
     DEFAULT_CSS = """
+    /* The order-action card: a bordered box at the top of the right rail so
+       placing an order stands out against the flat navy rail (it shares this
+       slot with the cancel confirm). Blue while editing; the whole border
+       promotes to amber (DRY) / red (LIVE) once a place is armed, instead of
+       a quieter inner left-bar. */
     OrderPanel {
         height: auto;
-        border-bottom: solid $panel-lighten-2;
-        margin-bottom: 1;
         display: none;
+        padding: 0 1;
+        margin-bottom: 1;
+        border: round $primary;
+        border-title-color: $primary;
+        border-title-style: bold;
     }
     OrderPanel.open {
         display: block;
+    }
+    OrderPanel.confirming {
+        border: round $warning;
+        border-title-color: $warning;
+    }
+    OrderPanel.confirm-live {
+        border: round $error;
+        border-title-color: $error;
     }
     OrderPanel .field-row {
         height: 1;
@@ -184,13 +200,12 @@ class OrderPanel(Vertical):
     OrderPanel #op-issues {
         height: auto;
     }
-    /* Armed confirm: a quiet callout (left accent bar, no background
-       wash) - amber for DRY, red for LIVE. */
+    /* Armed confirm content (the DRY-RUN/LIVE chip, the order line, the key
+       hints). No inner bar - the card's own border already carries the
+       amber/red state colour. */
     OrderPanel #op-confirm {
         height: auto;
         display: none;
-        padding: 0 1;
-        border-left: thick $warning;
     }
     OrderPanel.confirming #op-confirm {
         display: block;
@@ -198,9 +213,6 @@ class OrderPanel(Vertical):
     OrderPanel.confirming #op-summary,
     OrderPanel.confirming #op-info {
         display: none;
-    }
-    OrderPanel.confirm-live #op-confirm {
-        border-left: thick $error;
     }
     """
 
@@ -258,6 +270,7 @@ class OrderPanel(Vertical):
         self._side = side
         self._outcome_index = outcome_index
         self._set_confirming(None)
+        self.border_title = "ORDER"
         self.add_class("open")
         for field in ("#op-price", "#op-size"):
             self.query_one(field, Input).disabled = False

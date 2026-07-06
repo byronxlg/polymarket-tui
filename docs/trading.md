@@ -52,8 +52,10 @@ confirm step; blocks list the reason and keep the panel in edit state.
 
 ## Confirm step
 
-Enter runs the pipeline; if nothing blocks, a quiet callout (left accent
-bar, amber DRY / red LIVE) arms in the panel:
+Enter runs the pipeline; if nothing blocks, the panel arms in place. The
+order panel is a bordered "ORDER" card at the top of the right rail (blue
+while editing); arming promotes the whole card border to amber (DRY) / red
+(LIVE) so the confirm state reads at a glance:
 
     DRY-RUN - signs, never posts
     BUY 10 YES @ 33.4c (limit GTC)
@@ -102,9 +104,15 @@ today the open-orders tab refetches on demand.
 
 ## Cancels
 
-`x` on an open order (portfolio, orders tab) arms an inline full-detail
-strip; enter confirms (same arming beat) -> cancel via
-`cancel_order(OrderPayload)`. Cancels obey the same live gate as placement
+`x` on an open order arms an inline full-detail strip; enter confirms (same
+arming beat) -> cancel via `cancel_order(OrderPayload)`. Two surfaces:
+
+- **Market page**: `x` on a starred book level arms a red "CANCEL ORDER"
+  card in the *same top-of-rail slot the order panel uses* - placing and
+  cancelling happen in one place, and the book on the left stays put.
+- **Portfolio, orders tab**: the same full-detail strip above the table.
+
+Cancels obey the same live gate as placement
 (DRY mode never posts a cancel), are audited to the JSONL log, and the
 response's `canceled`/`not_canceled` maps are checked - a 200 response is
 not success.

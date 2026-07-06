@@ -171,12 +171,17 @@ PriceChartPanel {
     height: 1;
 }
 
-/* Full-detail cancel confirm on the market page (x on a book level).
-   The quiet callout every armed confirm uses: red left bar, no wash. */
+/* Full-detail cancel confirm on the market page (x on a book level). Shares
+   the top-of-rail order-action slot with the order panel, so it stands out as
+   the same kind of bordered card - a red box titled CANCEL ORDER. */
 #market-cancel-strip {
+    display: none;
     height: auto;
     padding: 0 1;
-    border-left: thick $error;
+    margin-bottom: 1;
+    border: round $error;
+    border-title-color: $error;
+    border-title-style: bold;
 }
 
 /* Trades rail (live context); 'a' expands it to full width */
