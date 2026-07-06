@@ -127,7 +127,6 @@ class PortfolioPane(TierAware, Vertical):
         Binding("escape", "app.nav_back", "back"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "prev_pane", "prev tab", show=False),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -323,7 +322,11 @@ class PortfolioPane(TierAware, Vertical):
             if pos.resolved_loss:
                 lost += 1
                 continue
-            row = position_row(pos, columns=self._pos_spec, density=density)
+            # Full tier has the verbose flag column; narrower tiers carry a
+            # compact (won) marker on the row itself instead.
+            row = position_row(
+                pos, columns=self._pos_spec, density=density, mark_won=not full
+            )
             if full:
                 row.append(self._resolution_flag(pos))
             table.add_row(*row, key=f"{pos.slug}|{pos.asset}", height=height)

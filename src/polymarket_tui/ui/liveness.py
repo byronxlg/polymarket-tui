@@ -14,4 +14,10 @@ from textual.widget import Widget
 
 
 def alive(widget: Widget) -> bool:
-    return widget.is_mounted and not getattr(widget, "_nav_discarded", False)
+    # NOT is_mounted: under the real terminal driver (Textual 8.2.8), panes
+    # mounted without awaiting run on_mount while is_mounted is still False
+    # and the flag never turns True - every loader tail then skipped its UI
+    # update and screens sat on "loading..." forever (the test harness
+    # awaits mounts, so pilot repros never showed it). DOM attachment plus
+    # the explicit discard stamp answer this guard's actual question.
+    return widget.parent is not None and not getattr(widget, "_nav_discarded", False)

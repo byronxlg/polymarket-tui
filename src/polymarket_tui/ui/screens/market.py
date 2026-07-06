@@ -108,7 +108,6 @@ class MarketPane(TierAware, Vertical):
         Binding("R", "related", "related", show=False, key_display="R"),
         Binding("O", "open_web", "web", show=False, key_display="O"),
         Binding("e", "open_event", "event", show=False),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(
@@ -679,8 +678,12 @@ class MarketPane(TierAware, Vertical):
                 self.load_history()
 
     def action_refresh(self) -> None:
+        """The global r: everything this pane shows, not just book+chart."""
         self.load_book()
         self.load_history()
+        self.load_trades()
+        self.load_position()
+        self.load_own_orders()
 
     # -- order book navigation & cancel -----------------------------------------
 
@@ -933,13 +936,25 @@ class MarketPane(TierAware, Vertical):
         )
 
     def _owned_outcome_index(self) -> int | None:
-        """Index of the outcome you hold (largest position wins a rare tie)."""
+        """Index of the outcome you hold (largest position wins a rare tie).
+
+        Falls back to the service's last-known positions: a fill event
+        invalidates the cache mid-open, and s pressed while load_position
+        refetches would otherwise silently target the wrong side (C7 flake).
+        """
         tokens = list(self._market.clob_token_ids)
         held = [
             (p.size, tokens.index(p.asset))
             for p in self._my_positions
             if p.asset in tokens
         ]
+        if not held:
+            held = [
+                (pos.size, idx)
+                for idx, token in enumerate(tokens)
+                if (pos := self.app.portfolio.position_for(token)) is not None
+                and pos.size >= 0.01
+            ]
         if not held:
             return None
         return max(held)[1]

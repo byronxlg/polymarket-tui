@@ -223,6 +223,16 @@ class SearchScreen(Screen):
         watched = self.app.watchlist.toggle(selected.slug)
         table.set_star(selected.slug, watched)
 
+    def can_refresh(self) -> bool:
+        """The global r gates on this: nothing to re-run without a query."""
+        return len(self.query_one(SearchInput).value.strip()) >= 2
+
+    def action_refresh(self) -> None:
+        """Re-run the current query (a search that failed mid-flight)."""
+        query = self.query_one(SearchInput).value.strip()
+        if len(query) >= 2:
+            self.run_search(query)
+
     def on_vim_data_table_top_reached(self, message) -> None:
         self.query_one(SearchInput).focus()
 

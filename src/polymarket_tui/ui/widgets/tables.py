@@ -12,7 +12,7 @@ from rich.text import Text
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import ActivityItem, Position
-from polymarket_tui.ui.theme import DOWN, UP
+from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import Tier
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
@@ -101,6 +101,7 @@ def position_row(
     tier: Tier = "full",
     columns: list | None = None,
     density: str = "condensed",
+    mark_won: bool = False,
 ) -> list:
     if columns is None:
         columns = (
@@ -109,10 +110,14 @@ def position_row(
             else POSITIONS_TIER_COLUMNS[tier]
         )
     widths = {key: width for key, _, width in columns}
+    # Narrow tiers drop the resolution-flag column; the row itself must
+    # still say a resolved winner redeems (Byron, UX audit 2026-07-06).
+    won = mark_won and pos.redeemable and pos.cur_price >= 0.5
     if density == "spacious":
         w = widths["market"]
         market = Text(fmt.trunc(pos.title, w))
-        market.append("\n" + fmt.trunc(position_meta(pos), w), style="dim")
+        meta = position_meta(pos) + (" · won - redeem on web" if won else "")
+        market.append("\n" + fmt.trunc(meta, w), style="dim")
         cells: dict[str, object] = {
             "market": market,
             "cur": fmt.cents(pos.cur_price),
@@ -120,8 +125,11 @@ def position_row(
             "pnl": pnl_text_stacked(pos.cash_pnl, pos.percent_pnl),
         }
     else:
+        market = Text(fmt.trunc(pos.title, widths["market"] - (6 if won else 0)))
+        if won:
+            market.append(" (won)", style=AMBER)
         cells = {
-            "market": fmt.trunc(pos.title, widths["market"]),
+            "market": market,
             "outcome": fmt.trunc(pos.outcome, widths.get("outcome", 12)),
             "size": fmt.compact_size(pos.size),
             "avg": fmt.cents(pos.avg_price),
