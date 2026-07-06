@@ -40,17 +40,17 @@ class PolymarketApp(App):
     CSS_PATH = "styles/app.tcss"
 
     BINDINGS = [
-        Binding("q", "quit", "quit", priority=True),
+        Binding("Q", "quit", "quit", priority=True, key_display="Q"),
         Binding("slash", "search", "search"),
         Binding("H", "home", "home", show=False, key_display="H"),
         Binding("home", "home", "home", show=False),
-        Binding("w", "watchlist", "watchlist", show=False),
-        Binding("p", "portfolio", "portfolio"),
+        Binding("W", "watchlist", "watchlist", show=False, key_display="W"),
+        Binding("P", "portfolio", "portfolio", key_display="P"),
         Binding("A", "auth", "auth", show=False, key_display="A"),
         Binding("L", "toggle_live", "live", show=False, key_display="L"),
         Binding("T", "toggle_density", "layout", show=False, key_display="T"),
         Binding("question_mark", "help", "help", key_display="?"),
-        Binding("r", "refresh_data", "refresh"),
+        Binding("R", "refresh_data", "refresh", key_display="R"),
         Binding("left", "nav_back", "back", show=False),
         Binding("less_than_sign", "nav_back", "back", show=False),
     ]

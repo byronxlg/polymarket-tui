@@ -105,7 +105,7 @@ class MarketPane(TierAware, Vertical):
         Binding("c", "toggle_activity('comments')", "comments", show=False),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
-        Binding("R", "related", "related", show=False, key_display="R"),
+        Binding("r", "related", "related", show=False),
         Binding("O", "open_web", "web", show=False, key_display="O"),
         Binding("e", "open_event", "event", show=False),
     ]
