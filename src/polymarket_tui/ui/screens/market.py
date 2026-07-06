@@ -1020,6 +1020,14 @@ class MarketPane(TierAware, Vertical):
                     preset_size = Decimal(str(held))
             if self._book is not None and self._book.best_bid:
                 preset_price = Decimal(str(self._book.best_bid.price))
+        # b/s/enter while the order book has focus: prefill the highlighted
+        # level's price - the user is acting on the price they are looking at,
+        # not the mid/touch default (space in the book already does this via
+        # RowActioned; those keys have no book binding, so they land here). Wins
+        # over the SELL best-bid default; the held size prefill above stays.
+        book = self.query_one(BookPanel)
+        if book.has_focus and book.cursor_price is not None:
+            preset_price = Decimal(str(book.cursor_price))
         panel.open(
             self._market,
             Side(side),

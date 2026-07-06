@@ -290,11 +290,23 @@ class OrderPanel(Vertical):
             price_input.value = self._fmt_price(round_to_tick(market, Decimal(str(book.midpoint))))
         if preset_size is not None:
             size_input.value = _fmt_size(preset_size)
+        # Whether price carries a real value (book level or midpoint) vs the 0
+        # backup below - drives both the focus target and, later, overtype.
+        has_price = bool(price_input.value)
+        # Never leave a field blank: fall back to 0 so the form always shows a
+        # concrete price and size. A literal 0 is caught by validation (below
+        # tick / min size) and select-on-focus highlights it for overtype.
+        if not price_input.value:
+            price_input.value = "0"
+        if not size_input.value:
+            size_input.value = "0"
         self.query_one("#op-issues", Static).update("")
-        # Focus follows the open question: whenever a price is already filled
-        # in (book level, midpoint default), the panel is asking "size?" - so
-        # typed digits must land in size, not silently replace the price.
-        (size_input if price_input.value else price_input).focus()
+        # Focus follows the open question: whenever a real price is already
+        # filled in (book level, midpoint default), the panel is asking "size?"
+        # - so typed digits must land in size, not silently replace the price.
+        # Focusing after the value is set lets select-on-focus highlight the 0
+        # backup so the first keypress overtypes it rather than appending.
+        (size_input if has_price else price_input).focus()
         self._load_position_size()
         self._refresh_summary()
 
@@ -325,8 +337,9 @@ class OrderPanel(Vertical):
         if self._outcome_index != outcome_index:
             self._outcome_index = outcome_index
             self._set_confirming(None)
-            # Old price belonged to the other outcome's book.
-            self.query_one("#op-price", PriceInput).value = ""
+            # Old price belonged to the other outcome's book - drop to the 0
+            # backup (never blank) rather than carrying a stale cross-book price.
+            self.query_one("#op-price", PriceInput).value = "0"
             self._load_position_size()
             self._refresh_summary()
 

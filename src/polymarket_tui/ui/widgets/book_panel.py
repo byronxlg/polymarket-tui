@@ -91,6 +91,18 @@ class BookPanel(Static):
     def has_levels(self) -> bool:
         return bool(self._levels)
 
+    @property
+    def cursor_price(self) -> float | None:
+        """Price of the highlighted book level (None if the book has no levels).
+
+        Lets the pane prefill an order from the price the cursor is sitting on
+        when b/s/enter bubble up from the book (space already does this via
+        RowActioned; these keys have no book binding so they reach MarketPane).
+        """
+        if not self._levels:
+            return None
+        return self._levels[self._cursor][1].price
+
     def focus_top(self) -> None:
         """Enter the book at its top row (called when arrowing down into it)."""
         self._cursor = 0
