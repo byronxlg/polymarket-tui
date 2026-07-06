@@ -417,7 +417,7 @@ class PolymarketApp(App):
                 severity="warning",
             )
             return
-        from polymarket_tui.core.credstore import save_execution_live
+        from polymarket_tui.core.credstore import load_credentials, save_execution_live
 
         if self.settings.mode is Mode.TRADER_LIVE:
             self.reconfigure(
@@ -426,10 +426,19 @@ class PolymarketApp(App):
             save_execution_live(False)
             self.notify("DRY - orders are signed but never posted", timeout=4)
             return
+        # Persistence rides the credentials file; env-only auth has nowhere to
+        # save the flag, so the modal must not promise it will be remembered.
+        persistable = load_credentials() is not None
         body = Text()
         body.append("Orders and cancels will be posted to the exchange for real.\n")
         body.append("Dry-run protection is OFF.", style=f"bold {DOWN}")
-        body.append(" This choice is remembered across sessions.")
+        if persistable:
+            body.append(" This choice is remembered across sessions.")
+        else:
+            body.append(
+                " Env-based credentials: this lasts for this session only"
+                " (set POLYMARKET_EXECUTION_LIVE=1 to persist)."
+            )
 
         def _confirmed(ok: bool | None) -> None:
             if ok:

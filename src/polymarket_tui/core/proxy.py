@@ -77,7 +77,9 @@ def check_pairing(signer: str, funder: str, signature_type: int) -> tuple[str, s
         return "unproven", f"signature type {signature_type} cannot be checked offline"
     if derived.lower() == funder.lower():
         return "proven", "key controls this funder (derived on-chain address matches)"
-    return (
-        "mismatch",
-        f"this key controls funder {derived}, not {to_checksum_address(funder)}",
-    )
+    try:
+        funder_label = to_checksum_address(funder)
+    except Exception:
+        # A typo'd/short funder is still a mismatch - report it, don't raise.
+        funder_label = funder
+    return "mismatch", f"this key controls funder {derived}, not {funder_label}"
