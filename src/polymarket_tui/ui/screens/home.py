@@ -59,7 +59,6 @@ class HomePane(TierAware, Vertical):
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("w", "app.watchlist", "watched"),
-        Binding("r", "refresh", "refresh", show=False),
         Binding("enter", "open_event", "open", priority=False),
         Binding("down", "leave_tag_bar", "back to list", show=False),
         Binding("escape", "app.nav_back", "back", show=False),

@@ -38,7 +38,6 @@ class UserPane(TierAware, Vertical):
         Binding("space", "toggle_watch", "watch user"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "next_pane", "prev pane", show=False),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, address: str, name: str, **kwargs) -> None:

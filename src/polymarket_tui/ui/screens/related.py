@@ -25,7 +25,6 @@ class RelatedPane(TierAware, Vertical):
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
         Binding("space", "toggle_watch", "star"),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, event: Event, **kwargs) -> None:

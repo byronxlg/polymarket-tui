@@ -50,6 +50,7 @@ class PolymarketApp(App):
         Binding("L", "toggle_live", "live", show=False, key_display="L"),
         Binding("T", "toggle_density", "layout", show=False, key_display="T"),
         Binding("question_mark", "help", "help", key_display="?"),
+        Binding("r", "refresh_data", "refresh"),
         Binding("left", "nav_back", "back", show=False),
         Binding("less_than_sign", "nav_back", "back", show=False),
     ]
@@ -105,7 +106,39 @@ class PolymarketApp(App):
             return False
         if action == "auth" and isinstance(self.screen, AuthScreen):
             return False
+        if action == "refresh_data":
+            target = self._refresh_target()
+            if target is None:
+                return False  # nothing refreshable here (help, auth)
+            can = getattr(target, "can_refresh", None)
+            if can is not None and not can():
+                return False  # e.g. search with no query yet
         return True
+
+    def _refresh_target(self):
+        """Nearest node up the focus chain exposing action_refresh."""
+        chain: list = []
+        if self.focused is not None:
+            chain = list(self.focused.ancestors_with_self)
+        if self.screen not in chain:
+            chain.append(self.screen)
+        for node in chain:
+            if hasattr(node, "action_refresh"):
+                return node
+        return None
+
+    def action_refresh_data(self) -> None:
+        """r: pull fresh data for what you're looking at. One global key -
+        the nearest pane/screen with an action_refresh does the work; the
+        portfolio caches are dropped first so holdings/order flags and the
+        header balances refetch instead of serving their TTL'd copies."""
+        target = self._refresh_target()
+        if target is None:
+            return
+        self.portfolio.invalidate()
+        self.refresh_account_status()
+        target.action_refresh()
+        self.notify("refreshing...", timeout=1.5)
 
     def notify(self, message: str, **kwargs) -> None:
         """Toasts render literally by default: API/validation errors carry

@@ -77,7 +77,6 @@ class EventPane(TierAware, Vertical):
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
         Binding("O", "open_web", "web", show=False, key_display="O"),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, event: Event, **kwargs) -> None:
@@ -390,5 +389,7 @@ class EventPane(TierAware, Vertical):
         self.query_one(PriceChartPanel).display = not showing
 
     def action_refresh(self) -> None:
+        """The global r: event data, chart, and the order/holding flags."""
         self.refresh_event()
         self.load_chart()
+        self.load_own_orders()

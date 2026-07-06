@@ -127,7 +127,6 @@ class PortfolioPane(TierAware, Vertical):
         Binding("escape", "app.nav_back", "back"),
         Binding("tab", "next_pane", "pane"),
         Binding("shift+tab", "prev_pane", "prev tab", show=False),
-        Binding("r", "refresh", "refresh", show=False),
     ]
 
     def __init__(self, **kwargs) -> None:
