@@ -185,6 +185,19 @@ PriceChartPanel {
     padding: 0 1;
 }
 
+/* When focus drops into the book (arrows move a cursor through the levels)
+   the pane border takes the accent and its title brightens, so it is
+   obvious the book is the ACTIVE pane - not merely visible. Mirrors how the
+   outcome table brightens its cursor row on focus. */
+#book-pane:focus-within {
+    border: heavy $primary;
+}
+
+#book-pane:focus-within #book-title {
+    color: $text;
+    text-style: bold;
+}
+
 #market-chart-strip {
     height: 30%;
     min-height: 10;
