@@ -514,10 +514,34 @@ class PortfolioPane(TierAware, Vertical):
         self.refresh_bindings()
 
     def on_data_table_row_selected(self, event) -> None:
-        if self._active_pane() != "pane-positions":
+        # enter/right drill into the underlying market, consistent with the
+        # events tables. Positions key rows as slug|asset; orders key by id.
+        pane = self._active_pane()
+        if pane == "pane-positions":
+            slug, _, asset = str(event.row_key.value).partition("|")
+            self.open_position_market(slug, asset)
+        elif pane == "pane-orders":
+            order = next(
+                (o for o in self._orders if o.id == str(event.row_key.value)), None
+            )
+            if order is not None:
+                self.open_order_market(order)
+
+    @work(exclusive=True, group="open-market")
+    async def open_order_market(self, order: OpenOrder) -> None:
+        """Drill into the market an open order rests on, landing on its outcome.
+        Orders only carry a condition id, so resolve via market_by_condition."""
+        try:
+            market = await self.app.gamma.market_by_condition(order.market)
+        except Exception as exc:
+            self.notify(f"could not open market: {exc}", severity="error")
             return
-        slug, _, asset = str(event.row_key.value).partition("|")
-        self.open_position_market(slug, asset)
+        if market is None:
+            self.notify("Market is no longer listed (resolved)", severity="warning")
+            return
+        tokens = list(market.clob_token_ids)
+        index = tokens.index(order.asset_id) if order.asset_id in tokens else None
+        self.app.open_market(market, outcome_index=index)
 
     @work(exclusive=True, group="open-market")
     async def open_position_market(
