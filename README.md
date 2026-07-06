@@ -5,6 +5,14 @@ browse markets, watch live order books and trades, chart prices, track your
 portfolio and P&L, follow traders, and place orders - without leaving the
 terminal.
 
+[![PyPI](https://img.shields.io/pypi/v/polymarket-tui?color=4d8bf5)](https://pypi.org/project/polymarket-tui/)
+[![Python](https://img.shields.io/pypi/pyversions/polymarket-tui?color=4d8bf5)](https://pypi.org/project/polymarket-tui/)
+[![License: MIT](https://img.shields.io/pypi/l/polymarket-tui?color=4d8bf5)](LICENSE)
+
+[![polymarket-tui - a live order book, trades, and price chart in the terminal](https://byronxlg.github.io/polymarket-tui/assets/demo.gif)](https://byronxlg.github.io/polymarket-tui/)
+
+<sub>▶ [Watch the interactive demo](https://byronxlg.github.io/polymarket-tui/) - browse markets, open a live book, chart, search.</sub>
+
 Built with Python 3.12 and [Textual](https://textual.textualize.io/).
 
 ## Install
