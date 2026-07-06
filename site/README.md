@@ -18,11 +18,14 @@ site/
     asciinema-player.min.js         vendored player (Apache-2.0)
     asciinema-player.css            vendored player styles
     demo.cast                       the recording (asciinema v2 format)
+    demo-poster.png                 generated: readable crop shown instead of the player under 900px
+    og.png                          generated: 1200x630 social preview card (og:image)
     fonts/plexmono-*.woff2          vendored IBM Plex Mono, latin subset (OFL)
 scripts/
   record_demo.sh                    re-records assets/demo.cast
   trim_cast.py                      trims dead time from a raw cast
   redact_cast.py                    strips account identity from the cast
+  make_site_images.py               regenerates demo-poster.png and og.png from the page
 ```
 
 ## Preview locally
@@ -54,7 +57,16 @@ the run instead of shipping. It scripts the keystroke tour with
 pane snapshot per scene for review). Reload the page to see it.
 
 Playback options (autoplay, loop, poster frame, theme) live in the
-`AsciinemaPlayer.create(...)` call at the bottom of `index.html`.
+`AsciinemaPlayer.create(...)` call at the bottom of `index.html`. Autoplay is
+skipped for `prefers-reduced-motion` users; under 900px the player is replaced
+by a static crop (`demo-poster.png`) until tapped, so phones don't parse the
+full cast on load.
+
+After re-recording, regenerate the derived images (poster crop + og card):
+
+```sh
+uv run --with playwright python scripts/make_site_images.py
+```
 
 ## Update the player assets
 

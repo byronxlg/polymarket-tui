@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>polymarket-tui — Polymarket in your terminal</title>
 <meta name="description" content="A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio, and place orders without leaving the terminal." />
+<link rel="canonical" href="https://byronxlg.github.io/polymarket-tui/" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://byronxlg.github.io/polymarket-tui/" />
+<meta property="og:title" content="polymarket-tui — Polymarket in your terminal" />
+<meta property="og:description" content="A fast, keyboard-driven terminal client for Polymarket. Browse markets, watch live order books, chart prices, track your portfolio, and place orders without leaving the terminal." />
+<meta property="og:image" content="https://byronxlg.github.io/polymarket-tui/assets/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
 <link rel="stylesheet" href="assets/asciinema-player.css" />
 <style>
@@ -41,6 +50,7 @@
   }
   a { color: inherit; text-decoration: none; }
   a:hover { color: #fff; }
+  :focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; border-radius: 1px; }
   ::selection { background: rgba(77,139,245,0.3); }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
@@ -59,6 +69,7 @@
   .nav-links { margin-left: auto; display: flex; align-items: baseline; gap: 26px; }
   .nav-links a {
     color: var(--dim); font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+    padding: 17px 0; /* tap target ≈ nav height; no visual change (no bg/border) */
   }
   .nav-links a i { font-style: normal; color: var(--faint); margin-right: 3px; }
   .nav-links a:hover { color: var(--ink); }
@@ -127,6 +138,7 @@
   }
   .hero-meta .d { color: var(--line-2); }
   .hero-meta .dry { color: var(--amber); }
+  .hero-meta .hm { white-space: nowrap; } /* keep "item /" together on wrap */
 
   /* ---- terminal demo ---- */
   .term-shell { margin: 46px 0 0; padding-bottom: 56px; }
@@ -145,9 +157,21 @@
   .demo-player { width: 100%; max-width: 100%; overflow: hidden; }
   .demo-player .ap-wrapper { justify-content: center; }
   .demo-player .ap-player { max-width: 100%; background: transparent; }
-  .term-caption { margin: 14px 0 0; font-size: 12.5px; color: var(--faint); font-style: italic; }
-  .term-caption a { color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
-  .term-caption a:hover { color: var(--ink); }
+  .term-caption { margin: 14px 0 0; font-size: 12.5px; color: var(--dim); font-style: italic; }
+  .term-caption a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .term-caption a:hover { color: #fff; }
+
+  /* static frame shown instead of the player under 900px (JS swaps them) */
+  .demo-static { position: relative; }
+  .demo-static img { display: block; width: 100%; height: auto; }
+  .demo-play {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--ink); background: rgba(10,14,20,0.88);
+    border: 1px solid var(--line-2); border-radius: 3px;
+    padding: 13px 18px; cursor: pointer;
+  }
+  .demo-play:hover { border-color: var(--accent); color: #fff; }
 
   /* ---- features: shared-border grid ---- */
   .feats {
@@ -189,12 +213,13 @@
   .code-block { font-size: 12.5px; line-height: 1.9; }
   .code-block .cmt { color: var(--faint); }
   .cmd { display: flex; align-items: baseline; gap: 10px; }
-  .cmd pre { margin: 0; flex: 1; min-width: 0; overflow-x: auto; color: var(--ink); font-family: var(--mono); font-size: 12.5px; }
+  /* wrap instead of clip: a silently cut command reads as complete but is broken */
+  .cmd pre { margin: 0; flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); font-family: var(--mono); font-size: 12.5px; }
   .cmd .p { color: var(--accent); user-select: none; }
   .cmd + .cmt { display: block; margin-top: 14px; }
   .copy {
     flex-shrink: 0; cursor: pointer; border: 1px solid transparent; background: none;
-    color: var(--faint); font-size: 10.5px; padding: 2px 8px; border-radius: 3px;
+    color: var(--faint); font-size: 10.5px; padding: 9px 10px; margin: -8px 0; border-radius: 3px;
     font-family: var(--mono); letter-spacing: 0.5px;
   }
   .cmd:hover .copy { border-color: var(--line-2); color: var(--dim); }
@@ -210,7 +235,7 @@
 
   /* ---- disclaimer ---- */
   .disc { padding-top: 34px; padding-bottom: 34px; }
-  .disc p { margin: 0; color: var(--faint); font-size: 12px; max-width: 100ch; }
+  .disc p { margin: 0; color: var(--dim); font-size: 12px; max-width: 100ch; }
   .disc .lbl { color: var(--amber); letter-spacing: 1.5px; font-size: 10.5px; text-transform: uppercase; margin-right: 10px; }
   .sources { color: var(--faint); font-size: 11px; margin: 10px 0 0; }
   .sources code { color: var(--dim); font-family: var(--mono); }
@@ -285,9 +310,9 @@
     <a class="btn" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">Source <span class="g">&#8599;</span></a>
   </div>
   <p class="hero-meta">
-    <span>No account to browse</span><span class="d">/</span>
-    <span>starts in <span class="dry">dry-run</span></span><span class="d">/</span>
-    <span>open source</span>
+    <span class="hm">No account to browse <span class="d">/</span></span>
+    <span class="hm">starts in <span class="dry">dry-run</span> <span class="d">/</span></span>
+    <span class="hm">open source</span>
   </p>
 
   <div class="term-shell">
@@ -298,6 +323,12 @@
       </div>
       <div class="term-body">
         <div id="demo-player" class="demo-player"></div>
+        <div id="demo-static" class="demo-static" hidden>
+          <img src="assets/demo-poster.png" width="790" height="610" loading="lazy"
+            alt="polymarket-tui browse screen: category tabs above a table of trending markets with live prices" />
+          <button id="demo-play" class="demo-play" type="button">Play recording</button>
+        </div>
+        <noscript><p class="term-caption">The recorded session needs JavaScript; everything below works without it.</p></noscript>
       </div>
     </div>
     <p class="term-caption">Browse &#8594; star a watchlist &#8594; open a market &#8594; place a buy (dry-run: signed,
@@ -399,15 +430,32 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
 <script src="assets/asciinema-player.min.js"></script>
 <script>
   // The recorded TUI session, played in the hero terminal window.
-  AsciinemaPlayer.create("assets/demo.cast", document.getElementById("demo-player"), {
-    autoPlay: true,
-    loop: true,
-    controls: true,
-    fit: "width",     // scale the terminal to the container width (never overflow)
-    theme: "asciinema",
-    poster: "npt:0:2",
-    idleTimeLimit: 2,
-  });
+  var playerHolder = document.getElementById("demo-player");
+  function startPlayer(autoplay) {
+    AsciinemaPlayer.create("assets/demo.cast", playerHolder, {
+      autoPlay: autoplay,
+      loop: true,
+      controls: true,
+      fit: "width",     // scale the terminal to the container width (never overflow)
+      theme: "asciinema",
+      poster: "npt:0:2",
+      idleTimeLimit: 2,
+    });
+  }
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    // The 160-col cast is unreadable at phone width; show a readable static
+    // crop instead and only build the player (and fetch the cast) on request.
+    var demoStatic = document.getElementById("demo-static");
+    playerHolder.hidden = true;
+    demoStatic.hidden = false;
+    document.getElementById("demo-play").addEventListener("click", function () {
+      demoStatic.hidden = true;
+      playerHolder.hidden = false;
+      startPlayer(true);  // an explicit tap is user-initiated motion
+    }, { once: true });
+  } else {
+    startPlayer(!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
 
   // Copy buttons on the install commands.
   document.querySelectorAll(".copy").forEach(function (b) {
