@@ -32,13 +32,23 @@ def action_hints(*pairs: tuple[str, str]) -> Text:
     return out
 
 
-def cancel_confirm_text(orders: list[OpenOrder], title: str | None = None) -> Text:
-    """The armed cancel strip: CANCEL chip, full order details, key hints."""
+def cancel_confirm_text(
+    orders: list[OpenOrder], title: str | None = None, show_chip: bool = True
+) -> Text:
+    """The armed cancel strip: CANCEL chip, full order details, key hints.
+
+    `show_chip` prints the leading red CANCEL chip; callers whose surface
+    already carries a "CANCEL ORDER" border title pass False so the label
+    is not stated twice.
+    """
     out = Text()
-    out.append("CANCEL", style=f"bold {DOWN}")
-    if len(orders) > 1:
-        out.append(f" {len(orders)} orders at this level", style="bold")
-    out.append("\n")
+    if show_chip:
+        out.append("CANCEL", style=f"bold {DOWN}")
+        if len(orders) > 1:
+            out.append(f" {len(orders)} orders at this level", style="bold")
+        out.append("\n")
+    elif len(orders) > 1:
+        out.append(f"{len(orders)} orders at this level\n", style="bold")
     for order in orders:
         out.append_text(order_detail_text(order, title))
         out.append("\n")

@@ -162,16 +162,19 @@ class MarketPane(TierAware, Vertical):
                 yield OutcomesTable(cursor_type="row", zebra_stripes=True, id="outcomes-table")
                 yield Static(id="position-line")
                 yield Static(id="orders-note")
-                yield Static(id="market-cancel-strip")
                 with Vertical(id="book-pane"):
                     yield Static(self._book_header(), id="book-title")
                     scroll = VerticalScroll(BookPanel(id="book"), id="book-scroll")
                     scroll.can_focus = False
                     yield scroll
             with Vertical(id="trades-rail"):
-                # Order entry lives at the top right (Byron, 2026-07-06); the
-                # book stays fully visible on the left while ordering.
+                # Both money actions share one place - the top of the right rail
+                # (Byron, 2026-07-06). Placing opens the OrderPanel here; an x on
+                # a book level arms the cancel confirm in the same slot. Only one
+                # is ever active, and the book stays fully visible on the left in
+                # both flows.
                 yield OrderPanel(id="order-panel")
+                yield Static(id="market-cancel-strip")
                 yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
                 yield TradesTable(compact=True, id="trades-table")
             with Vertical(id="rules-rail"):
@@ -775,7 +778,8 @@ class MarketPane(TierAware, Vertical):
         self._pending_cancel = orders
         self._cancel_armed_at = time.monotonic() + 0.35
         strip = self.query_one("#market-cancel-strip", Static)
-        strip.update(cancel_confirm_text(orders))
+        strip.border_title = "CANCEL ORDER"
+        strip.update(cancel_confirm_text(orders, show_chip=False))
         strip.display = True
 
     def _clear_pending_cancel(self) -> None:
