@@ -110,6 +110,13 @@ class EventsTable(VimDataTable):
     def on_mount(self) -> None:
         self._density = getattr(self.app, "density", "condensed")
         self.cell_padding = 2 if self._density == "spacious" else 1
+        # Seed the column set to the current density before the first render.
+        # The boot cache paints via set_events the moment the screen mounts -
+        # ahead of the first resize refit - and the __init__ default is the
+        # condensed spec (with change/vol). Spacious rows omit those cells, so
+        # rendering them against the condensed spec raised KeyError: 'change'.
+        tier_columns = SPACIOUS_TIER_COLUMNS if self._spacious else TIER_COLUMNS
+        self._columns_spec = list(tier_columns["full"])
         self._build_columns()
 
     def on_resize(self) -> None:
