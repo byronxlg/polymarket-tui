@@ -25,11 +25,12 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Footer, Static
+from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.screens.home import HomePane
 from polymarket_tui.ui.tiers import TIERS, Tier
+from polymarket_tui.ui.widgets.app_footer import AppFooter
 from polymarket_tui.ui.widgets.app_header import AppHeader
 
 
@@ -54,7 +55,7 @@ class NavHost(Screen):
         self._crumbs = ["Home"]
         with Horizontal(id="nav-viewport"):
             yield root
-        yield Footer()
+        yield AppFooter()
 
     def on_mount(self) -> None:
         self._reflow()

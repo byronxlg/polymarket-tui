@@ -15,10 +15,11 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Footer, Input, Static
+from textual.widgets import Input, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import Profile
+from polymarket_tui.ui.widgets.app_footer import AppFooter
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -82,7 +83,7 @@ class SearchScreen(Screen):
             )
             overview.can_focus = False
             yield overview
-        yield Footer()
+        yield AppFooter()
 
     def on_mount(self) -> None:
         self.title = "search"

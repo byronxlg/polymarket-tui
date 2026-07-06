@@ -6,8 +6,9 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Footer, Markdown
+from textual.widgets import Markdown
 
+from polymarket_tui.ui.widgets.app_footer import AppFooter
 from polymarket_tui.ui.widgets.app_header import AppHeader
 
 HELP_TEXT = """\
@@ -25,6 +26,10 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 | left or escape | back |
 | tab / shift+tab | cycle the screen's selector (category / timeframe / pane) |
 | space | the contextual toggle (see below) |
+
+The footer keeps the two vocabularies apart: contextual keys for the
+current screen on the left; Global navigation (blue, Capitalized - Quit,
+Search, Portfolio, Watched, Back, Help, Refresh) on the right.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), open the buy form on a market outcome or order from
@@ -125,7 +130,7 @@ class HelpScreen(Screen):
         body = VerticalScroll(Markdown(HELP_TEXT), id="help-body")
         body.can_focus = False
         yield body
-        yield Footer()
+        yield AppFooter()
 
     def on_mount(self) -> None:
         self.title = "help"
