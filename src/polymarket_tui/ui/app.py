@@ -49,6 +49,7 @@ class PolymarketApp(App):
         Binding("A", "auth", "auth", show=False, key_display="A"),
         Binding("L", "toggle_live", "live", show=False, key_display="L"),
         Binding("T", "toggle_density", "layout", show=False, key_display="T"),
+        Binding("F", "toggle_fullscreen", "full screen", show=False, key_display="F"),
         Binding("question_mark", "help", "help", key_display="?"),
         Binding("R", "refresh_data", "refresh", key_display="R"),
         Binding("left", "nav_back", "back", show=False),
@@ -113,6 +114,11 @@ class PolymarketApp(App):
             can = getattr(target, "can_refresh", None)
             if can is not None and not can():
                 return False  # e.g. search with no query yet
+        if action == "toggle_fullscreen":
+            host = self._nav_host()
+            # Dead on overlays and when the focused pane already fills the window.
+            if host is None or self.screen is not host or not host.can_fullscreen():
+                return False
         return True
 
     def _refresh_target(self):
@@ -445,6 +451,13 @@ class PolymarketApp(App):
                 if handler is not None:
                     handler(new)
         self.notify(f"{new} layout (T to switch back)", timeout=4)
+
+    def action_toggle_fullscreen(self) -> None:
+        """F: the focused drill pane takes the whole window at the full tier;
+        F or left/esc restores the split. Plain view state - never persisted."""
+        host = self._nav_host()
+        if host is not None:
+            host.toggle_fullscreen()
 
     def action_portfolio(self) -> None:
         """'p': switch the drill root to the portfolio (same top level as Home)."""

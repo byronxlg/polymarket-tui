@@ -16,6 +16,10 @@ Every reflow assigns each visible pane a width tier (see ui.tiers): compact
 for the 30% parent slot, medium for the 70% child, full when alone. The
 tier-<name> class drives CSS show/hide; set_tier() lets panes rebuild their
 table columns.
+
+F toggles full screen: the focused pane takes the whole window at the full
+tier. left/esc steps out of full screen before any cross-pane navigation,
+and drilling or swapping roots drops back to the normal split.
 """
 
 from __future__ import annotations
@@ -45,6 +49,7 @@ class NavHost(Screen):
         self._crumbs: list[str] = []
         self._focus = 0  # index of the focused pane
         self._left = 0  # index of the pane in the left viewport slot
+        self._fullscreen = False  # F: the focused pane alone, at the full tier
 
     def compose(self) -> ComposeResult:
         yield AppHeader(HomePane.header_title)
@@ -74,6 +79,7 @@ class NavHost(Screen):
         is not the pane to its left; left/esc still steps out to the
         parent split.
         """
+        self._fullscreen = False  # navigation returns to the normal split
         key = getattr(pane, "drill_key", None)
         if reuse and key is not None and self._focus + 1 < len(self._panes):
             existing = self._panes[self._focus + 1]
@@ -113,6 +119,11 @@ class NavHost(Screen):
         pane_back = getattr(pane, "handle_back", None)
         if pane_back is not None and pane_back():
             return True
+        if self._fullscreen:
+            # Full screen is one step-out level: the split reappears unchanged.
+            self._fullscreen = False
+            self._reflow()
+            return True
         if self._focus == self._left + 1:
             # In the child: fall back to the parent, keep the child open.
             self._focus = self._left
@@ -134,6 +145,17 @@ class NavHost(Screen):
             self.go_home()
             return True
         return True  # truly at the root
+
+    def toggle_fullscreen(self) -> None:
+        """F: give the focused pane the whole window; F or left/esc restores."""
+        if not self._fullscreen and not self.can_fullscreen():
+            return
+        self._fullscreen = not self._fullscreen
+        self._reflow()
+
+    def can_fullscreen(self) -> bool:
+        """False when the focused pane already has the whole window."""
+        return self._fullscreen or self._left + 1 < len(self._panes)
 
     @property
     def root_pane(self) -> Widget:
@@ -163,6 +185,7 @@ class NavHost(Screen):
         self._panes = [pane]
         self._crumbs = [crumb]
         self._focus = self._left = 0
+        self._fullscreen = False
         self._reflow()
 
     def go_home(self) -> None:
@@ -179,6 +202,7 @@ class NavHost(Screen):
         del self._panes[1:]
         del self._crumbs[1:]
         self._focus = self._left = 0
+        self._fullscreen = False
         self._reflow()
 
     # -- render ---------------------------------------------------------------
@@ -187,13 +211,16 @@ class NavHost(Screen):
         n = len(self._panes)
         child_open = self._left + 1 < n
         for i, pane in enumerate(self._panes):
-            visible = i in (self._left, self._left + 1)
+            if self._fullscreen:
+                visible = i == self._focus
+            else:
+                visible = i in (self._left, self._left + 1)
             pane.display = visible
             pane.set_class(i == self._focus, "focused")
             if not visible:
                 continue
             tier: Tier = "full"
-            if child_open:
+            if child_open and not self._fullscreen:
                 tier = "compact" if i == self._left else "medium"
             for t in TIERS:
                 pane.set_class(t == tier, f"tier-{t}")
