@@ -27,7 +27,7 @@ from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.market import MarketPane
 from polymarket_tui.ui.screens.nav_host import NavHost
 from polymarket_tui.ui.screens.portfolio import PortfolioPane
-from polymarket_tui.ui.screens.related import RelatedPane
+from polymarket_tui.ui.screens.related import RelatedModal
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.user import UserPane
 from polymarket_tui.ui.screens.watchlist import WatchlistPane
@@ -339,7 +339,9 @@ class PolymarketApp(App):
             self.notify("Multi-outcome event - pick an outcome, then b/s", timeout=4)
 
     def open_related(self, event: Event) -> None:
-        self._drill(RelatedPane(event), "related")
+        """Related is a pop-out, not a drill level - esc returns unchanged."""
+        if not isinstance(self.screen, RelatedModal):
+            self.push_screen(RelatedModal(event))
 
     def open_user(self, address: str, name: str) -> None:
         self._drill(UserPane(address, name), name)
