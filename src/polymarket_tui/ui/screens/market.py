@@ -423,6 +423,8 @@ class MarketPane(TierAware, Vertical):
         self._clear_pending_cancel()
         self._outcome_index = index
         self._book = None  # stale: belongs to the other outcome until load_book returns
+        # Depth explored on the old outcome's book does not carry over.
+        self.query_one(BookPanel).reset_depth()
         self.query_one(OrderPanel).set_outcome(self._outcome_index)
         self.query_one("#book-title", Static).update(self._book_header())
         # We subscribe to both tokens, so the flipped outcome's live book is

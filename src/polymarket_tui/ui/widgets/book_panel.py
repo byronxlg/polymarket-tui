@@ -26,6 +26,12 @@ from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 
 DEPTH = 10
+# Browsing deeper than the default window: when the cursor comes within
+# EXPAND_MARGIN rows of the deepest visible level on a side, that side reveals
+# EXPAND_CHUNK more. Rows are only ever added at the extremes - never shifted
+# or removed under the cursor (space arms an order from the row it sits on).
+EXPAND_MARGIN = 3
+EXPAND_CHUNK = 10
 # Solid block bars at full red/green glare; the fill stays muted while the
 # price/size text keeps the strong side color.
 ASK_BAR = "rgb(125,52,47)"
@@ -78,6 +84,11 @@ class BookPanel(Static):
         self._book: OrderBook | None = None
         self._levels: list[tuple[str, BookLevel]] = []  # display order: asks then bids
         self._cursor = 0
+        # Visible depth per side; grows as the cursor nears an edge (see
+        # EXPAND_MARGIN). Reset per outcome, never per WS frame.
+        self._ask_depth = DEPTH
+        self._bid_depth = DEPTH
+        self._more_asks_line = False  # "· n more" above the asks (scroll math)
         # Whether the row cursor should draw. Tracked here, set synchronously in
         # on_focus/on_blur, rather than read from the has_focus reactive: on the
         # focus that on_focus itself handles, has_focus is not True yet, so the
@@ -106,6 +117,12 @@ class BookPanel(Static):
     def focus_top(self) -> None:
         """Enter the book at its top row (called when arrowing down into it)."""
         self._cursor = 0
+
+    def reset_depth(self) -> None:
+        """Back to the default window (call when the shown token changes -
+        an outcome flip must not inherit the other book's explored depth)."""
+        self._ask_depth = DEPTH
+        self._bid_depth = DEPTH
 
     def set_own_orders(self, orders: list[OpenOrder]) -> None:
         """Your resting orders on this token: star their levels and enable x."""
@@ -145,13 +162,35 @@ class BookPanel(Static):
             return
         target = self._cursor + delta
         if target < 0:
+            # Approached from below, row 0 is only reachable once every ask
+            # is revealed (_maybe_expand shifts the cursor as rows prepend);
+            # entering at the top row and pressing up steps out as always.
             self.post_message(self.FocusAbove())
             return
         if target >= len(self._levels):
             return  # clamp at the last row
         self._cursor = target
+        self._maybe_expand(delta)
         self.post_message(self.CursorMoved())
         self._render_book()
+
+    def _maybe_expand(self, delta: int) -> None:
+        """Reveal more depth when the cursor nears the edge it is moving
+        toward (up = deeper asks, down = deeper bids - approaching an edge
+        while moving away from it must not grow that side).
+
+        Asks render deepest-first, so deepening asks prepends rows - the
+        cursor index shifts by the added count to stay on the same level."""
+        book = self._book
+        if book is None:
+            return
+        if delta < 0 and self._cursor < EXPAND_MARGIN and self._ask_depth < len(book.asks):
+            shown = min(self._ask_depth, len(book.asks))
+            self._ask_depth = min(self._ask_depth + EXPAND_CHUNK, len(book.asks))
+            self._cursor += self._ask_depth - shown
+        near_bottom = len(self._levels) - 1 - self._cursor < EXPAND_MARGIN
+        if delta > 0 and near_bottom and self._bid_depth < len(book.bids):
+            self._bid_depth = min(self._bid_depth + EXPAND_CHUNK, len(book.bids))
 
     def action_focus_above(self) -> None:
         self.post_message(self.FocusAbove())
@@ -215,8 +254,11 @@ class BookPanel(Static):
         if book is None:
             return
         bar_w = self._bar_width()
-        asks = sorted(book.asks, key=lambda lvl: lvl.price)[:DEPTH]
-        bids = sorted(book.bids, key=lambda lvl: lvl.price, reverse=True)[:DEPTH]
+        asks = sorted(book.asks, key=lambda lvl: lvl.price)[: self._ask_depth]
+        bids = sorted(book.bids, key=lambda lvl: lvl.price, reverse=True)[: self._bid_depth]
+        hidden_asks = len(book.asks) - len(asks)
+        hidden_bids = len(book.bids) - len(bids)
+        self._more_asks_line = hidden_asks > 0
         max_size = max((lvl.size for lvl in asks + bids), default=0.0)
 
         # Selectable rows in display order: asks top-to-bottom (best ask nearest
@@ -228,6 +270,8 @@ class BookPanel(Static):
 
         out = Text()
         out.append(f"{'':>{bar_w}} {'price':>7} {'shares':>10}\n", style="bold dim")
+        if hidden_asks:
+            out.append(f"· {hidden_asks} more\n", style="dim")
 
         row = 0
         for level in reversed(asks):
@@ -248,6 +292,9 @@ class BookPanel(Static):
             out.append_text(self._level_line(level, max_size, UP, BID_BAR, bar_w, cursor))
             row += 1
 
+        if hidden_bids:
+            out.append(f"· {hidden_bids} more\n", style="dim")
+
         self.update(out)
         if focused:
             self._scroll_cursor_visible()
@@ -267,6 +314,18 @@ class BookPanel(Static):
             return
         n_asks = sum(1 for kind, _ in self._levels if kind == "ask")
         has_mid = self._book is not None and self._book.midpoint is not None
-        line = 1 + self._cursor + (1 if has_mid and self._cursor >= n_asks else 0)
+        line = (
+            1  # header
+            + (1 if self._more_asks_line else 0)
+            + self._cursor
+            + (1 if has_mid and self._cursor >= n_asks else 0)
+        )
+        # On an edge row, pull the adjacent "· n more" indicator into view too.
+        height = 1
+        if self._cursor == 0 and self._more_asks_line:
+            line -= 1
+            height = 2
+        elif self._cursor == len(self._levels) - 1:
+            height = 2  # covers the tail indicator when one is rendered
         with contextlib.suppress(Exception):
-            parent.scroll_to_region(Region(0, line, 1, 1), animate=False)
+            parent.scroll_to_region(Region(0, line, 1, height), animate=False)
