@@ -57,7 +57,14 @@ def cancel_confirm_text(
 
 
 def order_detail_text(order: OpenOrder, title: str | None = None) -> Text:
-    """Every field of a resting order, as a multi-line Text block."""
+    """Every field of a resting order, ranked for a cancel decision.
+
+    Which order (side/outcome/price) reads first in bold; then the amount the
+    cancel removes (resting, emphasised) with the filled/original split as
+    context; then placed time and id (dim) to disambiguate look-alikes. The
+    whole block used to render dim and was hard to read - only the truly
+    secondary meta stays dim now.
+    """
     side_style = UP if order.side == "BUY" else DOWN
     out = Text()
     if title:
@@ -65,13 +72,15 @@ def order_detail_text(order: OpenOrder, title: str | None = None) -> Text:
     out.append(order.side + " ", style=f"bold {side_style}")
     out.append(f"{order.outcome or '-'} ", style="bold")
     out.append(f"@ {fmt.cents(order.price)}\n", style="bold")
+    # The shares this cancel removes - the number that matters most here.
+    out.append("resting ", style="dim")
+    out.append(f"{order.remaining:,.0f}", style="bold")
     out.append(
-        f"size {order.original_size:,.0f}   filled {order.size_matched:,.0f}"
-        f"   resting {order.remaining:,.0f}\n",
+        f"  ·  {order.size_matched:,.0f} filled of {order.original_size:,.0f}\n",
         style="dim",
     )
     placed = order.when.astimezone().strftime("%b %d %H:%M") if order.when else "unknown"
     out.append(f"placed {placed}", style="dim")
     if order.id:
-        out.append(f"   id {order.id[:12]}…", style="dim")
+        out.append(f"  ·  {order.id[:12]}…", style="dim")
     return out
