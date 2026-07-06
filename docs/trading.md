@@ -55,11 +55,19 @@ confirm step; blocks list the reason and keep the panel in edit state.
 Enter runs the pipeline; if nothing blocks, the panel arms in place. The
 order panel is a bordered "ORDER" card at the top of the right rail (blue
 while editing); arming promotes the whole card border to amber (DRY) / red
-(LIVE) so the confirm state reads at a glance:
+(LIVE). The raw price/size fields are hidden and the card restates the order
+as one scannable block, ranked by what a user checks before enter - what/how
+much, then the money it moves:
 
-    DRY-RUN - signs, never posts
-    BUY 10 YES @ 33.4c (limit GTC)
+    DRY-RUN · signs, never posts
+    BUY 10 YES
+    @ 33.4c   limit GTC
+    cost   $3.34
+    payout $10.00 if it wins
     enter place   esc edit
+
+(a SELL shows `proceeds $X` instead of cost/payout.) Numbers are bold, the
+outcome carries the colour, and the mode word says what enter will do.
 
 A second enter places - the panel becomes focusable only at this point and
 ignores keys for the 0.35s arming beat, so a queued enter cannot fire it;

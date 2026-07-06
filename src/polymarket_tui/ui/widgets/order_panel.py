@@ -212,8 +212,12 @@ class OrderPanel(Vertical):
     OrderPanel.confirming #op-confirm {
         display: block;
     }
+    /* While armed, the confirm card restates the full order (and its cost),
+       so the raw price/size fields and the edit-state summary would just be
+       noise - hide them, leaving one clean thing to read before enter. */
     OrderPanel.confirming #op-summary,
-    OrderPanel.confirming #op-info {
+    OrderPanel.confirming #op-info,
+    OrderPanel.confirming .field-row {
         display: none;
     }
     """
@@ -443,8 +447,10 @@ class OrderPanel(Vertical):
 
     @property
     def _side_style(self) -> str:
-        # Side is muted so the outcome color reads first.
-        return "dim green" if self._side is Side.BUY else f"dim {DOWN}"
+        # Side in its semantic tone at plain weight: readable, but the bold
+        # coloured outcome still reads first (dim green was near-invisible on
+        # the navy card).
+        return UP if self._side is Side.BUY else DOWN
 
     def _refresh_summary(self) -> None:
         summary = self.query_one("#op-summary", Static)
@@ -511,24 +517,38 @@ class OrderPanel(Vertical):
         # Same arming delay as ConfirmModal: an enter queued from the fields
         # (double-enter on size) must not place the order it just reviewed.
         self._confirm_armed_at = time.monotonic() + ConfirmModal.ARM_DELAY_S
-        # One element per line - the strip lives in the narrow right rail and
-        # must not wrap mid-token: chip, then the order, then the keys.
+        # Restate the whole order as one scannable block: mode, the order line
+        # (outcome coloured, numbers bold), the money it moves, then the keys.
+        # The outcome sits on its own line so a long name never wraps a number,
+        # and the cost/proceeds - the figure a user most wants before enter -
+        # is spelled out (the edit-state cost line is hidden while armed).
         out = Text()
-        # The mode word, plain bold - a reversed "PLACE" chip read as a
-        # scary un-clickable button; LIVE/DRY-RUN says what enter will do.
         if live:
             out.append("LIVE", style=f"bold {DOWN}")
-            out.append(" - posts for real", style="dim")
+            out.append(" · posts a real order", style="dim")
         else:
             out.append("DRY-RUN", style=f"bold {AMBER}")
-            out.append(" - signs, never posts", style="dim")
-        out.append("\n")
+            out.append(" · signs, never posts", style="dim")
+        out.append("\n\n")
         out.append(f"{draft.side.value} ", style=self._side_style)
         out.append(f"{draft.size:,.0f} ", style="bold")
-        out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
-        kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"@ {draft.price * 100:.1f}c ({kind})", style="bold")
+        out.append(draft.outcome_label.upper(), style=self._outcome_style)
         out.append("\n")
+        kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
+        out.append(f"@ {draft.price * 100:.1f}c", style="bold")
+        out.append(f"   {kind}", style="dim")
+        out.append("\n\n")
+        if draft.side is Side.BUY:
+            out.append("cost   ", style="dim")
+            out.append(fmt.money(float(draft.notional)), style="bold")
+            out.append("\n")
+            out.append("payout ", style="dim")
+            out.append(fmt.money(float(draft.size)), style=UP)
+            out.append(" if it wins", style="dim")
+        else:
+            out.append("proceeds ", style="dim")
+            out.append(fmt.money(float(draft.notional)), style="bold")
+        out.append("\n\n")
         out.append_text(action_hints(("enter", "place"), ("esc", "edit")))
         if confirm is not None:
             confirm.update(out)

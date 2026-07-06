@@ -22,10 +22,9 @@ def test_order_detail_text_shows_every_field() -> None:
     assert "BUY" in text
     assert "Yes" in text
     assert "33.4" in text  # price in cents
-    # full size split so the user sees exactly what remains
-    assert "size 100" in text
-    assert "filled 40" in text
+    # full size split so the user sees exactly what remains (resting leads)
     assert "resting 60" in text
+    assert "40 filled of 100" in text
     # provenance
     assert "Will it rain?" in text
     assert "placed" in text
