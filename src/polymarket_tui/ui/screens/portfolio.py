@@ -516,7 +516,9 @@ class PortfolioPane(TierAware, Vertical):
 
     def on_data_table_row_selected(self, event) -> None:
         # enter/right drill into the underlying market, consistent with the
-        # events tables. Positions key rows as slug|asset; orders key by id.
+        # events tables. Positions key rows as slug|asset; orders key by id;
+        # history keys as index|slug (same shape as the trader Activity tab,
+        # which drills - this tab must too).
         pane = self._active_pane()
         if pane == "pane-positions":
             slug, _, asset = str(event.row_key.value).partition("|")
@@ -527,6 +529,26 @@ class PortfolioPane(TierAware, Vertical):
             )
             if order is not None:
                 self.open_order_market(order)
+        elif pane == "pane-history":
+            key = str(event.row_key.value)
+            slug = key.split("|", 1)[1] if "|" in key else ""
+            self.open_activity_market(slug)
+
+    @work(exclusive=True, group="open-market")
+    async def open_activity_market(self, slug: str) -> None:
+        """Drill into the market a history row traded (mirrors the trader
+        profile's Activity tab)."""
+        if not slug:
+            return
+        try:
+            market = await self.app.gamma.market_by_slug(slug)
+        except Exception as exc:
+            self.notify(f"could not open market: {exc}", severity="error")
+            return
+        if market is None:
+            self.notify("Market is no longer listed (resolved)", severity="warning")
+            return
+        self.app.open_market(market)
 
     @work(exclusive=True, group="open-market")
     async def open_order_market(self, order: OpenOrder) -> None:

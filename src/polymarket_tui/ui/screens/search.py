@@ -130,8 +130,17 @@ class SearchScreen(Screen):
             self._timer.stop()
         query = event.value.strip()
         if len(query) < 2:
+            # Results from the last query must not linger under a shorter
+            # input - enter/space would act on rows the query no longer names.
+            self._clear_results()
             return
         self._timer = self.set_timer(DEBOUNCE_SECONDS, lambda: self.run_search(query))
+
+    def _clear_results(self) -> None:
+        self.query_one(EventsTable).set_events([], set())
+        self.query_one(EventsBrowser).preview.show_event(None)
+        self._profiles = []
+        self.query_one("#traders-table", VimDataTable).clear()
 
     @work(exclusive=True)
     async def run_search(self, query: str) -> None:

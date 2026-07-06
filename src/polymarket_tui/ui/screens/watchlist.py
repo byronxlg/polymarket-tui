@@ -54,7 +54,7 @@ class WatchlistPane(TierAware, Vertical):
         Binding("escape", "app.nav_back", "back", show=False),
         Binding("space", "toggle_watch", "unwatch"),
         Binding("tab", "next_pane", "pane"),
-        Binding("shift+tab", "next_pane", "prev pane", show=False),
+        Binding("shift+tab", "prev_pane", "prev pane", show=False),
         Binding("b", "order('BUY')", "buy", show=False),
         Binding("s", "order('SELL')", "sell", show=False),
     ]
@@ -294,9 +294,17 @@ class WatchlistPane(TierAware, Vertical):
         self.load_watchlist()
 
     def action_next_pane(self) -> None:
+        self._switch_pane(1)
+
+    def action_prev_pane(self) -> None:
+        # Same hop with two panes, but the binding must not lie if a third
+        # tab ever lands here (portfolio routes shift+tab the same way).
+        self._switch_pane(-1)
+
+    def _switch_pane(self, step: int) -> None:
         tabbed = self.query_one(TabbedContent)
         panes = ["pane-watch-events", "pane-watch-users"]
-        idx = (panes.index(tabbed.active) + 1) % len(panes) if tabbed.active in panes else 0
+        idx = (panes.index(tabbed.active) + step) % len(panes) if tabbed.active in panes else 0
         tabbed.active = panes[idx]
         if idx == 1 and self.app.watchlist.users:
             self.query_one("#users-table", VimDataTable).focus()
