@@ -23,7 +23,10 @@ class CursorFollow:
         self._widget = widget
         self._fn = fn
         self._interval = interval
-        self._last = 0.0
+        # "Never called" = infinitely idle, so the first call always leads.
+        # 0.0 would break on a freshly-booted host where monotonic() < interval
+        # (it counts from boot), wrongly deferring the first cursor-follow.
+        self._last = float("-inf")
         self._pending: tuple[Any, ...] | None = None
         self._timer_running = False
 
