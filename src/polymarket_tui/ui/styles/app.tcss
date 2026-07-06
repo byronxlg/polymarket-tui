@@ -2,6 +2,22 @@ Screen {
     background: $surface;
 }
 
+/* Scrollbars: a neutral surface-derived tone on every theme, deliberately
+   NOT $primary. The accent belongs to the row cursor; a scrollbar in the
+   accent colour reads as a stray selection highlight. The track blends into
+   the surface (Textual's auto-derived track was pure black on the navy
+   theme). Set on the base scroll widgets so it holds whatever theme is
+   active (the app persists a palette-picked theme). */
+DataTable, VerticalScroll {
+    scrollbar-color: $panel-lighten-2;
+    scrollbar-color-hover: $panel-lighten-3;
+    scrollbar-color-active: $panel-lighten-3;
+    scrollbar-background: $surface;
+    scrollbar-background-hover: $surface;
+    scrollbar-background-active: $surface;
+    scrollbar-corner-color: $surface;
+}
+
 #tag-bar {
     height: 2;  /* labels + underline; the default 3rd row was a dead gap */
 }

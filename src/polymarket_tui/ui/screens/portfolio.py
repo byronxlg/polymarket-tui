@@ -307,6 +307,7 @@ class PortfolioPane(TierAware, Vertical):
             return  # pane torn down while we fetched
         self._positions = positions
         self._render_positions()
+        self._schedule_refit()  # loaded titles set the market flex width
 
     def _render_positions(self) -> None:
         table = self.query_one("#positions-table", VimDataTable)
