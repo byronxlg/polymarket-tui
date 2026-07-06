@@ -78,8 +78,9 @@ def event_meta(event: Event) -> str:
     system. Missing fields drop out instead of rendering '-'.
     """
     parts = []
-    if event.end_date is not None:
-        parts.append(f"ends {fmt.end_date(event.end_date)}")
+    status = fmt.event_status(event)
+    if status:
+        parts.append(status)
     if event.volume_24hr is not None:
         parts.append(f"vol24h {fmt.vol(event.volume_24hr)}")
     if event.liquidity is not None:

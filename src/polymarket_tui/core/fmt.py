@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from polymarket_tui.models.market import Event, Market
 
 
 def trunc(text: str, width: int) -> str:
@@ -89,3 +93,42 @@ def end_date(dt: datetime | None) -> str:
     if delta.days < 365:
         return dt.strftime("%b %d")
     return dt.strftime("%b %Y")
+
+
+def date_abs(dt: datetime | None) -> str:
+    """Absolute short date for things in the past (resolution dates)."""
+    if dt is None:
+        return ""
+    return f"{dt:%b} {dt.day} {dt.year}"
+
+
+def market_status(market: Market) -> str:
+    """One lifecycle token, three states.
+
+    endDate is the *expected resolution* time, not a trading cutoff - the
+    book stays live past it until the oracle resolves (api-reference.md).
+    So: trading -> "ends <when>"; past endDate but open -> awaiting
+    resolution; closed -> the resolution itself.
+    """
+    if market.closed:
+        winner = market.winning_outcome
+        when = date_abs(market.closed_time or market.end_date)
+        if winner:
+            return f"resolved - {winner} won {when}".rstrip()
+        return f"closed {when}".rstrip()
+    if market.end_date is not None and market.end_date < datetime.now(UTC):
+        return "ended - awaiting resolution"
+    if market.end_date is not None:
+        return f"ends {end_date(market.end_date)}"
+    return ""
+
+
+def event_status(event: Event) -> str:
+    """Event-level version of market_status (events carry no winner)."""
+    if event.closed:
+        return "closed"
+    if event.end_date is not None and event.end_date < datetime.now(UTC):
+        return "ended - awaiting resolution"
+    if event.end_date is not None:
+        return f"ends {end_date(event.end_date)}"
+    return ""

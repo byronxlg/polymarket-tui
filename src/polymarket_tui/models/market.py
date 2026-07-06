@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -57,6 +58,12 @@ class Market(BaseModel):
     end_date: datetime | None = Field(default=None, alias="endDate")
     active: bool = True
     closed: bool = False
+    # When trading actually halted. Gamma sends postgres-style timestamps
+    # ("2024-11-06 15:17:41+00") that pydantic rejects; see _pg_datetime.
+    closed_time: datetime | None = Field(default=None, alias="closedTime")
+    # UMA oracle state; null until a resolution is proposed, "resolved" once
+    # final. Every closed market observed carries "resolved".
+    uma_resolution_status: str | None = Field(default=None, alias="umaResolutionStatus")
     # CLOB order gate. Independent of end_date: markets awaiting resolution
     # (e.g. yesterday's weather) keep accepting orders past endDate.
     accepting_orders: bool = Field(default=True, alias="acceptingOrders")
@@ -76,6 +83,15 @@ class Market(BaseModel):
     _decode_tokens = field_validator("clob_token_ids", "outcomes", "outcome_prices", mode="before")(
         _decode_json_list
     )
+
+    @field_validator("closed_time", mode="before")
+    @classmethod
+    def _pg_datetime(cls, v: object) -> object:
+        # Gamma's closedTime ends in a bare "+00" offset, which pydantic's
+        # ISO parser rejects - pad it to "+00:00".
+        if isinstance(v, str) and re.search(r"[+-]\d{2}$", v):
+            return v + ":00"
+        return v
 
     @field_validator("liquidity", "volume_24hr", mode="before")
     @classmethod
@@ -115,6 +131,21 @@ class Market(BaseModel):
         if self.best_bid is not None and self.best_ask is not None:
             return (self.best_bid + self.best_ask) / 2
         return None
+
+    @property
+    def winning_outcome(self) -> str | None:
+        """Resolved winner, read from the frozen outcomePrices (1/0 after
+        resolution). None while trading or when prices aren't decisive."""
+        if not self.closed or not self.outcomes:
+            return None
+        try:
+            prices = [float(p) for p in self.outcome_prices]
+        except ValueError:
+            return None
+        if len(prices) != len(self.outcomes) or not prices:
+            return None
+        best = max(range(len(prices)), key=lambda i: prices[i])
+        return self.outcomes[best] if prices[best] > 0.5 else None
 
     def token_id(self, outcome_index: int) -> str | None:
         try:
@@ -158,8 +189,15 @@ class Event(BaseModel):
         "price" -> highest chance first; anything else -> the market-defined
         `groupItemThreshold` order (range events like temperature/price bands
         define it ascending).
+
+        Closed markets are hidden while the event trades, but once none are
+        left (resolved event, reached via search/related) the closed ones are
+        the content - without them the event drills into an empty screen.
+        The winner sorts first under the price rule (its price froze at 1).
         """
         ms = [m for m in self.markets if m.active and not m.closed]
+        if not ms:
+            ms = [m for m in self.markets if m.active]
         if self.sort_by == "price":
             return sorted(ms, key=lambda m: m.yes_price or 0, reverse=True)
         return sorted(ms, key=lambda m: m.group_item_threshold)

@@ -117,7 +117,8 @@ class GammaClient:
             {
                 "q": query,
                 "limit_per_type": limit_per_type,
-                "events_status": "active",
+                # No events_status filter: resolved events stay findable (the
+                # web UI includes them too); rows carry a "closed" status token.
                 "search_profiles": "true",
             },
         )
