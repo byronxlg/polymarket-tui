@@ -38,7 +38,7 @@ rejections. Everything judgment-shaped is at most a rare yellow warning.
 
 | Check | Source | Outcome |
 |---|---|---|
-| Market open (`active && !closed`, not past endDate) | Gamma | block |
+| Market open (`active && !closed && acceptingOrders`) | Gamma | block |
 | Tick size: price % `orderPriceMinTickSize` == 0 | Gamma | block, with nearest-valid suggestion |
 | Min size: size >= `orderMinSize` (usually 5) | Gamma | block |
 | Price in (0, 1) exclusive | - | block |
