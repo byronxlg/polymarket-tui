@@ -537,6 +537,8 @@ class MarketPane(TierAware, Vertical):
         """Called on the event loop when a market frame is applied."""
         if self._channel is None or asset_id != self._token_id:
             return
+        if not alive(self):
+            return  # a frame can land in the teardown window (children pruned)
         if kind in ("book", "price_change"):
             book = self._channel.book(asset_id)
             if book is not None:
@@ -695,6 +697,12 @@ class MarketPane(TierAware, Vertical):
             return
         if not alive(self):
             return  # pane torn down while we fetched
+        if self._channel is not None and self._channel.status() == "live":
+            # The socket recovered while REST was in flight: its book is
+            # newer - keep it rather than clobbering with the snapshot.
+            self._refresh_book_badge()
+            self._maybe_open_pending_order()
+            return
         self._book = book
         panel.update_book(book)
         self._refresh_book_badge()
