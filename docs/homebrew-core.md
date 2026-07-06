@@ -58,12 +58,9 @@ package `url` and its `sha256`.
 
 #### Steps to make it submittable
 
-1. **Tag a release** and **publish the sdist to PyPI** (name is free):
-   ```sh
-   uv build --sdist
-   uv publish            # needs a PyPI token; also enables `pip install polymarket-tui`
-   git tag v0.1.0 && git push --tags
-   ```
+1. **Publish to PyPI** by cutting a GitHub release - CI does the upload via
+   Trusted Publishing, no local `uv publish`. See [releasing.md](releasing.md).
+   This also enables `pip install polymarket-tui`.
 2. **Fill `url` + `sha256`** in the formula from PyPI:
    ```sh
    curl -s https://pypi.org/pypi/polymarket-tui/0.1.0/json \
