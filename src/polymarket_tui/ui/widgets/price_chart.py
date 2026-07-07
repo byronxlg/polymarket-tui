@@ -54,7 +54,8 @@ def _change_text(delta: float) -> tuple[str, str]:
     """(text, style) for a price change in dollars."""
     if abs(delta) < 0.0005:
         return "+0.0c", "dim"
-    return fmt.cents(delta, signed=True), (UP if delta > 0 else DOWN)
+    # Muted UP/DOWN: a change label is context, not a live bid/ask price.
+    return fmt.cents(delta, signed=True), (f"dim {UP}" if delta > 0 else f"dim {DOWN}")
 
 
 class PriceChartPanel(Vertical):
