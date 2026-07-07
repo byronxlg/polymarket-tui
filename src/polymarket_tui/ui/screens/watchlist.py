@@ -3,7 +3,8 @@
 Logic lives in WatchlistPane so NavHost can host it as an alternate ROOT of
 the drill navigation ('w') - the same top level as Home. Opening a starred
 event drills it as the 70% child with the watchlist kept as the 30% parent;
-left/esc from the watchlist root returns to Home.
+left/esc from the watchlist root is a no-op (a top level, like Home) - H
+returns to Home.
 """
 
 from __future__ import annotations

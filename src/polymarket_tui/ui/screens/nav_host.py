@@ -140,11 +140,10 @@ class NavHost(Screen):
             # At the root with a child open: collapse back to full-width root.
             self.reset_to_root()
             return True
-        if not isinstance(self._panes[0], HomePane):
-            # An alternate root (watchlist) steps out to the home root.
-            self.go_home()
-            return True
-        return True  # truly at the root
+        # Truly at the root. Home, Portfolio and Watched are all top-level
+        # (Byron, 2026-07-07): left/esc there is a no-op - there is nowhere
+        # to step out to. Switching roots is the explicit H/W/P keys' job.
+        return True
 
     def toggle_fullscreen(self) -> None:
         """F: give the focused pane the whole window; F or left/esc restores."""
