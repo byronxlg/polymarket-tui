@@ -497,7 +497,8 @@ class PolymarketApp(App):
         self.add_class(f"density-{new}")
         save_density(new)
         # CSS only handles spacing; rows re-compose in code (two-line spacious
-        # rows in the events/positions tables), so notify every mounted widget
+        # rows in every high-level list table - events, event outcomes,
+        # positions, open orders, activity), so notify every mounted widget
         # that opted in via an on_density_changed method.
         for screen in self.screen_stack:
             for node in screen.walk_children():

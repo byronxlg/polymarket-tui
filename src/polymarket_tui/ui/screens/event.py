@@ -61,6 +61,36 @@ MARKETS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     ),
 }
 
+# Spacious re-composes each outcome the way the home events table does: the
+# bid/ask/spread/vol columns fold into a dim second line under the outcome
+# title and the 24h change stacks under the price, freeing width for long
+# outcome names.
+MARKETS_SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("outcome", "Outcome", 46),
+        ("price", "Price", 8),
+    ),
+    "medium": (
+        ("outcome", "Outcome", 38),
+        ("price", "Price", 8),
+    ),
+    "compact": (
+        ("outcome", "Outcome", 26),
+        ("price", "Price", 8),
+    ),
+}
+
+
+def market_meta(market) -> str:
+    """The dim second line of a spacious outcome row: bid 33c · ask 34c · vol $41M.
+
+    Spread is dropped (it is just ask - bid) and the volume label is the bare
+    'vol' so the value fits without truncating at the 70% pane width."""
+    return (
+        f"bid {fmt.cents(market.best_bid)} · ask {fmt.cents(market.best_ask)}"
+        f" · vol {fmt.vol(market.volume_24hr)}"
+    )
+
 
 class EventPane(TierAware, Vertical):
     """Event detail body - hosted as a drill pane by NavHost."""
@@ -83,6 +113,7 @@ class EventPane(TierAware, Vertical):
         super().__init__(**kwargs)
         self._event = event
         self._interval = "ALL"
+        self._rendered_density: str = "condensed"
         self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
         # Throttled cursor-follow: one preview render per settle, not per row.
         self._preview_follow = CursorFollow(self, self._show_market_preview)
@@ -190,9 +221,16 @@ class EventPane(TierAware, Vertical):
             if cursor is not None and table.row_count:
                 table.move_cursor(row=min(cursor, table.row_count - 1))
 
+    def _markets_columns(self) -> dict[Tier, tuple]:
+        """Column sets for the current density (spacious re-composes rows)."""
+        if self.app.density == "spacious":
+            return MARKETS_SPACIOUS_TIER_COLUMNS
+        return MARKETS_TIER_COLUMNS
+
     def on_mount(self) -> None:
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
-        self._columns_spec = list(MARKETS_TIER_COLUMNS[self.tier])
+        self._rendered_density = self.app.density
+        self._columns_spec = list(self._markets_columns()[self.tier])
         self._build_columns()
         self.query_one(DataTable).focus()
         self._fill_table()
@@ -205,6 +243,7 @@ class EventPane(TierAware, Vertical):
 
     def _build_columns(self) -> None:
         table = self.query_one(DataTable)
+        table.cell_padding = 2 if self.app.density == "spacious" else 1
         table.clear(columns=True)
         for key, label, width in self._columns_spec:
             table.add_column(label, width=width, key=key)
@@ -212,6 +251,10 @@ class EventPane(TierAware, Vertical):
     def on_tier_changed(self, tier: Tier) -> None:
         self._schedule_refit()
         self.refresh_bindings()  # the footer gates on tier (check_action)
+
+    def on_density_changed(self, density: str) -> None:
+        """T toggled: outcomes re-compose into two-line rows (app calls this)."""
+        self._schedule_refit()
 
     def on_resize(self) -> None:
         if self._tier_ready:
@@ -229,12 +272,15 @@ class EventPane(TierAware, Vertical):
         width = usable_width(table)
         if width <= 0 or not table.columns:
             return
-        tier = effective_tier(self.tier, width, MARKETS_TIER_COLUMNS)
+        columns = self._markets_columns()
+        pad = 2 if self.app.density == "spacious" else 1
+        tier = effective_tier(self.tier, width, columns, pad)
         titles = [m.display_title for m in self._event.active_markets]
         flex_max = max((len(t) for t in titles), default=0) or None
-        spec = fit_columns(MARKETS_TIER_COLUMNS[tier], width, "outcome", flex_max)
-        if spec == self._columns_spec:
+        spec = fit_columns(columns[tier], width, "outcome", flex_max, pad)
+        if spec == self._columns_spec and self._rendered_density == self.app.density:
             return
+        self._rendered_density = self.app.density
         self._columns_spec = spec
         cursor = table.cursor_row
         self._build_columns()
@@ -247,6 +293,8 @@ class EventPane(TierAware, Vertical):
         table.clear()
         columns = self._columns_spec
         outcome_width = dict((k, w) for k, _, w in columns)["outcome"]
+        spacious = self.app.density == "spacious"
+        height = 2 if spacious else 1
         ordered = self._ordered_condition_ids
         held = self._held_condition_ids
         for market in self._event.active_markets:
@@ -262,16 +310,31 @@ class EventPane(TierAware, Vertical):
             )
             outcome_cell.append(" ")
             outcome_cell.append(title)
-            cells = {
-                "outcome": outcome_cell,
-                "price": Text(fmt.cents(market.yes_price), style="bold"),
-                "change": change_text(market.one_day_price_change),
-                "bid": Text(fmt.cents(market.best_bid), style=UP),
-                "ask": Text(fmt.cents(market.best_ask), style=DOWN),
-                "spread": fmt.cents(market.spread),
-                "vol": fmt.vol(market.volume_24hr),
-            }
-            table.add_row(*(cells[key] for key, _, _ in columns), key=market.slug)
+            if spacious:
+                # bid/ask/spread/vol fold into a dim line indented under the
+                # title (3-char flag prefix); the 24h change stacks under price.
+                outcome_cell.append(
+                    "\n   " + fmt.trunc(market_meta(market), outcome_width - 3),
+                    style="dim",
+                )
+                price_cell = Text(justify="right")
+                price_cell.append(fmt.cents(market.yes_price), style="bold")
+                price_cell.append("\n")
+                price_cell.append_text(change_text(market.one_day_price_change))
+                cells = {"outcome": outcome_cell, "price": price_cell}
+            else:
+                cells = {
+                    "outcome": outcome_cell,
+                    "price": Text(fmt.cents(market.yes_price), style="bold"),
+                    "change": change_text(market.one_day_price_change),
+                    "bid": Text(fmt.cents(market.best_bid), style=UP),
+                    "ask": Text(fmt.cents(market.best_ask), style=DOWN),
+                    "spread": fmt.cents(market.spread),
+                    "vol": fmt.vol(market.volume_24hr),
+                }
+            table.add_row(
+                *(cells[key] for key, _, _ in columns), key=market.slug, height=height
+            )
         markets = self._event.active_markets
         self.query_one(MarketPreview).show_market(markets[0] if markets else None)
 

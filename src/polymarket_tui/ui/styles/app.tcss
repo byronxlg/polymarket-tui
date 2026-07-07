@@ -441,10 +441,11 @@ PriceChartPanel {
    (default, the rules above) or density-spacious - T toggles it, the
    choice persists in ui.json. These rules only add breathing room (pane
    gutters, rail padding, vertical rhythm); the real re-composition is in
-   code, where tables cannot be reached from CSS: events and positions
-   render two-line rows (title over a dim metadata line, 24h/% stacked
-   under price/P&L) via on_density_changed. Widths stay with the tier
-   system so column fitting is untouched. */
+   code, where tables cannot be reached from CSS: every high-level list
+   table (events, event outcomes, positions, open orders, activity) renders
+   two-line rows (title over a dim metadata line, 24h/% stacked under
+   price/P&L) via on_density_changed. Widths stay with the tier system so
+   column fitting is untouched. */
 App.density-spacious .screen-title {
     padding: 0 2;
 }

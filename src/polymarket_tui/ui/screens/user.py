@@ -17,6 +17,7 @@ from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
+    ACTIVITY_SPACIOUS_TIER_COLUMNS,
     ACTIVITY_TIER_COLUMNS,
     POSITIONS_SPACIOUS_TIER_COLUMNS,
     POSITIONS_TIER_COLUMNS,
@@ -75,10 +76,16 @@ class UserPane(TierAware, Vertical):
             return POSITIONS_SPACIOUS_TIER_COLUMNS
         return POSITIONS_TIER_COLUMNS
 
+    def _act_columns(self) -> dict[Tier, tuple]:
+        """Activity column sets for the current density (spacious re-composes rows)."""
+        if self.app.density == "spacious":
+            return ACTIVITY_SPACIOUS_TIER_COLUMNS
+        return ACTIVITY_TIER_COLUMNS
+
     def on_mount(self) -> None:
         self._rendered_density = self.app.density
         self._pos_spec = list(self._pos_columns()[self.tier])
-        self._act_spec = list(ACTIVITY_TIER_COLUMNS[self.tier])
+        self._act_spec = list(self._act_columns()[self.tier])
         self._build_columns()
         for tabs in self.query("Tabs"):
             tabs.can_focus = False
@@ -119,12 +126,13 @@ class UserPane(TierAware, Vertical):
         if width <= 0:
             return
         pos_columns = self._pos_columns()
+        act_columns = self._act_columns()
         pos_tier = effective_tier(self.tier, width, pos_columns)
-        act_tier = effective_tier(self.tier, width, ACTIVITY_TIER_COLUMNS)
+        act_tier = effective_tier(self.tier, width, act_columns)
         pos_flex = max((len(p.title) for p in self._positions), default=0) or None
         act_flex = max((len(i.title) for i in self._activity), default=0) or None
         pos_spec = fit_columns(pos_columns[pos_tier], width, "market", pos_flex)
-        act_spec = fit_columns(ACTIVITY_TIER_COLUMNS[act_tier], width, "market", act_flex)
+        act_spec = fit_columns(act_columns[act_tier], width, "market", act_flex)
         if (pos_spec, act_spec) == (
             self._pos_spec,
             self._act_spec,
@@ -154,8 +162,11 @@ class UserPane(TierAware, Vertical):
         activity_table.clear()
         for i, item in enumerate(self._activity):
             activity_table.add_row(
-                *activity_row(item, compact_size=True, columns=self._act_spec),
+                *activity_row(
+                    item, compact_size=True, columns=self._act_spec, density=density
+                ),
                 key=f"{i}|{item.slug}",
+                height=height,
             )
 
     @work(exclusive=True)
