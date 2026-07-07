@@ -25,7 +25,6 @@ from polymarket_tui.models.market import Market, OrderBook
 from polymarket_tui.services.orders import (
     IssueLevel,
     OrderDraft,
-    ReconcileTarget,
     Side,
     Tif,
     format_cents_input,
@@ -705,23 +704,19 @@ class OrderPanel(Vertical):
                     pane.refresh_after_fill()
                 app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
             elif result.status_unknown:
-                # The post may have landed; never auto-retry. Offer to reconcile.
-                target = ReconcileTarget.from_draft(draft)
+                # A live post that raised: it may have landed, so it is never
+                # auto-retried. State the facts and let the user check Open
+                # Orders themselves - the app does not guess the outcome.
                 body = Text()
                 body.append(result.error + "\n\n", style=AMBER)
                 body.append(f"{draft.summary()}\n\n")
                 body.append(
-                    "The order may have been placed. Check Open Orders before re-placing.",
+                    "It may or may not have been placed, and it will not be "
+                    "retried automatically.",
                     style="dim",
                 )
-
-                def _reconcile(confirmed: bool | None) -> None:
-                    if confirmed:
-                        app.open_reconciliation(target)
-
                 app.push_screen(
-                    ConfirmModal("ORDER STATUS UNKNOWN", body, "check open orders", tone="warn"),
-                    _reconcile,
+                    ConfirmModal("ORDER STATUS UNKNOWN", body, "dismiss", tone="warn")
                 )
             else:
                 app.notify(result.error, severity="error", timeout=10)

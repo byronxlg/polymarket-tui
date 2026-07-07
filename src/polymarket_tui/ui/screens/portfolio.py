@@ -21,7 +21,7 @@ from polymarket_tui.core import fmt
 from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
 from polymarket_tui.models.portfolio import OpenOrder, Position
 from polymarket_tui.ui.liveness import alive
-from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
+from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
@@ -144,7 +144,6 @@ class PortfolioPane(TierAware, Vertical):
 
     def compose(self) -> ComposeResult:
         yield Static("loading balances...", id="balance-line", classes="screen-title")
-        yield Static(id="reconcile-banner")
         yield Static(id="cancel-strip")
         with TabbedContent(id="portfolio-tabs"):
             with TabPane("Positions", id="pane-positions"):
@@ -194,12 +193,6 @@ class PortfolioPane(TierAware, Vertical):
         self.load_all()
         self.tier_ready()
         self._schedule_refit()
-        if self.app.reconcile_target is not None:
-            self.enter_reconciliation()
-
-    def on_unmount(self) -> None:
-        # Reconciliation is resolved once the user has looked; don't persist it.
-        self.app.reconcile_target = None
 
     # -- width tiers -----------------------------------------------------------
 
@@ -361,38 +354,23 @@ class PortfolioPane(TierAware, Vertical):
             if not alive(self):
                 return  # pane torn down while we fetched
             self.notify(f"open orders unavailable: {exc}", severity="warning")
-            # On the reconciliation path the user is waiting on a verdict; a stuck
-            # "Checking..." banner is worse than an honest "could not check".
-            if self.app.reconcile_target is not None:
-                banner = self.query_one("#reconcile-banner", Static)
-                banner.add_class("active")
-                banner.update(
-                    Text(
-                        f"COULD NOT CHECK - open orders unavailable ({exc}). Retry with R; "
-                        f"do not re-place {self.app.reconcile_target.summary} until confirmed.",
-                        style=f"bold {AMBER}",
-                    )
-                )
             return
         self._order_titles_cache = await self._order_titles(self._orders)
         if not alive(self):
             return  # pane torn down while we fetched
         self._render_orders()
-        self._update_reconcile_banner()
 
     def _render_orders(self) -> None:
         table = self.query_one("#orders-table", VimDataTable)
         table.clear()
         titles = self._order_titles_cache
-        target = self.app.reconcile_target
         widths = {key: width for key, _, width in self._ord_spec}
         for order in self._orders:
-            match = target is not None and target.matches(order)
             title = fmt.trunc(
                 titles.get(order.market, order.market[:20] + "…"), widths["market"]
             )
             cells = {
-                "market": Text("► " + title, style=f"bold {BLUE}") if match else title,
+                "market": title,
                 "side": Text(order.side, style=UP if order.side == "BUY" else DOWN),
                 "outcome": order.outcome or "-",
                 "price": fmt.cents(order.price),
@@ -420,50 +398,6 @@ class PortfolioPane(TierAware, Vertical):
             except Exception:
                 continue
         return titles
-
-    # -- reconciliation (issue #3) -------------------------------------------
-
-    def enter_reconciliation(self) -> None:
-        """Focus Open Orders for a status-unknown post and re-fetch to check it."""
-        if self.app.reconcile_target is None:
-            return
-        self.query_one(TabbedContent).active = "pane-orders"
-        banner = self.query_one("#reconcile-banner", Static)
-        banner.add_class("active")
-        banner.update(
-            Text(
-                f"Checking Open Orders for: {self.app.reconcile_target.summary} ...",
-                style="dim",
-            )
-        )
-        self.query_one("#orders-table", OrdersTable).focus()
-        self.load_orders()
-
-    def _update_reconcile_banner(self) -> None:
-        target = self.app.reconcile_target
-        banner = self.query_one("#reconcile-banner", Static)
-        if target is None:
-            banner.remove_class("active")
-            return
-        banner.add_class("active")
-        matches = [o for o in self._orders if target.matches(o)]
-        if matches:
-            resting = sum(o.remaining for o in matches)
-            banner.update(
-                Text(
-                    f"LANDED - order is resting ({resting:,.0f} shares). {target.summary}. "
-                    "Do NOT re-place; cancel with x if unintended.",
-                    style=f"bold {UP}",
-                )
-            )
-        else:
-            banner.update(
-                Text(
-                    f"NOT FOUND - no resting order matches {target.summary}. The post did not "
-                    "land; it is safe to re-place. (A very recent fill can also explain this.)",
-                    style=f"bold {AMBER}",
-                )
-            )
 
     @work(exclusive=True, group="history")
     async def load_history(self) -> None:

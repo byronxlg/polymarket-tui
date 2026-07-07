@@ -136,4 +136,6 @@ not success.
 | network / 5xx | "Order status unknown - check Open Orders before retrying." (critical: do NOT auto-retry posts) |
 
 The network-failure case is the dangerous one: a timed-out `post_order` may still have
-placed the order. Never auto-retry; force a reconciliation read of open orders first.
+placed the order. Never auto-retry. The app states the facts in a dismiss-only modal
+(status unknown, may or may not have landed, will not be retried) and leaves the user
+to check Open Orders before re-placing - it does not guess whether the post landed.

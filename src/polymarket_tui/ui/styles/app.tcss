@@ -96,17 +96,6 @@ Toast {
     color: $text-muted;
 }
 
-#reconcile-banner {
-    display: none;
-    height: auto;
-    padding: 0 1;
-    background: $warning 20%;
-}
-
-#reconcile-banner.active {
-    display: block;
-}
-
 #status-line {
     width: 1fr;  /* full row so the centered sort text has room */
     height: 1;

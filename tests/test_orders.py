@@ -14,6 +14,7 @@ from polymarket_tui.services.orders import (
     IssueLevel,
     OrderDraft,
     OrderService,
+    PlaceResult,
     Side,
     Tif,
     format_cents_input,
@@ -281,8 +282,9 @@ class TestPlace:
     @pytest.mark.asyncio
     async def test_live_post_timeout_is_status_unknown_and_audited(self):
         """The dangerous path: a timed-out post may have landed. It must be
-        flagged status-unknown (drives the reconcile modal), keep the seeded
-        duplicate fingerprint, and land in the audit log - never retried."""
+        flagged status-unknown (drives the factual status-unknown modal), keep
+        the seeded duplicate fingerprint, and land in the audit log - never
+        retried."""
         import json as json_module
 
         import polymarket_tui.services.orders as orders_module
@@ -304,6 +306,15 @@ class TestPlace:
         )
         assert entry["ok"] is False
         assert "status unknown" in entry["error"].lower()
+
+    def test_place_result_status_unknown_flag(self):
+        unknown = PlaceResult(
+            ok=False, dry_run=False, error="Order status unknown (timeout) - check Open Orders."
+        )
+        assert unknown.status_unknown is True
+        # A dry run or a plain rejection is not status-unknown.
+        assert PlaceResult(ok=True, dry_run=True, status="signed").status_unknown is False
+        assert PlaceResult(ok=False, dry_run=False, error="closed market").status_unknown is False
 
     @pytest.mark.asyncio
     async def test_dry_run_does_not_post_or_seed_duplicate_guard(self):

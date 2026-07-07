@@ -18,7 +18,6 @@ from pathlib import Path
 from polymarket_tui.api.clob_auth import AuthedClobClient
 from polymarket_tui.core.config import BUILDER_CODE, Mode, Settings
 from polymarket_tui.models.market import Market, OrderBook
-from polymarket_tui.models.portfolio import OpenOrder
 from polymarket_tui.state.watchlist import DATA_DIR
 
 AUDIT_PATH = Path(DATA_DIR) / "orders.jsonl"
@@ -83,46 +82,6 @@ class PlaceResult:
     def status_unknown(self) -> bool:
         """A live post that raised (e.g. timeout): may have landed, never retried."""
         return not self.ok and not self.dry_run and "status unknown" in self.error.lower()
-
-
-@dataclass
-class ReconcileTarget:
-    """A status-unknown placement to reconcile against Open Orders (issue #3).
-
-    The post may have landed, so the app never auto-retries; the user checks
-    whether an order matching this fingerprint is resting instead.
-    """
-
-    token_id: str
-    side: str
-    price: Decimal
-    size: Decimal
-    condition_id: str
-    title: str
-    summary: str
-
-    @classmethod
-    def from_draft(cls, draft: OrderDraft) -> ReconcileTarget:
-        return cls(
-            token_id=draft.token_id,
-            side=str(draft.side.value),
-            price=draft.price,
-            size=draft.size,
-            condition_id=draft.market.condition_id,
-            title=draft.market.question,
-            summary=draft.summary(),
-        )
-
-    def matches(self, order: OpenOrder) -> bool:
-        """True when a resting order looks like the one we attempted (token/side/
-        price). Size is not matched: a partial fill shrinks the resting size.
-        Side compares case-insensitively - the CLOB's casing is not ours to
-        assume on the one path that decides whether a lost post landed."""
-        return (
-            order.asset_id == self.token_id
-            and order.side.upper() == self.side.upper()
-            and abs(Decimal(str(order.price)) - self.price) < Decimal("0.001")
-        )
 
 
 def _tick(market: Market) -> Decimal:

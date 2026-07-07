@@ -19,7 +19,7 @@ from polymarket_tui.core.auth import derive_l2_creds
 from polymarket_tui.core.config import Mode, Settings, get_settings
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.models.ws import UserOrderMessage, UserTradeMessage
-from polymarket_tui.services.orders import OrderService, ReconcileTarget
+from polymarket_tui.services.orders import OrderService
 from polymarket_tui.services.portfolio import PortfolioService
 from polymarket_tui.state.prefs import load_density, load_theme, save_density, save_theme
 from polymarket_tui.state.watchlist import Watchlist
@@ -83,8 +83,6 @@ class PolymarketApp(App):
         self.portfolio = PortfolioService(self.settings, self.data, self.authed)
         self.orders = OrderService(self.settings, self.authed)
         self.watchlist = Watchlist()
-        # A status-unknown live post to reconcile against Open Orders (issue #3).
-        self.reconcile_target: ReconcileTarget | None = None
         # Live own-order/fill updates over the /ws/user socket (issue #1).
         self.user_channel: UserChannel | None = None
         # Trade ids already toasted: the socket re-emits each trade as its
@@ -501,26 +499,6 @@ class PolymarketApp(App):
         if isinstance(host.root_pane, PortfolioPane):
             host.reset_to_root()
         else:
-            host.set_root(PortfolioPane(), "Portfolio")
-
-    def open_reconciliation(self, target: ReconcileTarget) -> None:
-        """Jump to Open Orders to check whether a status-unknown post landed."""
-        self.reconcile_target = target
-        if not self.settings.can_read_portfolio:
-            self.notify(
-                "Add a funder address (press A) to check Open Orders", severity="warning"
-            )
-            return
-        host = self._nav_host()
-        if host is None:
-            return
-        while len(self.screen_stack) > 1:
-            self.pop_screen()
-        if isinstance(host.root_pane, PortfolioPane):
-            host.reset_to_root()
-            host.root_pane.enter_reconciliation()
-        else:
-            # A fresh pane enters reconciliation from on_mount (reconcile_target set).
             host.set_root(PortfolioPane(), "Portfolio")
 
     def action_help(self) -> None:
