@@ -317,13 +317,17 @@ class PolymarketApp(App):
         base = self.screen_stack[0]
         return base if isinstance(base, NavHost) else None
 
-    def _drill(self, pane, crumb: str, reuse: bool = True) -> None:
+    def _drill(self, pane, crumb: str, reuse: bool = True, solo: bool = False) -> None:
         """Open `pane` as a drill child in NavHost, popping any overlay first.
 
         Opens that originate from an overlay screen (watchlist, search,
         portfolio) are unrelated to whatever drill trail was open before -
         reset to the root and show the new pane alone at full width; the
         home list only appears as the parent after stepping out (left/esc).
+
+        solo forces that same alone-at-full-width open even without an
+        overlay - used when `e` opens an event that is not already in the
+        trail, so it fills the window instead of clinging beside the market.
         """
         host = self._nav_host()
         if host is None:
@@ -333,14 +337,14 @@ class PolymarketApp(App):
             self.pop_screen()
         if from_overlay:
             host.reset_to_root()
-        host.drill(pane, crumb, reuse=reuse, solo=from_overlay)
+        host.drill(pane, crumb, reuse=reuse, solo=from_overlay or solo)
 
-    def open_event(self, event: Event) -> None:
+    def open_event(self, event: Event, solo: bool = False) -> None:
         """Open an event; binary events go straight to the market pane."""
         if event.is_binary and event.top_market is not None:
             self.open_market(event.top_market, event)
             return
-        self._drill(EventPane(event), event.title)
+        self._drill(EventPane(event), event.title, solo=solo)
 
     def open_market(
         self,

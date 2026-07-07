@@ -1031,9 +1031,27 @@ class MarketPane(TierAware, Vertical):
 
     def action_open_event(self) -> None:
         if self._event is not None:
-            self.app.open_event(self._event)
+            self._go_to_event(self._event)
             return
         self._fetch_and_open_event()
+
+    def _go_to_event(self, event: Event) -> None:
+        """`e` steps up to the multi-outcome event view.
+
+        A binary event has a single market, so this pane already is that view -
+        open_event would route back to this same market and drill a duplicate
+        level (breadcrumb repeats, a bare YES/NO chip pane lands in the 30%
+        slot). Say so instead.
+
+        For a real multi-outcome event, open it solo so it fills the window.
+        When the event is already our parent in the trail (drilled down from
+        it), open_event reuses that pane and this is a plain step back up; when
+        it is not (reached from Portfolio/search/a position), solo stops the
+        source market from lingering as a confusing YES/NO strip on the left."""
+        if event.is_binary:
+            self.notify("Single-market event - you're already viewing it", timeout=3)
+            return
+        self.app.open_event(event, solo=True)
 
     @work(exclusive=True, group="open-event")
     async def _fetch_and_open_event(self) -> None:
@@ -1056,7 +1074,7 @@ class MarketPane(TierAware, Vertical):
             self.notify("No event found for this market", severity="warning")
             return
         self._event = event
-        self.app.open_event(event)
+        self._go_to_event(event)
 
     def action_related(self) -> None:
         if self._event is None:
