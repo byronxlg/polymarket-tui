@@ -702,7 +702,13 @@ class OrderPanel(Vertical):
                 # indexes fills late. Also covers a down /ws/user socket.
                 if getattr(pane, "is_mounted", False) and hasattr(pane, "refresh_after_fill"):
                     pane.refresh_after_fill()
-                app.notify(f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6)
+                # The /ws/user socket echoes a detailed "Order resting/filled:
+                # ..." toast for the placement; only announce here when it is
+                # down, or a single placement shows two alerts.
+                if not app.user_ws_connected:
+                    app.notify(
+                        f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6
+                    )
             elif result.status_unknown:
                 # A live post that raised: it may have landed, so it is never
                 # auto-retried. State the facts and let the user check Open
