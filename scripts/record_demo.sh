@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Record the landing-page demo cast (asciinema) of the TUI.
 #
-# Produces site/assets/demo.cast - a scripted tour: browse -> star rows ->
-# watchlist -> market -> live book -> BUY entry placed in DRY -> a public
-# trader's profile -> search. Runs authed in DRY under an isolated HOME
+# Produces site/assets/demo.cast - a scripted tour, best features first:
+# straight into the top market -> cursor the streaming book -> a BUY reviewed
+# and placed in DRY -> flip to the NO book -> chart timeframe -> the trade
+# tape and a public trader -> search. Runs authed in DRY under an isolated HOME
 # (journey_env.sh authed-dry: creds copied with execution_live forced false)
 # with POLYMARKET_HIDE_BALANCES=1 so no real numbers render; redact_cast.py
 # then rewrites the profile name/funder and refuses to ship a leak.
@@ -64,50 +65,45 @@ snap() {  # snap <name>: dump the pane for post-hoc scene review
 }
 
 wait_for_rows                              # cached list paints ~instantly
-sleep 2.2                                  # live refresh lands; a beat to read
+sleep 2.4                                  # live refresh lands; a beat to read
 snap 01_home
-# Browse the trending list, peek two categories, return.
-K Down; sleep 0.5; K Down; sleep 0.5; K Down; sleep 0.7
-K Tab; sleep 1.8                           # -> Politics
-K Tab; sleep 1.8                           # -> Sports
-K BTab; sleep 1.0; K BTab; sleep 1.4       # back to Trending
-snap 02_categories
-# Star two events, then open the watchlist. Down-then-Up parks the cursor
-# on the top row (the flagship market) without tripping TopReached.
-K Down; sleep 0.5; K Up; sleep 0.5
-K Space; sleep 0.8                         # star the top row
-K Down; sleep 0.4; K Down; sleep 0.5
-K Space; sleep 0.9                         # star another
-snap 03_starred
-K w; sleep 2.6                             # watchlist: just the starred rows
-snap 04_watchlist
-# Open the starred event, then its top market.
-K Enter; sleep 3.2
-snap 05_event
-K Enter; sleep 4.0
-snap 06_market
+# Straight to the good part: open the top trending event and its top market.
+# Down-then-Up parks the cursor on the top row without tripping TopReached.
+K Down; sleep 0.5; K Up; sleep 0.6
+K Enter; sleep 2.8
+snap 02_event
+K Enter; sleep 3.8                         # market: book-first focus, live ws
+snap 03_market
+# Cursor down the streaming book - depth bars, mid, spread.
+K Down; sleep 0.55; K Down; sleep 0.55; K Down; sleep 0.55; K Down; sleep 1.1
+snap 04_book_cursor
 # Buy: b prefills the price from the touch and focuses size. Enter reviews,
 # a second deliberate Enter places - DRY signs the order, never posts it.
-K b; sleep 2.4
-K 1 0; sleep 1.4
-K Enter; sleep 2.4                         # review strip: cost, tick, warnings
-snap 07_review
-K Enter; sleep 2.8                         # DRY RUN: signed, not posted
-snap 08_dry_placed
-# The panel closes itself after placing; focus is back on the outcomes.
-# Cursor down into the live book.
-K Down; sleep 0.7; K Down; sleep 0.7; K Down; sleep 0.7; K Down; sleep 1.2
-snap 09_book
-# A public trader's book, read-only: expand the tape, open the top trader.
-K a; sleep 2.0
-K Right; sleep 4.5
+K b; sleep 1.8
+K 1 0 0; sleep 1.3
+K Enter; sleep 2.8                         # review strip: cost, payout, DRY
+snap 05_review
+K Enter; sleep 2.6                         # DRY RUN: signed, not posted
+snap 06_dry_placed
+# Flip the book to the NO side and back (tab is the outcome toggle).
+K Tab; sleep 2.0
+snap 07_no_book
+K Tab; sleep 1.3
+# Chart timeframe (t cycles it); one beat for the redraw.
+K t; sleep 2.0
+snap 08_chart
+# The trade tape, then a public trader's profile - all read-only.
+K a; sleep 2.0                             # expand the tape: sizes, USDC, names
+snap 09_tape
+K Down; sleep 0.8; K Down; sleep 0.9       # trader previews follow the cursor
+K Right; sleep 4.2
 snap 10_trader
-K Escape; sleep 1.0; K Escape; sleep 1.2; K Escape; sleep 1.4
+K Escape; sleep 1.0; K Escape; sleep 1.2
 # Search, then out.
 K /; sleep 1.0
-K "bitcoin"; sleep 2.2
+K "bitcoin"; sleep 2.4
 snap 11_search
-K Escape; sleep 1.0
+K Escape; sleep 0.9
 K q; sleep 2.0
 tmux -L "$SOCK" kill-server 2>/dev/null || true
 

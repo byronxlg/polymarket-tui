@@ -25,9 +25,11 @@ SITE = Path(__file__).resolve().parent.parent / "site"
 ASSETS = SITE / "assets"
 
 # demo-poster.png geometry: widen the page rail so the 160-col terminal
-# renders large, then crop the top-left ~55 columns - phone-width readable.
+# renders large, then crop a phone-width window onto the order book (the
+# poster frame is the market screen at npt:0:18, book ~cols 46-107).
 WIDE_RAIL_PX = 2400
 POSTER_W, POSTER_H = 790, 610
+POSTER_CROP_X = 700  # px into the terminal: skips the outcome sidebar
 
 
 def serve_site() -> int:
@@ -48,7 +50,9 @@ def main() -> None:
         page = browser.new_page(viewport={"width": 1200, "height": 630})
         page.goto(url)
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2500)  # let the player draw a frame
+        # Let autoplay reach the market screen (book on screen from ~8s in)
+        # so the visible terminal strip shows the live book, not the boot list.
+        page.wait_for_timeout(11000)
         page.screenshot(path=str(ASSETS / "og.png"))
         page.close()
 
@@ -65,7 +69,7 @@ def main() -> None:
               holder.innerHTML = "";
               AsciinemaPlayer.create("assets/demo.cast", holder, {
                 autoPlay: false, controls: false, fit: "width",
-                theme: "asciinema", poster: "npt:0:2",
+                theme: "asciinema", poster: "npt:0:18",
               });
             }"""
         )
@@ -75,7 +79,12 @@ def main() -> None:
         assert box and box["width"] > 2000, f"terminal did not widen: {box}"
         page.screenshot(
             path=str(ASSETS / "demo-poster.png"),
-            clip={"x": box["x"], "y": box["y"], "width": POSTER_W, "height": POSTER_H},
+            clip={
+                "x": box["x"] + POSTER_CROP_X,
+                "y": box["y"],
+                "width": POSTER_W,
+                "height": POSTER_H,
+            },
         )
         page.close()
         browser.close()

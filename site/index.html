@@ -299,7 +299,7 @@
 <div class="rail">
 
 <header class="hero">
-  <div class="hero-spec">v0.1.0<br>macOS &middot; Linux<br>Python <b>3.12+</b></div>
+  <div class="hero-spec">v0.1.1<br>macOS &middot; Linux<br>Python <b>3.12+</b></div>
   <p class="ps1"><span class="p">~ $</span> polymarket-tui<span class="caret"></span></p>
   <h1>Polymarket in your terminal<span class="u">_</span></h1>
   <p class="sub">Browse every market, watch order books tick live, chart price history,
@@ -325,15 +325,15 @@
         <div id="demo-player" class="demo-player"></div>
         <div id="demo-static" class="demo-static" hidden>
           <img src="assets/demo-poster.png" width="790" height="610" loading="lazy"
-            alt="polymarket-tui browse screen: category tabs above a table of trending markets with live prices" />
+            alt="polymarket-tui market screen: YES/NO price chips above a live order book with depth bars" />
           <button id="demo-play" class="demo-play" type="button">Play recording</button>
         </div>
         <noscript><p class="term-caption">The recorded session needs JavaScript; everything below works without it.</p></noscript>
       </div>
     </div>
-    <p class="term-caption">Browse &#8594; star a watchlist &#8594; open a market &#8594; place a buy (dry-run: signed,
-      never posted) &#8594; cursor the live book &#8594; peek a top trader's book &#8594; search.
-      Real exchange, real data. <a href="#install">Install it</a>.</p>
+    <p class="term-caption">Open the top market &#8594; cursor the live book &#8594; place a buy (dry-run:
+      signed, never posted) &#8594; flip to the NO book &#8594; chart &#8594; the trade tape and a top
+      trader &#8594; search. Real exchange, real data. <a href="#install">Install it</a>.</p>
   </div>
 </header>
 
@@ -376,16 +376,17 @@
 <section id="install">
   <div class="sec-head">
     <span class="sec-label"><i>03</i>Install</span>
-    <h2>Three ways to install</h2>
-    <p class="lead">Python 3.12+. The curl script installs <code>uv</code> for you if it is missing.</p>
+    <h2>Four ways to install</h2>
+    <p class="lead">Python 3.12+. On PyPI and Homebrew; the curl script installs <code>uv</code> for you if it is missing.</p>
   </div>
   <div class="split">
     <div class="install-left code-block">
-      <span class="cmt"># one-liner</span>
-      <div class="cmd"><span class="p">$</span><pre id="c1">curl -sSL https://raw.githubusercontent.com/byronxlg/polymarket-tui/main/install.sh | bash</pre><button class="copy" data-c="c1">copy</button></div>
+      <span class="cmt"># pypi</span>
+      <div class="cmd"><span class="p">$</span><pre id="c1">uv tool install polymarket-tui</pre><button class="copy" data-c="c1">copy</button></div>
       <span class="cmt"># homebrew</span>
-      <div class="cmd"><span class="p">$</span><pre id="c2">brew tap byronxlg/polymarket-tui https://github.com/byronxlg/polymarket-tui
-brew install polymarket-tui</pre><button class="copy" data-c="c2">copy</button></div>
+      <div class="cmd"><span class="p">$</span><pre id="c2">brew install byronxlg/tap/polymarket-tui</pre><button class="copy" data-c="c2">copy</button></div>
+      <span class="cmt"># one-liner</span>
+      <div class="cmd"><span class="p">$</span><pre id="c4">curl -sSL https://raw.githubusercontent.com/byronxlg/polymarket-tui/main/install.sh | bash</pre><button class="copy" data-c="c4">copy</button></div>
       <span class="cmt"># from source</span>
       <div class="cmd"><span class="p">$</span><pre id="c3">git clone https://github.com/byronxlg/polymarket-tui
 cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><button class="copy" data-c="c3">copy</button></div>
@@ -438,7 +439,7 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
       controls: true,
       fit: "width",     // scale the terminal to the container width (never overflow)
       theme: "asciinema",
-      poster: "npt:0:2",
+      poster: "npt:0:18",
       idleTimeLimit: 2,
     });
   }
