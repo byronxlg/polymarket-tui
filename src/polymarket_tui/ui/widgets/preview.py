@@ -124,9 +124,10 @@ class EventPreview(Static):
             out.append(f"{fmt.cents(price):>7}", style="bold")
             change = market.one_day_price_change
             if change:
-                style = UP if change > 0 else DOWN
+                style = f"dim {UP}" if change > 0 else f"dim {DOWN}"
                 # Same format as every other 24h column (event table, market
-                # preview): signed cents with the unit.
+                # preview): signed cents with the unit, muted so the delta
+                # doesn't compete with the bid/ask price colours.
                 out.append(f" {fmt.cents(change, signed=True):>7}", style=style)
             out.append("\n")
         if len(markets) > PREVIEW_OUTCOMES:

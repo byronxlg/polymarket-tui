@@ -14,7 +14,9 @@ from polymarket_tui.ui.widgets.vim_table import VimDataTable
 def change_text(change: float | None) -> Text:
     if change is None:
         return Text("-", style="dim", justify="right")
-    style = UP if change > 0 else DOWN if change < 0 else "dim"
+    # Muted vs the full-strength UP/DOWN the order book uses for bid/ask, so a
+    # 24h delta reads as secondary context and doesn't compete with live prices.
+    style = f"dim {UP}" if change > 0 else f"dim {DOWN}" if change < 0 else "dim"
     return Text(fmt.cents(change, signed=True), style=style, justify="right")
 
 
