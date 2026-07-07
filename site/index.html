@@ -207,7 +207,7 @@
   .keyrow .act { color: var(--dim); text-align: right; }
 
   /* ---- install ---- */
-  .split { display: grid; grid-template-columns: 3fr 2fr; gap: 0; border: 1px solid var(--line); margin: 0 0 56px; }
+  .split { display: grid; grid-template-columns: 1fr; gap: 0; border: 1px solid var(--line); margin: 0 0 56px; }
   .split > * { min-width: 0; }
   .install-left { padding: 26px 30px 30px; }
   .code-block { font-size: 12.5px; line-height: 1.9; }
@@ -227,9 +227,6 @@
   .copy.ok, .cmd:hover .copy.ok { color: var(--green); border-color: var(--green); }
   .install-note { margin: 22px 0 0; color: var(--faint); font-size: 12px; }
 
-  .install-right { border-left: 1px solid var(--line); padding: 26px 30px 30px; background: var(--bg-2); }
-  .install-right .sec-label { display: block; margin-bottom: 12px; }
-  .install-right p { color: var(--dim); font-size: 13px; margin: 0 0 18px; }
   .alink { color: var(--ink); font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; }
   .alink:hover { color: var(--accent); }
 
@@ -276,7 +273,6 @@
     .feats { grid-template-columns: 1fr; }
     .keys-wrap { grid-template-columns: 1fr; }
     .split { grid-template-columns: 1fr; }
-    .install-right { border-left: none; border-top: 1px solid var(--line); }
     .nav-links a:not(.gh) { display: none; }
     .manline .mid { display: none; }
   }
@@ -290,7 +286,8 @@
     <div class="nav-links">
       <a href="#features"><i>01</i> Features</a>
       <a href="#keys"><i>02</i> Keymap</a>
-      <a href="#install"><i>03</i> Install</a>
+      <a href="#access"><i>03</i> Access</a>
+      <a href="#install"><i>04</i> Install</a>
       <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
     </div>
   </div>
@@ -373,9 +370,24 @@
   </div>
 </section>
 
+<section id="access">
+  <div class="sec-head">
+    <span class="sec-label"><i>03</i>Access</span>
+    <h2>Nothing to sign up for</h2>
+    <p class="lead">Browsing needs no account at all. Add credentials only to see your own
+      portfolio or to trade &mdash; and trading stays dry-run until you say otherwise.
+      <a class="alink" href="https://github.com/byronxlg/polymarket-tui#account-setup" target="_blank" rel="noopener">Account setup &#8599;</a></p>
+  </div>
+  <div class="feats">
+    <div class="feat"><h3><span class="ix">none</span>Browse</h3><p>Markets, books, charts, trades, and any trader's public positions &mdash; read-only, no credentials.</p></div>
+    <div class="feat"><h3><span class="ix">address</span>Observe</h3><p>Add your funder address to follow your own positions, cash, and profit history.</p></div>
+    <div class="feat"><h3><span class="ix">key</span>Trade</h3><p>Add a private key to place orders. Every session is <span class="dry">DRY</span> until you explicitly go LIVE.</p></div>
+  </div>
+</section>
+
 <section id="install">
   <div class="sec-head">
-    <span class="sec-label"><i>03</i>Install</span>
+    <span class="sec-label"><i>04</i>Install</span>
     <h2>Four ways to install</h2>
     <p class="lead">Python 3.12+. On PyPI and Homebrew; the curl script installs <code>uv</code> for you if it is missing.</p>
   </div>
@@ -390,13 +402,6 @@
       <span class="cmt"># from source</span>
       <div class="cmd"><span class="p">$</span><pre id="c3">git clone https://github.com/byronxlg/polymarket-tui
 cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><button class="copy" data-c="c3">copy</button></div>
-    </div>
-    <div class="install-right">
-      <span class="sec-label">Read-only without an account</span>
-      <p>Markets, books, charts, trades, and any trader's public positions work with
-        no credentials at all. Add a funder address to observe your own portfolio,
-        or a private key to trade &mdash; dry-run until you explicitly go LIVE.</p>
-      <a class="alink" href="https://github.com/byronxlg/polymarket-tui#account-setup" target="_blank" rel="noopener">Account setup &#8599;</a>
     </div>
   </div>
 </section>
