@@ -26,6 +26,7 @@ from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier,
 from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
+    ACTIVITY_SPACIOUS_TIER_COLUMNS,
     ACTIVITY_TIER_COLUMNS,
     POSITIONS_SPACIOUS_TIER_COLUMNS,
     POSITIONS_TIER_COLUMNS,
@@ -59,6 +60,37 @@ ORDERS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
         ("price", "Price", 7),
     ),
 }
+
+# Spacious orders re-compose like positions: side/outcome/filled/placed fold
+# into a dim second line under the market title; the limit price and size (the
+# numbers a resting order is defined by) stay as their own columns.
+ORDERS_SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("market", "Market", 50),
+        ("price", "Price", 7),
+        ("size", "Size", 8),
+    ),
+    "medium": (
+        ("market", "Market", 40),
+        ("price", "Price", 7),
+        ("size", "Size", 8),
+    ),
+    "compact": (
+        ("market", "Market", 28),
+        ("price", "Price", 7),
+    ),
+}
+
+
+def _order_meta(order: OpenOrder) -> str:
+    """The dim second line of a spacious order row:
+    BUY Yes · 200 filled · placed Jul 05 14:32."""
+    parts = [f"{order.side} {order.outcome or '-'}".strip()]
+    if order.size_matched:
+        parts.append(f"{order.size_matched:,.0f} filled")
+    if order.when:
+        parts.append(f"placed {order.when.astimezone().strftime('%b %d %H:%M')}")
+    return " · ".join(parts)
 
 
 def _pane_of(widget) -> PortfolioPane | None:
@@ -177,14 +209,26 @@ class PortfolioPane(TierAware, Vertical):
             return POSITIONS_SPACIOUS_TIER_COLUMNS
         return POSITIONS_TIER_COLUMNS
 
+    def _ord_columns(self) -> dict[Tier, tuple]:
+        """Open-orders column sets for the current density (spacious re-composes rows)."""
+        if self.app.density == "spacious":
+            return ORDERS_SPACIOUS_TIER_COLUMNS
+        return ORDERS_TIER_COLUMNS
+
+    def _act_columns(self) -> dict[Tier, tuple]:
+        """History column sets for the current density (spacious re-composes rows)."""
+        if self.app.density == "spacious":
+            return ACTIVITY_SPACIOUS_TIER_COLUMNS
+        return ACTIVITY_TIER_COLUMNS
+
     def on_mount(self) -> None:
         self.query_one("#cancel-strip", Static).display = False
         self.query_one("#lost-note", Static).display = False
         self._rendered_density = self.app.density
         self._pos_spec = list(self._pos_columns()[self.tier])
         self._pos_tier = self.tier
-        self._ord_spec = list(ORDERS_TIER_COLUMNS[self.tier])
-        self._act_spec = list(ACTIVITY_TIER_COLUMNS[self.tier])
+        self._ord_spec = list(self._ord_columns()[self.tier])
+        self._act_spec = list(self._act_columns()[self.tier])
         self._build_columns()
         # Tab strip inside TabbedContent should not trap focus/arrow keys.
         for tabs in self.query("Tabs"):
@@ -233,13 +277,15 @@ class PortfolioPane(TierAware, Vertical):
         if width <= 0:
             return
         pos_columns = self._pos_columns()
+        ord_columns = self._ord_columns()
+        act_columns = self._act_columns()
         pos_tier = effective_tier(self.tier, width, pos_columns)
-        ord_tier = effective_tier(self.tier, width, ORDERS_TIER_COLUMNS)
-        act_tier = effective_tier(self.tier, width, ACTIVITY_TIER_COLUMNS)
+        ord_tier = effective_tier(self.tier, width, ord_columns)
+        act_tier = effective_tier(self.tier, width, act_columns)
         pos_flex = max((len(p.title) for p in self._positions), default=0) or None
         pos_spec = fit_columns(pos_columns[pos_tier], width, "market", pos_flex)
-        ord_spec = fit_columns(ORDERS_TIER_COLUMNS[ord_tier], width, "market")
-        act_spec = fit_columns(ACTIVITY_TIER_COLUMNS[act_tier], width, "market")
+        ord_spec = fit_columns(ord_columns[ord_tier], width, "market")
+        act_spec = fit_columns(act_columns[act_tier], width, "market")
         if (pos_spec, ord_spec, act_spec) == (
             self._pos_spec,
             self._ord_spec,
@@ -365,12 +411,18 @@ class PortfolioPane(TierAware, Vertical):
         table.clear()
         titles = self._order_titles_cache
         widths = {key: width for key, _, width in self._ord_spec}
+        spacious = self.app.density == "spacious"
+        height = 2 if spacious else 1
+        w = widths["market"]
         for order in self._orders:
-            title = fmt.trunc(
-                titles.get(order.market, order.market[:20] + "…"), widths["market"]
-            )
+            title_text = titles.get(order.market, order.market[:20] + "…")
+            if spacious:
+                market: object = Text(fmt.trunc(title_text, w))
+                market.append("\n" + fmt.trunc(_order_meta(order), w), style="dim")
+            else:
+                market = fmt.trunc(title_text, w)
             cells = {
-                "market": title,
+                "market": market,
                 "side": Text(order.side, style=UP if order.side == "BUY" else DOWN),
                 "outcome": order.outcome or "-",
                 "price": fmt.cents(order.price),
@@ -378,7 +430,9 @@ class PortfolioPane(TierAware, Vertical):
                 "filled": f"{order.size_matched:,.0f}",
                 "placed": order.when.astimezone().strftime("%b %d %H:%M") if order.when else "-",
             }
-            table.add_row(*(cells[key] for key, _, _ in self._ord_spec), key=order.id)
+            table.add_row(
+                *(cells[key] for key, _, _ in self._ord_spec), key=order.id, height=height
+            )
         table.refresh_bindings()  # the x-cancel hint gates on row_count
 
     async def _order_titles(self, orders: list[OpenOrder]) -> dict[str, str]:
@@ -414,10 +468,15 @@ class PortfolioPane(TierAware, Vertical):
     def _render_history(self) -> None:
         table = self.query_one("#history-table", VimDataTable)
         table.clear()
+        density = self.app.density
+        height = 2 if density == "spacious" else 1
         for i, item in enumerate(self._history_items):
             table.add_row(
-                *activity_row(item, compact_size=False, columns=self._act_spec),
+                *activity_row(
+                    item, compact_size=False, columns=self._act_spec, density=density
+                ),
                 key=f"{i}|{item.slug}",
+                height=height,
             )
 
     # -- actions ---------------------------------------------------------------

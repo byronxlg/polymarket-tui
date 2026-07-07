@@ -173,6 +173,42 @@ ACTIVITY_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     ),
 }
 
+# Spacious activity re-composes the row the same way positions do: the
+# when/type/side/outcome/price/size columns fold into a dim second line
+# under the market title and the freed width goes to full titles. USDC (the
+# trade's notional - the money) stays as its own column.
+ACTIVITY_SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("market", "Market", 56),
+        ("usdc", "USDC", 10),
+    ),
+    "medium": (
+        ("market", "Market", 42),
+        ("usdc", "USDC", 10),
+    ),
+    "compact": (
+        ("market", "Market", 28),
+        ("usdc", "USDC", 10),
+    ),
+}
+
+
+def activity_meta(item: ActivityItem) -> str:
+    """The dim second line of a spacious activity row:
+    Jul 05 14:32 · BUY Yes @ 33.4c · 1.2K sh.
+
+    Buy/sell is muted here (design principle: side reads secondary to the
+    outcome); the notional stays in the USDC column beside it."""
+    when = item.when.astimezone().strftime("%b %d %H:%M")
+    action = item.side or item.type  # TRADE rows carry BUY/SELL; others their type
+    label = f"{action} {item.outcome}".strip() if item.outcome else action
+    if item.type == "TRADE" and item.price:
+        label += f" @ {fmt.cents(item.price)}"
+    parts = [when, label]
+    if item.size:
+        parts.append(f"{fmt.compact_size(item.size)} sh")
+    return " · ".join(p for p in parts if p)
+
 
 def setup_activity_columns(
     table: VimDataTable,
@@ -200,14 +236,23 @@ def activity_row(
     compact_size: bool = True,
     tier: Tier = "full",
     columns: list | None = None,
+    density: str = "condensed",
 ) -> list:
     if columns is None:
         columns = (
-            _activity_full_columns(market_width, 10)
+            ACTIVITY_SPACIOUS_TIER_COLUMNS[tier]
+            if density == "spacious"
+            else _activity_full_columns(market_width, 10)
             if tier == "full"
             else ACTIVITY_TIER_COLUMNS[tier]
         )
     widths = {key: width for key, _, width in columns}
+    if density == "spacious":
+        w = widths["market"]
+        market = Text(fmt.trunc(item.title, w))
+        market.append("\n" + fmt.trunc(activity_meta(item), w), style="dim")
+        cells = {"market": market, "usdc": fmt.money(item.usdc_size)}
+        return [cells[key] for key, _, _ in columns]
     if not item.size:
         size = "-"
     elif compact_size:
