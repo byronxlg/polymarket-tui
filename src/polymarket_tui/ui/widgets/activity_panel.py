@@ -49,10 +49,10 @@ class ActivityPanel(Vertical):
     }
     /* Cursor legible in both states; $primary tint adapts to the active theme. */
     ActivityPanel CommentList > .option-list--option-highlighted {
-        background: $primary 15%;
+        background: $primary 8%;
     }
     ActivityPanel CommentList:focus > .option-list--option-highlighted {
-        background: $primary 35%;
+        background: $primary 18%;
     }
     """
 
