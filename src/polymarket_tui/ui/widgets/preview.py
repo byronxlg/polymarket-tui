@@ -1,10 +1,9 @@
-"""Events browser: table plus a preview panel for the highlighted/hovered event."""
+"""Events browser: table plus a preview panel for the highlighted event."""
 
 from __future__ import annotations
 
 from rich.text import Text
 from textual.containers import Horizontal, VerticalScroll
-from textual.events import MouseMove
 from textual.widgets import DataTable, Static
 
 from polymarket_tui.core import fmt
@@ -141,7 +140,7 @@ class EventPreview(Static):
 
 
 class EventsBrowser(Horizontal):
-    """EventsTable with a side preview that follows the cursor and mouse hover."""
+    """EventsTable with a side preview that follows the cursor."""
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -173,12 +172,3 @@ class EventsBrowser(Horizontal):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         if event.row_key is not None:
             self._preview_slug(str(event.row_key.value))
-
-    def on_mouse_move(self, event: MouseMove) -> None:
-        hover_row = self.table.hover_row
-        if hover_row is not None and 0 <= hover_row < self.table.row_count:
-            try:
-                key = self.table.coordinate_to_cell_key((hover_row, 0)).row_key
-            except Exception:
-                return
-            self._preview_slug(str(key.value))
