@@ -231,16 +231,6 @@ PriceChartPanel {
     width: 1fr;
 }
 
-#rules-rail {
-    width: 36;
-    border: solid $panel-lighten-2;
-    padding: 0 1;
-}
-
-#rules-rail #rules-scroll {
-    height: 1fr;
-}
-
 #trades-rail #trades-title {
     height: 1;
 }
@@ -255,12 +245,6 @@ PriceChartPanel {
     border: solid $panel-lighten-2;
     padding: 0 1;
     display: none;
-}
-
-#market-chart-strip ActivityPanel,
-#event-chart-pane ActivityPanel {
-    height: 1fr;
-    border-top: none;
 }
 
 #interval-tabs {
@@ -487,7 +471,6 @@ App.density-spacious #market-chart-strip {
 }
 
 App.density-spacious #trades-rail,
-App.density-spacious #rules-rail,
 App.density-spacious #market-overview-pane,
 App.density-spacious #trader-overview-pane {
     padding: 1 2;

@@ -34,7 +34,6 @@ from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import Tier, TierAware
-from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.book_panel import BookPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
@@ -206,8 +205,8 @@ class MarketPane(TierAware, Vertical):
         Binding("b", "order('BUY')", "buy", show=False),
         Binding("s", "order('SELL')", "sell"),
         Binding("a", "toggle_trades", "trades"),
-        Binding("i", "toggle_rules", "rules"),
-        Binding("c", "toggle_activity('comments')", "comments", show=False),
+        Binding("i", "rules", "rules"),
+        Binding("c", "comments", "comments", show=False),
         # tab cycles the screen's primary selector - here that is the
         # outcome pair (binary, so both directions flip). Timeframe, being
         # history, demotes to t.
@@ -238,7 +237,6 @@ class MarketPane(TierAware, Vertical):
         self._history: list = []
         self._book = None
         self._trades_expanded = False
-        self._rules_visible = False
         self._pending_order_side = order_side  # open the order panel once the book arrives
         self._pending_order_size = order_size  # prefill (cashout: the full position)
         self._my_positions: list = []  # your holdings here (load_position)
@@ -281,13 +279,6 @@ class MarketPane(TierAware, Vertical):
                 yield Static(id="market-cancel-strip")
                 yield Static(" TRADES (a expands)", classes="screen-title", id="trades-title")
                 yield TradesTable(compact=True, id="trades-table")
-            with Vertical(id="rules-rail"):
-                yield Static(" RULES", classes="screen-title")
-                rules = VerticalScroll(
-                    Static(self._rules_text(), id="rules-text"), id="rules-scroll"
-                )
-                rules.can_focus = False
-                yield rules
             overview = VerticalScroll(
                 TraderOverview(id="market-trader-overview"), id="market-overview-pane"
             )
@@ -298,7 +289,6 @@ class MarketPane(TierAware, Vertical):
             tabs.can_focus = False
             yield tabs
             yield PriceChartPanel(id="price-chart")
-            yield ActivityPanel(id="comments-panel")
         yield Static(self._info_line(), id="market-info", classes="subtle")
 
     def focus_inner(self) -> None:
@@ -314,24 +304,19 @@ class MarketPane(TierAware, Vertical):
         """Only advertise (and honor) keys whose effect is visible right now.
 
         At compact every panel except the outcome list is hidden, so the
-        order/trades/rules/chart keys would act on invisible widgets -
-        space used to open the order panel with focus in a hidden price
-        field. `i` also changes nothing while the rules rail is auto-shown
-        (wide terminals, see _apply_visibility), the trades view is
-        expanded, or an order is open.
+        order/trades/chart keys would act on invisible widgets - space used
+        to open the order panel with focus in a hidden price field. Comments
+        and rules are pop-outs (overlays over the whole pane), so they stay
+        available at every tier.
         """
         if self.tier == "compact" and action in (
             "order",
             "enter_key",
             "toggle_trades",
-            "toggle_rules",
             "cycle_interval",
-            "toggle_activity",
         ):
             return False
-        if action in ("toggle_trades", "toggle_rules") and self._order_panel_open():
-            return False
-        if action == "toggle_rules" and (self._trades_expanded or self.size.width >= 170):
+        if action == "toggle_trades" and self._order_panel_open():
             return False
         if action in ("order", "enter_key") and self._market.closed:
             return False  # nothing to place on a resolved market
@@ -406,11 +391,6 @@ class MarketPane(TierAware, Vertical):
         self.query_one("#market-left").display = not expanded
         self.query_one("#book-pane").display = not compact and not expanded
         self.query_one("#market-overview-pane").display = expanded
-        self.query_one("#rules-rail").display = (
-            not compact
-            and not expanded
-            and (self._rules_visible or self.size.width >= 170)
-        )
         rail = self.query_one("#trades-rail")
         rail.set_class(expanded, "expanded")
         rail.display = expanded or not compact
@@ -523,13 +503,12 @@ class MarketPane(TierAware, Vertical):
         out.append("\n(O opens this market on the web)", style="dim")
         self.query_one(BookPanel).show_notice(out)
 
-    def _rules_text(self) -> Text:
+    def _rules_body(self) -> str:
+        """Raw resolution text for the rules pop-out - market first, then event."""
         desc = (self._market.description or "").strip()
         if not desc and self._event is not None:
             desc = (self._event.description or "").strip()
-        if not desc:
-            return Text("no rules provided", style="dim")
-        return Text(desc, style="dim")
+        return desc
 
     def _info_line(self) -> str:
         m = self._market
@@ -569,7 +548,6 @@ class MarketPane(TierAware, Vertical):
         self.focus_inner()
         self.tier_ready()
         self._schedule_refit()
-        self.query_one(ActivityPanel).configure(self._market, self._event)
         self.load_trades()
         self.set_interval(5.0, self.load_trades)
         self.load_history()
@@ -951,10 +929,13 @@ class MarketPane(TierAware, Vertical):
             return  # pane torn down while we fetched
         self.query_one(TradesTable).set_trades(trades)
 
-    def action_toggle_rules(self) -> None:
-        self._rules_visible = not self._rules_visible
-        self._apply_visibility()
-        self._schedule_refit()
+    def action_rules(self) -> None:
+        """i opens the resolution rules in a reading pop-out."""
+        self.app.open_rules(f"RULES - {self._market.question.strip()}", self._rules_body())
+
+    def action_comments(self) -> None:
+        """c opens the event's comment thread in a reading pop-out."""
+        self.app.open_comments(self._event)
 
     def action_toggle_trades(self) -> None:
         self._set_trades_expanded(not self._trades_expanded)
@@ -998,12 +979,6 @@ class MarketPane(TierAware, Vertical):
         if panel.is_open:
             panel.close()
             return True
-        # Comments open in the chart strip step out like the trades view.
-        activity = self.query_one(ActivityPanel)
-        if activity.mode is not None:
-            activity.close()
-            self._sync_activity()
-            return True
         # In the order book, esc steps back to the outcome table before the pane.
         if self.query_one(BookPanel).has_focus:
             self.query_one(OutcomesToggle).focus()
@@ -1014,20 +989,6 @@ class MarketPane(TierAware, Vertical):
             self._set_trades_expanded(False)
             return True
         return False
-
-    def action_toggle_activity(self, mode: str) -> None:
-        """c toggles comments into the chart strip; chart hides while shown."""
-        self.query_one(ActivityPanel).toggle(mode)
-        self._sync_activity()
-
-    def _sync_activity(self) -> None:
-        """Chart yields to the activity panel; on close, focus returns inward.
-        The panel focuses its own comment list once the comments load."""
-        showing = self.query_one(ActivityPanel).mode is not None
-        self.query_one("#interval-tabs", Tabs).display = not showing
-        self.query_one(PriceChartPanel).display = not showing
-        if not showing:
-            self.focus_inner()
 
     def action_open_event(self) -> None:
         if self._event is not None:

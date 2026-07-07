@@ -32,6 +32,31 @@ effective_tier() picks the widest column set that fits the measured width
 and fit_columns() shrinks the primary text column for small deficits. A
 pane must never render clipped columns.
 
+### Surfaces: modal vs pane vs rail
+
+A modal is a dead-end you return from; a drill pane is a place you go.
+Pick the surface for a new piece of content by asking, in order:
+
+1. When you're done, do you return to exactly where you were, or move on?
+   Move on / can drill onward from it -> a NavHost drill pane (on the trail,
+   left/esc steps out). Return unchanged, trail untouched -> an overlay; ask 2.
+2. Do you need it visible WHILE acting on the prices/money, or does it take
+   your whole attention for a burst? Alongside -> a rail or pane (cursor-
+   following, never steals focus). Whole attention -> a modal pop-out.
+3. (alongside branch) Does it share one body slot with a peer you flip
+   between? Yes -> an inline toggle in that slot. No, always-on context ->
+   a rail.
+
+Cost gate on modals: a ModalScreen cuts the global binding chain (rebind
+what you still need, e.g. R), dims the screen, and cannot be drilled onward
+from. Default to rail/pane and earn the modal - use it only for a dead-end
+lookup that wants the full width and returns you exactly where you were.
+Worked examples: comments and rules are reading pop-outs (ReaderModal);
+related siblings are a list pop-out (RelatedModal); the live trades tape is
+a rail (context beside the book); `e` opens the parent event as a drill
+pane (a place, not a peek). Related and `e` sit in the same neighbourhood -
+the rule tells them apart: siblings are transient, the parent is a place.
+
 ## Keys: a small core, one meaning each
 
 - Arrows do everything first: up/down move and flow into adjacent panels
