@@ -927,11 +927,7 @@ class MarketPane(TierAware, Vertical):
                     "DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6
                 )
             elif result.ok:
-                # The /ws/user socket echoes a detailed "Order canceled: ..."
-                # toast; only announce here when it is down, or the cancel
-                # shows two alerts.
-                if not app.user_ws_connected:
-                    app.notify("Order cancelled")
+                app.notify("Order cancelled")
                 app.portfolio.invalidate()
                 app.refresh_account_status()
             else:
@@ -1002,6 +998,12 @@ class MarketPane(TierAware, Vertical):
         if panel.is_open:
             panel.close()
             return True
+        # Comments open in the chart strip step out like the trades view.
+        activity = self.query_one(ActivityPanel)
+        if activity.mode is not None:
+            activity.close()
+            self._sync_activity()
+            return True
         # In the order book, esc steps back to the outcome table before the pane.
         if self.query_one(BookPanel).has_focus:
             self.query_one(OutcomesToggle).focus()
@@ -1015,27 +1017,23 @@ class MarketPane(TierAware, Vertical):
 
     def action_toggle_activity(self, mode: str) -> None:
         """c toggles comments into the chart strip; chart hides while shown."""
-        panel = self.query_one(ActivityPanel)
-        panel.toggle(mode)
-        showing = panel.mode is not None
+        self.query_one(ActivityPanel).toggle(mode)
+        self._sync_activity()
+
+    def _sync_activity(self) -> None:
+        """Chart yields to the activity panel; on close, focus returns inward.
+        The panel focuses its own comment list once the comments load."""
+        showing = self.query_one(ActivityPanel).mode is not None
         self.query_one("#interval-tabs", Tabs).display = not showing
         self.query_one(PriceChartPanel).display = not showing
+        if not showing:
+            self.focus_inner()
 
     def action_open_event(self) -> None:
         if self._event is not None:
-            self._go_to_event(self._event)
+            self.app.open_event(self._event)
             return
         self._fetch_and_open_event()
-
-    def _go_to_event(self, event: Event) -> None:
-        """`e` steps up to the multi-outcome event view. A binary event has a
-        single market, so this pane already is that view - open_event would
-        route back to this same market and drill a duplicate level (breadcrumb
-        repeats, a bare YES/NO chip pane lands in the 30% slot). Say so."""
-        if event.is_binary:
-            self.notify("Single-market event - you're already viewing it", timeout=3)
-            return
-        self.app.open_event(event)
 
     @work(exclusive=True, group="open-event")
     async def _fetch_and_open_event(self) -> None:
@@ -1058,7 +1056,7 @@ class MarketPane(TierAware, Vertical):
             self.notify("No event found for this market", severity="warning")
             return
         self._event = event
-        self._go_to_event(event)
+        self.app.open_event(event)
 
     def action_related(self) -> None:
         if self._event is None:

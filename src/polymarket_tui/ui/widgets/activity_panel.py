@@ -1,42 +1,28 @@
 """Market activity / comments panel, shown below the chart on market screens.
 
-`a` shows live trades (polled), `c` shows event comments; pressing the active
-view's key again hides the panel.
+`c` shows event comments; pressing `c` again hides the panel. Comments are a
+focusable, cursored list (up/down to move, right/enter to open the author's
+profile). A polled live-trades text mode also exists but is not currently
+bound to a key on either screen.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from rich.text import Text
 from textual import work
-from textual.containers import VerticalScroll
+from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market
 from polymarket_tui.ui.liveness import alive
-from polymarket_tui.ui.theme import BLUE, DOWN, UP
+from polymarket_tui.ui.theme import DOWN, UP
+from polymarket_tui.ui.widgets.comment_list import CommentList
 
 TRADES_POLL_SECONDS = 5.0
 
 
-def _ago(dt: datetime) -> str:
-    if dt.tzinfo is None:
-        # API timestamps are UTC; a naive parse must not TypeError the
-        # aware-minus-naive subtraction below.
-        dt = dt.replace(tzinfo=UTC)
-    seconds = (datetime.now(UTC) - dt).total_seconds()
-    if seconds < 60:
-        return f"{seconds:.0f}s"
-    if seconds < 3600:
-        return f"{seconds / 60:.0f}m"
-    if seconds < 86400:
-        return f"{seconds / 3600:.0f}h"
-    return f"{seconds / 86400:.0f}d"
-
-
-class ActivityPanel(VerticalScroll):
+class ActivityPanel(Vertical):
     DEFAULT_CSS = """
     ActivityPanel {
         height: 40%;
@@ -48,17 +34,42 @@ class ActivityPanel(VerticalScroll):
     ActivityPanel.open {
         display: block;
     }
+    ActivityPanel #activity-scroll {
+        height: 100%;
+    }
+    ActivityPanel CommentList {
+        height: 100%;
+        background: transparent;
+        border: none;
+        padding: 0;
+        scrollbar-size-vertical: 1;
+    }
+    ActivityPanel CommentList > .option-list--option {
+        padding: 0 1 1 1;
+    }
+    /* Cursor legible in both states; $primary tint adapts to the active theme. */
+    ActivityPanel CommentList > .option-list--option-highlighted {
+        background: $primary 15%;
+    }
+    ActivityPanel CommentList:focus > .option-list--option-highlighted {
+        background: $primary 35%;
+    }
     """
 
     can_focus = False
 
     def __init__(self, **kwargs) -> None:
-        super().__init__(Static(id="activity-body"), **kwargs)
+        super().__init__(**kwargs)
         self._market: Market | None = None
         self._event: Event | None = None
         self._mode: str | None = None  # "trades" | "comments" | None (hidden)
 
+    def compose(self):
+        yield VerticalScroll(Static(id="activity-body"), id="activity-scroll")
+        yield CommentList(id="activity-comments")
+
     def on_mount(self) -> None:
+        self.query_one("#activity-comments", CommentList).display = False
         self.set_interval(TRADES_POLL_SECONDS, self._poll)
 
     def configure(self, market: Market | None, event: Event | None) -> None:
@@ -72,13 +83,27 @@ class ActivityPanel(VerticalScroll):
 
     def toggle(self, mode: str) -> None:
         if self._mode == mode:
-            self._mode = None
-            self.remove_class("open")
+            self.close()
             return
         self._mode = mode
         self.add_class("open")
-        self.query_one("#activity-body", Static).update(Text("loading...", style="dim"))
+        self._show_text(Text("loading...", style="dim"))
         self.refresh_content()
+
+    def close(self) -> None:
+        self._mode = None
+        self.remove_class("open")
+
+    def focus_list(self) -> None:
+        clist = self.query_one("#activity-comments", CommentList)
+        if clist.display and clist.option_count:
+            clist.focus()
+
+    def _show_text(self, content: Text) -> None:
+        """Route status/trade text to the scroll surface; hide the comment list."""
+        self.query_one("#activity-comments", CommentList).display = False
+        self.query_one("#activity-scroll", VerticalScroll).display = True
+        self.query_one("#activity-body", Static).update(content)
 
     def _poll(self) -> None:
         if self._mode == "trades":
@@ -94,15 +119,14 @@ class ActivityPanel(VerticalScroll):
             await self._load_comments()
 
     async def _load_trades(self) -> None:
-        body = self.query_one("#activity-body", Static)
         if self._market is None or not self._market.condition_id:
-            body.update(Text("no market id for trades", style="dim"))
+            self._show_text(Text("no market id for trades", style="dim"))
             return
         try:
             trades = await self.app.data.market_trades(self._market.condition_id)
         except Exception as exc:
             if alive(self):
-                body.update(Text(f"trades unavailable: {exc}", style="dim"))
+                self._show_text(Text(f"trades unavailable: {exc}", style="dim"))
             return
         if not alive(self):
             return  # host pane torn down while we fetched
@@ -119,12 +143,11 @@ class ActivityPanel(VerticalScroll):
             out.append(f"  {fmt.trunc(trade.trader, 20)}\n", style="dim")
         if not trades:
             out.append("no recent trades\n", style="dim")
-        body.update(out)
+        self._show_text(out)
 
     async def _load_comments(self) -> None:
-        body = self.query_one("#activity-body", Static)
         if self._event is None or not self._event.id:
-            body.update(Text("comments live on the event - none linked here", style="dim"))
+            self._show_text(Text("comments live on the event - none linked here", style="dim"))
             return
         # Recurring/grouped events (Fed, daily Bitcoin, World Cup matches) thread
         # their comments on the series, not the daily event; standalone events
@@ -137,25 +160,15 @@ class ActivityPanel(VerticalScroll):
                 comments = await self.app.gamma.comments(self._event.id)
         except Exception as exc:
             if alive(self):
-                body.update(Text(f"comments unavailable: {exc}", style="dim"))
+                self._show_text(Text(f"comments unavailable: {exc}", style="dim"))
             return
-        if not alive(self):
-            return  # host pane torn down while we fetched
-        out = Text()
-        out.append("COMMENTS  (newest first, c to hide)\n", style="bold")
-        for comment in comments:
-            profile = comment.get("profile") or {}
-            name = profile.get("name") or profile.get("pseudonym") or "anon"
-            created = str(comment.get("createdAt") or "")  # null-safe
-            when = ""
-            try:
-                when = _ago(datetime.fromisoformat(created.replace("Z", "+00:00")))
-            except ValueError:
-                pass
-            out.append(f"{fmt.trunc(name, 22)} ", style=BLUE)
-            out.append(f"{when}\n", style="dim")
-            text = (comment.get("body") or "").strip().replace("\n", " ")
-            out.append(f"  {fmt.trunc(text, 400)}\n", style="")
+        if not alive(self) or self._mode != "comments":
+            return  # host pane torn down, or toggled away, while we fetched
         if not comments:
-            out.append("no comments yet\n", style="dim")
-        body.update(out)
+            self._show_text(Text("no comments yet", style="dim"))
+            return
+        clist = self.query_one("#activity-comments", CommentList)
+        self.query_one("#activity-scroll", VerticalScroll).display = False
+        clist.display = True
+        clist.set_comments(comments)
+        clist.focus()
