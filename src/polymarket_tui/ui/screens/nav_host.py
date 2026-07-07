@@ -81,6 +81,20 @@ class NavHost(Screen):
         """
         self._fullscreen = False  # navigation returns to the normal split
         key = getattr(pane, "drill_key", None)
+        # `e` appends the parent event as a CHILD of the market it belongs to,
+        # leaving an inverted [.., market, event] segment in the trail.
+        # Drilling a market from that event - any row, including the one we
+        # arrived on - must treat the event as the parent: drop the orphan
+        # market so the trail reads [.., event, market] and the fresh market
+        # takes the 70% slot. Otherwise the reuse branch below steps focus
+        # back to that market and it lands in the 30% slot as a bare YES/NO
+        # strip with the event filling 70% - the inverted layout Byron hit
+        # from Portfolio -> market -> e -> event -> market (2026-07-08).
+        if self._is_inverted_event_parent(self._pane_kinds(), self._focus, key):
+            self._discard(self._panes[self._focus - 1])
+            del self._panes[self._focus - 1]
+            del self._crumbs[self._focus - 1]
+            self._focus -= 1
         if reuse and key is not None and self._focus + 1 < len(self._panes):
             existing = self._panes[self._focus + 1]
             if getattr(existing, "drill_key", None) == key:
@@ -109,6 +123,28 @@ class NavHost(Screen):
         self._focus = len(self._panes) - 1
         self._left = self._focus if solo else self._focus - 1
         self._reflow()
+
+    def _pane_kinds(self) -> list[str | None]:
+        """The drill_key kind ('market'/'event'/'user') of each open pane."""
+        return [self._kind(getattr(p, "drill_key", None)) for p in self._panes]
+
+    @staticmethod
+    def _kind(key: object) -> str | None:
+        return key[0] if isinstance(key, tuple) and key else None
+
+    @staticmethod
+    def _is_inverted_event_parent(
+        kinds: list[str | None], focus: int, new_key: object
+    ) -> bool:
+        """True when we're drilling a market from an event whose trail-parent
+        is a market - the inverted [.., market, event] segment `e` leaves
+        behind. See drill() for why that segment gets collapsed."""
+        return (
+            NavHost._kind(new_key) == "market"
+            and focus > 0
+            and kinds[focus] == "event"
+            and kinds[focus - 1] == "market"
+        )
 
     def handle_back(self) -> bool:
         """left/esc: pane-internal step-out first, then cross-pane viewport.
