@@ -126,8 +126,15 @@ class ActivityPanel(VerticalScroll):
         if self._event is None or not self._event.id:
             body.update(Text("comments live on the event - none linked here", style="dim"))
             return
+        # Recurring/grouped events (Fed, daily Bitcoin, World Cup matches) thread
+        # their comments on the series, not the daily event; standalone events
+        # keep the comments on the event itself. See GammaClient.comments.
+        series = self._event.primary_series
         try:
-            comments = await self.app.gamma.comments(self._event.id)
+            if series and series.id:
+                comments = await self.app.gamma.comments(series.id, entity_type="Series")
+            else:
+                comments = await self.app.gamma.comments(self._event.id)
         except Exception as exc:
             if alive(self):
                 body.update(Text(f"comments unavailable: {exc}", style="dim"))
