@@ -29,6 +29,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
+from polymarket_tui.services.orders import price_decimals
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
@@ -44,7 +45,8 @@ from polymarket_tui.ui.widgets.trades_table import TradesTable
 
 BOOK_POLL_SECONDS = 3.0
 
-CHIP_WIDTH = 18  # each YES/NO chip; two side-by-side + a 2-col gap = 38
+CHIP_MIN_WIDTH = 18  # below two of these + the gap, the chips stack
+CHIP_GAP = 2
 
 
 class OutcomesToggle(Static):
@@ -135,7 +137,7 @@ class OutcomesToggle(Static):
 
     # -- rendering ----------------------------------------------------------
 
-    def _chip(self, idx: int) -> Panel:
+    def _chip(self, idx: int, width: int) -> Panel:
         m = self._market
         names = m.outcomes or ["Yes", "No"]
         label = names[idx] if idx < len(names) else ("Yes", "No")[idx]
@@ -157,22 +159,28 @@ class OutcomesToggle(Static):
             border_style=BLUE if selected else "dim",
             box=box.HEAVY if selected else box.ROUNDED,
             style="" if selected else "dim",
-            width=CHIP_WIDTH,
+            width=width,
             height=3,
             padding=(0, 1),
         )
 
     def render(self) -> RenderableType:
+        # The pair splits the measured width (the book below sets the column's
+        # visual width - fixed chips left a ragged gap beside it); too narrow
+        # for two minimum chips, they stack full-width instead.
+        total = self.size.width or 80
         grid = Table.grid()
-        if (self.size.width or 80) < 2 * CHIP_WIDTH + 2:
+        if total < 2 * CHIP_MIN_WIDTH + CHIP_GAP:
             grid.add_column()
-            grid.add_row(self._chip(0))
-            grid.add_row(self._chip(1))
+            grid.add_row(self._chip(0, total))
+            grid.add_row(self._chip(1, total))
         else:
+            half = (total - CHIP_GAP) // 2
             grid.add_column()
-            grid.add_column(width=2)  # gap
+            grid.add_column(width=CHIP_GAP)  # gap
             grid.add_column()
-            grid.add_row(self._chip(0), "", self._chip(1))
+            # Odd leftover column goes to the NO chip so the pair spans total.
+            grid.add_row(self._chip(0, half), "", self._chip(1, total - CHIP_GAP - half))
         return grid
 
     def on_resize(self) -> None:
@@ -200,8 +208,12 @@ class MarketPane(TierAware, Vertical):
         Binding("a", "toggle_trades", "trades"),
         Binding("i", "toggle_rules", "rules"),
         Binding("c", "toggle_activity('comments')", "comments", show=False),
-        Binding("tab", "cycle_interval(1)", "timeframe"),
-        Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
+        # tab cycles the screen's primary selector - here that is the
+        # outcome pair (binary, so both directions flip). Timeframe, being
+        # history, demotes to t.
+        Binding("tab", "flip_outcome", "yes/no"),
+        Binding("shift+tab", "flip_outcome", "flip outcome", show=False),
+        Binding("t", "cycle_interval(1)", "timeframe"),
         Binding("r", "related", "related", show=False),
         Binding("O", "open_web", "web", show=False, key_display="O"),
         Binding("e", "open_event", "event", show=False),
@@ -290,7 +302,13 @@ class MarketPane(TierAware, Vertical):
         yield Static(self._info_line(), id="market-info", classes="subtle")
 
     def focus_inner(self) -> None:
-        self.query_one(OutcomesToggle).focus()
+        # The book is the default surface (actionable prices first, cursor
+        # starting at the mid); at compact the book is hidden, so the
+        # outcome chips take focus instead (hidden widgets swallow keys).
+        if self.tier == "compact":
+            self.query_one(OutcomesToggle).focus()
+        else:
+            self.query_one(BookPanel).focus()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         """Only advertise (and honor) keys whose effect is visible right now.
@@ -398,6 +416,10 @@ class MarketPane(TierAware, Vertical):
         rail.display = expanded or not compact
         self.query_one("#market-chart-strip").display = not compact
         self.query_one("#market-info").display = not compact
+        # The book holds default focus; if this pass just hid it (compact),
+        # a hidden-but-focused widget would swallow every key.
+        if compact and self.query_one(BookPanel).has_focus:
+            self.query_one(OutcomesToggle).focus()
 
     def on_outcomes_toggle_outcome_changed(self, message: OutcomesToggle.OutcomeChanged) -> None:
         self._apply_outcome(message.index)
@@ -425,6 +447,8 @@ class MarketPane(TierAware, Vertical):
         self._clear_pending_cancel()
         self._outcome_index = index
         self._book = None  # stale: belongs to the other outcome until load_book returns
+        # Depth explored on the old outcome's book does not carry over.
+        self.query_one(BookPanel).reset_depth()
         self.query_one(OrderPanel).set_outcome(self._outcome_index)
         self.query_one("#book-title", Static).update(self._book_header())
         # We subscribe to both tokens, so the flipped outcome's live book is
@@ -463,7 +487,7 @@ class MarketPane(TierAware, Vertical):
             return Text("RESOLUTION")
         head = Text(
             f"ORDER BOOK - {self._outcome_label().upper()}"
-            "  (down to browse - space: order  x: cancel)"
+            "  (space: order  x: cancel  m: mid)"
         )
         if self._channel is not None:
             badge = {
@@ -537,10 +561,12 @@ class MarketPane(TierAware, Vertical):
     def on_mount(self) -> None:
         self.query_one("#market-cancel-strip", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
+        # Book prices render at this market's tick (no 33.0c on a 1c tick).
+        self.query_one(BookPanel).set_price_decimals(price_decimals(self._market))
         # The toggle renders _outcome_index selected from birth (a cashout
         # opens straight onto the held side), so no cursor restore is needed.
         self._apply_visibility()
-        self.query_one(OutcomesToggle).focus()
+        self.focus_inner()
         self.tier_ready()
         self._schedule_refit()
         self.query_one(ActivityPanel).configure(self._market, self._event)
@@ -787,6 +813,10 @@ class MarketPane(TierAware, Vertical):
 
     # -- actions ----------------------------------------------------------------
 
+    def action_flip_outcome(self) -> None:
+        """tab: flip YES/NO - the outcome pair is this screen's primary selector."""
+        self.action_select_outcome(1 - self._outcome_index)
+
     def action_select_outcome(self, index: int) -> None:
         # A y/n leaking through while the order panel is up (the confirming
         # state keeps focus on the panel, whose bindings no longer shadow
@@ -952,7 +982,7 @@ class MarketPane(TierAware, Vertical):
             table.focus()
             self._refresh_trade_overview()
         else:
-            self.query_one(OutcomesToggle).focus()
+            self.focus_inner()
 
     def _refresh_trade_overview(self) -> None:
         trader = self.query_one(TradesTable).trader_at_cursor()
