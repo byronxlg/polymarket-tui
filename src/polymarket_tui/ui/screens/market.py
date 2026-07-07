@@ -927,7 +927,11 @@ class MarketPane(TierAware, Vertical):
                     "DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6
                 )
             elif result.ok:
-                app.notify("Order cancelled")
+                # The /ws/user socket echoes a detailed "Order canceled: ..."
+                # toast; only announce here when it is down, or the cancel
+                # shows two alerts.
+                if not app.user_ws_connected:
+                    app.notify("Order cancelled")
                 app.portfolio.invalidate()
                 app.refresh_account_status()
             else:

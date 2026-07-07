@@ -634,7 +634,11 @@ class PortfolioPane(TierAware, Vertical):
                     "DRY RUN: cancel not posted (set POLYMARKET_EXECUTION_LIVE=1)", timeout=6
                 )
             elif result.ok:
-                app.notify("Order cancelled")
+                # The /ws/user socket echoes a detailed "Order canceled: ..."
+                # toast; only announce here when it is down, or the cancel
+                # shows two alerts.
+                if not app.user_ws_connected:
+                    app.notify("Order cancelled")
                 # Freed reservation moves the header cash strip and cached
                 # order flags - same post-cancel refresh as the market pane.
                 app.portfolio.invalidate()

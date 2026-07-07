@@ -193,6 +193,17 @@ class PolymarketApp(App):
         self.user_channel = UserChannel(creds, self._on_user_event)
         self.user_channel.start()
 
+    @property
+    def user_ws_connected(self) -> bool:
+        """The /ws/user socket is live, so it will echo a detailed toast for
+        every own-order transition (see _on_user_event). Local place/cancel
+        handlers check this and skip their own confirmation toast when true -
+        otherwise a single action shows two alerts (the bare local one plus
+        the socket's detailed one). When the socket is down, the local toast
+        is the only feedback, so it still fires."""
+        ch = self.user_channel
+        return ch is not None and ch.connected
+
     def _on_user_event(self, kind: str, msg: object) -> None:
         """Own order/fill arrived over the socket: toast it and refresh open orders."""
         if kind == "order" and isinstance(msg, UserOrderMessage):
