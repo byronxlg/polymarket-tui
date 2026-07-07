@@ -35,13 +35,25 @@ DataTable {
 /* Cursor row: a clear blue tint on the focused table, a much fainter
    marker when blurred - matching how Textual gates its own block cursor on
    :focus. The old unscoped rule painted the bright tint on every table at
-   all times, defeating that. */
+   all times, defeating that.
+
+   The tint is the ONLY cursor signal: keep the row's text identical to a
+   normal row. Textual's default .datatable--cursor also sets
+   color: $block-cursor-foreground + a bold text-style, meant to sit on a
+   SOLID primary bar - on some themes (catppuccin-mocha: #1e1e2e) that is a
+   near-black which, over our faint tint, reads as inverted, low-contrast
+   text (and flattens the row's own Yes/No/PnL colours to dark). Restate the
+   normal foreground so the cursor row is never inverted. */
 DataTable > .datatable--cursor {
     background: $primary 12%;
+    color: $foreground;
+    text-style: none;
 }
 
 DataTable:focus > .datatable--cursor {
     background: $primary 25%;
+    color: $foreground;
+    text-style: none;
 }
 
 /* Navy restyle: headers are quiet uppercase labels, not inverse bars */
