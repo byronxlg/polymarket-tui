@@ -80,6 +80,10 @@ FooterKey.-global .footer-key--description {
 
 Toast {
     background: $panel;
+    /* Textual defaults to padding 1 1, a blank row above and below the
+       text - a one-line "Order placed" reads 3 rows tall. Drop the vertical
+       padding so alerts are a single row (title-less notifications only). */
+    padding: 0 1;
 }
 
 .screen-title {
