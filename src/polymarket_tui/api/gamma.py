@@ -71,13 +71,22 @@ class GammaClient:
             return None
         return Market.model_validate(data[0])
 
-    async def comments(self, event_id: str, limit: int = 40) -> list[dict]:
-        """Comments on an event, newest first. Returns raw dicts (body/createdAt/profile)."""
+    async def comments(
+        self, entity_id: str, *, entity_type: str = "Event", limit: int = 40
+    ) -> list[dict]:
+        """Comments on an entity, newest first. Returns raw dicts (body/createdAt/profile).
+
+        Polymarket threads comments on the *series*, not the daily event, for
+        anything recurring or tournament-grouped (Fed decisions, daily Bitcoin,
+        World Cup matches): member events carry 0 comments while the shared
+        series thread holds them all. Callers pass entity_type="Series" with the
+        series id in that case; standalone events keep the default Event scope.
+        """
         data = await self._get(
             "/comments",
             {
-                "parent_entity_type": "Event",
-                "parent_entity_id": event_id,
+                "parent_entity_type": entity_type,
+                "parent_entity_id": entity_id,
                 "limit": limit,
                 "order": "createdAt",
                 "ascending": "false",
