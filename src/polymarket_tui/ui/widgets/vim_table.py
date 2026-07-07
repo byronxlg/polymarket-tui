@@ -7,12 +7,25 @@ row raises TopReached so the screen can move focus to whatever sits above
 
 from __future__ import annotations
 
+from textual import events
 from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import DataTable
 
 
 class VimDataTable(DataTable):
+    def _on_mouse_move(self, event: events.MouseMove) -> None:
+        # Mouse hover must not move the cursor, tint a row, or drive previews.
+        # Suppress DataTable's built-in hover tracking entirely (no super call);
+        # clicking a row still selects it via _on_click / cursor_coordinate.
+        return
+
+    def _set_hover_cursor(self, active: bool) -> None:
+        # Keep the faint mouse-hover cursor permanently hidden - the keyboard/
+        # click cursor is the only cursor. Leaving _show_hover_cursor False means
+        # the datatable--hover component style never renders.
+        return
+
     def add_column(self, label, **kwargs):
         # Uppercase headers everywhere (navy restyle); styling is CSS's job.
         if isinstance(label, str):
