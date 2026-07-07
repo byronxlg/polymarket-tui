@@ -393,11 +393,26 @@ class EventPane(TierAware, Vertical):
 
     def action_toggle_activity(self, mode: str) -> None:
         """c toggles comments into the chart strip; chart hides while shown."""
-        panel = self.query_one(ActivityPanel)
-        panel.toggle(mode)
-        showing = panel.mode is not None
+        self.query_one(ActivityPanel).toggle(mode)
+        self._sync_activity()
+
+    def _sync_activity(self) -> None:
+        """Chart yields to the activity panel; on close, focus returns to the
+        markets table. The panel focuses its own comment list once loaded."""
+        showing = self.query_one(ActivityPanel).mode is not None
         self.query_one("#interval-tabs", Tabs).display = not showing
         self.query_one(PriceChartPanel).display = not showing
+        if not showing:
+            self.focus_inner()
+
+    def handle_back(self) -> bool:
+        """left/esc close the comments panel before stepping out of the pane."""
+        activity = self.query_one(ActivityPanel)
+        if activity.mode is not None:
+            activity.close()
+            self._sync_activity()
+            return True
+        return False
 
     def action_refresh(self) -> None:
         """The global r: event data, chart, and the order/holding flags."""

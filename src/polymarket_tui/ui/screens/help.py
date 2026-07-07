@@ -67,7 +67,7 @@ jumps straight into the market with the panel open |
 | y / n | market | jump straight to the YES / NO book |
 | a | market | expand the inline trades to full width (right opens the trader) |
 | i | market | show/hide the rules rail (auto-shown on wide terminals) |
-| c | market | comments in the chart strip |
+| c | event, market | comments in the chart strip; up/down to move, right/enter opens the author |
 | e | market | open the parent event |
 | r | event, market | related markets pop-out (series siblings for dailies); esc closes |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |

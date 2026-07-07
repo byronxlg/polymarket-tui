@@ -102,6 +102,22 @@ def date_abs(dt: datetime | None) -> str:
     return f"{dt:%b} {dt.day} {dt.year}"
 
 
+def ago(dt: datetime) -> str:
+    """Compact 'time since' (12s / 5m / 3h / 2d) for activity timestamps."""
+    if dt.tzinfo is None:
+        # API timestamps are UTC; a naive parse must not TypeError the
+        # aware-minus-naive subtraction below.
+        dt = dt.replace(tzinfo=UTC)
+    seconds = (datetime.now(UTC) - dt).total_seconds()
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    if seconds < 3600:
+        return f"{seconds / 60:.0f}m"
+    if seconds < 86400:
+        return f"{seconds / 3600:.0f}h"
+    return f"{seconds / 86400:.0f}d"
+
+
 def market_status(market: Market) -> str:
     """One lifecycle token, three states.
 
