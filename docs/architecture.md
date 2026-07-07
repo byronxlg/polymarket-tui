@@ -53,7 +53,7 @@ src/polymarket_tui/
     app.py               # PolymarketApp: global bindings, account strip, nav
     screens/
       home.py event.py market.py portfolio.py search.py watchlist.py
-      user.py related.py auth.py help.py
+      user.py related.py reader.py auth.py help.py
     widgets/
       app_header.py      # title + account strip + ms clock (20Hz)
       event_table.py     # EventsTable (shared list rows)
@@ -63,9 +63,9 @@ src/polymarket_tui/
       trades_table.py    # live trades, compact/full presets
       trader_overview.py # value + top positions for an address
       pnl_strip.py       # all-time profit chart strip (portfolio + trader profile)
+      comment_list.py    # event/series comments as a cursored list (ReaderModal)
       linechart.py       # smooth box-drawing chart renderer
       price_chart.py     # legend + chart panel with crosshair inspect
-      activity_panel.py  # comments feed (chart strip)
       confirm_modal.py   # y/esc confirmation with arming delay
       vim_table.py       # arrow-first DataTable (TopReached/BottomReached)
       tables.py          # shared positions-table columns/rows, pnl_text

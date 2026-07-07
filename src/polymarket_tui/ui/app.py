@@ -29,6 +29,7 @@ from polymarket_tui.ui.screens.help import HelpScreen
 from polymarket_tui.ui.screens.market import MarketPane
 from polymarket_tui.ui.screens.nav_host import NavHost
 from polymarket_tui.ui.screens.portfolio import PortfolioPane
+from polymarket_tui.ui.screens.reader import ReaderModal
 from polymarket_tui.ui.screens.related import RelatedModal
 from polymarket_tui.ui.screens.search import SearchScreen
 from polymarket_tui.ui.screens.user import UserPane
@@ -387,6 +388,19 @@ class PolymarketApp(App):
         """Related is a pop-out, not a drill level - esc returns unchanged."""
         if not isinstance(self.screen, RelatedModal):
             self.push_screen(RelatedModal(event))
+
+    def open_comments(self, event: Event | None) -> None:
+        """Comments are a reading pop-out, not a drill level - esc returns unchanged."""
+        if event is None or not event.id:
+            self.notify("No comments linked to this market", severity="warning")
+            return
+        if not isinstance(self.screen, ReaderModal):
+            self.push_screen(ReaderModal.comments(event))
+
+    def open_rules(self, title: str, body: str) -> None:
+        """Rules read like comments - a reading pop-out, esc returns unchanged."""
+        if not isinstance(self.screen, ReaderModal):
+            self.push_screen(ReaderModal.rules(title, body))
 
     def open_user(self, address: str, name: str) -> None:
         self._drill(UserPane(address, name), name)

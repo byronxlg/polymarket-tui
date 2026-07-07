@@ -29,7 +29,6 @@ from polymarket_tui.ui.tiers import (
     fit_columns,
     usable_width,
 )
-from polymarket_tui.ui.widgets.activity_panel import ActivityPanel
 from polymarket_tui.ui.widgets.event_table import change_text
 from polymarket_tui.ui.widgets.preview import MarketPreview
 from polymarket_tui.ui.widgets.price_chart import MAX_SERIES, PriceChartPanel
@@ -70,8 +69,8 @@ class EventPane(TierAware, Vertical):
 
     BINDINGS = [
         Binding("escape", "app.nav_back", "back"),
-        Binding("space", "toggle_info", "rules"),
-        Binding("c", "toggle_activity('comments')", "comments", show=False),
+        Binding("space", "rules", "rules"),
+        Binding("c", "comments", "comments", show=False),
         Binding("tab", "cycle_interval(1)", "timeframe"),
         Binding("shift+tab", "cycle_interval(-1)", "prev timeframe", show=False),
         Binding("r", "related", "related"),
@@ -83,7 +82,6 @@ class EventPane(TierAware, Vertical):
     def __init__(self, event: Event, **kwargs) -> None:
         super().__init__(**kwargs)
         self._event = event
-        self._show_info = False
         self._interval = "ALL"
         self._columns_spec: list[ColumnSpec] = list(MARKETS_TIER_COLUMNS["full"])
         # Throttled cursor-follow: one preview render per settle, not per row.
@@ -96,7 +94,6 @@ class EventPane(TierAware, Vertical):
             yield VimDataTable(cursor_type="row", zebra_stripes=True, id="markets-table")
             pane = VerticalScroll(
                 MarketPreview(id="market-preview"),
-                Static(id="rules-panel"),
                 id="preview-pane",
             )
             pane.can_focus = False
@@ -106,19 +103,15 @@ class EventPane(TierAware, Vertical):
             tabs.can_focus = False
             yield tabs
             yield PriceChartPanel(id="event-chart")
-            yield ActivityPanel(id="event-comments-panel")
 
     def focus_inner(self) -> None:
         self.query_one("#markets-table", DataTable).focus()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        """Compact hides the preview/rules pane and the chart strip (tier
-        CSS) - don't advertise or fire their toggles there."""
-        if self.tier == "compact" and action in (
-            "toggle_info",
-            "cycle_interval",
-            "toggle_activity",
-        ):
+        """Compact hides the chart strip (tier CSS) - don't advertise or fire
+        the timeframe cycle there. Comments and rules are pop-outs (overlays
+        over the whole pane), so they stay available at every tier."""
+        if self.tier == "compact" and action == "cycle_interval":
             return False
         return True
 
@@ -198,13 +191,11 @@ class EventPane(TierAware, Vertical):
                 table.move_cursor(row=min(cursor, table.row_count - 1))
 
     def on_mount(self) -> None:
-        self.query_one("#rules-panel", Static).display = False
         self.query_one("#interval-tabs", Tabs).active = f"iv-{self._interval}"
         self._columns_spec = list(MARKETS_TIER_COLUMNS[self.tier])
         self._build_columns()
         self.query_one(DataTable).focus()
         self._fill_table()
-        self.query_one(ActivityPanel).configure(None, self._event)
         self.load_chart()
         self.refresh_event()
         self.load_own_orders()
@@ -341,7 +332,6 @@ class EventPane(TierAware, Vertical):
         self._fill_table()
         if keep is not None and any(m.slug == keep for m in fresh.active_markets):
             table.move_cursor(row=table.get_row_index(keep))
-        self.query_one(ActivityPanel).configure(None, fresh)
         self._schedule_refit()  # fresh titles may change the flex width
 
     # -- actions ------------------------------------------------------------------
@@ -378,41 +368,14 @@ class EventPane(TierAware, Vertical):
         if pane.display:
             self.query_one(PriceChartPanel).enter_inspect(return_focus=self.query_one(VimDataTable))
 
-    def action_toggle_info(self) -> None:
-        """Swap the right pane between the market preview and the event rules."""
-        rules = self.query_one("#rules-panel", Static)
-        preview = self.query_one(MarketPreview)
-        self._show_info = not self._show_info
-        rules.display = self._show_info
-        preview.display = not self._show_info
-        if self._show_info:
-            out = Text()
-            out.append("RULES\n\n", style="bold")
-            out.append(self._event.description.strip() or "(no description)")
-            rules.update(out)
+    def action_rules(self) -> None:
+        """space opens the event's resolution rules in a reading pop-out."""
+        body = (self._event.description or "").strip()
+        self.app.open_rules(f"RULES - {self._event.title.strip()}", body)
 
-    def action_toggle_activity(self, mode: str) -> None:
-        """c toggles comments into the chart strip; chart hides while shown."""
-        self.query_one(ActivityPanel).toggle(mode)
-        self._sync_activity()
-
-    def _sync_activity(self) -> None:
-        """Chart yields to the activity panel; on close, focus returns to the
-        markets table. The panel focuses its own comment list once loaded."""
-        showing = self.query_one(ActivityPanel).mode is not None
-        self.query_one("#interval-tabs", Tabs).display = not showing
-        self.query_one(PriceChartPanel).display = not showing
-        if not showing:
-            self.focus_inner()
-
-    def handle_back(self) -> bool:
-        """left/esc close the comments panel before stepping out of the pane."""
-        activity = self.query_one(ActivityPanel)
-        if activity.mode is not None:
-            activity.close()
-            self._sync_activity()
-            return True
-        return False
+    def action_comments(self) -> None:
+        """c opens the event's comment thread in a reading pop-out."""
+        self.app.open_comments(self._event)
 
     def action_refresh(self) -> None:
         """The global r: event data, chart, and the order/holding flags."""

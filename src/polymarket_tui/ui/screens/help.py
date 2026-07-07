@@ -35,9 +35,9 @@ are always contextual.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), open the buy form on a market outcome or order from
-the book level (market), toggle BUY/SELL (order panel), show/hide rules
-(event; on market it's i), follow/unfollow (trader profile). Pick the
-outcome with the arrows or y/n; right on an outcome flows into the book.
+the book level (market), toggle BUY/SELL (order panel), open the rules
+pop-out (event; on market it's i), follow/unfollow (trader profile). Pick
+the outcome with the arrows or y/n; right on an outcome flows into the book.
 
 left always steps out one level: order panel -> market -> previous screen;
 expanded trades and full screen (F) collapse before the screen closes.
@@ -66,8 +66,8 @@ expanded trades and full screen (F) collapse before the screen closes.
 jumps straight into the market with the panel open |
 | y / n | market | jump straight to the YES / NO book |
 | a | market | expand the inline trades to full width (right opens the trader) |
-| i | market | show/hide the rules rail (auto-shown on wide terminals) |
-| c | event, market | comments in the chart strip; up/down to move, right/enter opens the author |
+| i | market | rules pop-out (resolution criteria); esc closes |
+| c | event, market | comments pop-out; up/down to move, right/enter opens the author; esc closes |
 | e | market | open the parent event |
 | r | event, market | related markets pop-out (series siblings for dailies); esc closes |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
