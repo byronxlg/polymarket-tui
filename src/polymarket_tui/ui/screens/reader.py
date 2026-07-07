@@ -70,6 +70,12 @@ class ReaderModal(ModalScreen[None]):
     }
     ReaderModal CommentList:focus > .option-list--option-highlighted {
         background: $primary 18%;
+        /* Same tint-only cursor as the tables (app.tcss .datatable--cursor):
+           neutralize Textual's default block-cursor foreground, which is a
+           near-black on some themes and inverts the comment body over our
+           faint tint. The author name keeps its own blue span colour. */
+        color: $foreground;
+        text-style: none;
     }
     ReaderModal #reader-hints {
         height: 1;
