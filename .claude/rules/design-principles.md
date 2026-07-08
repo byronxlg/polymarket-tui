@@ -80,8 +80,10 @@ the rule tells them apart: siblings are transient, the parent is a place.
 - Decimal for all order math; every order/cancel appended to the JSONL audit
   log; a timed-out post is NEVER auto-retried (it may have landed).
 - Confirmation is a deliberate enter on a strip that only becomes
-  focusable when armed and ignores keys for a 0.35s arming beat - queued
-  keypresses cannot place orders. Enter proceeds and esc steps back on
+  focusable when armed and ignores keys for a 0.15s arming beat - queued
+  keypresses cannot place orders, but the beat stays below human reaction so
+  a deliberate confirm lands on the first press. Enter proceeds and esc steps
+  back on
   every confirm surface (order strip, cancel strips, modals).
 
 ## Display conventions

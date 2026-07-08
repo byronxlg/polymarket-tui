@@ -871,7 +871,10 @@ class MarketPane(TierAware, Vertical):
             self.notify("No resting order of yours at that level", severity="warning", timeout=3)
             return
         self._pending_cancel = orders
-        self._cancel_armed_at = time.monotonic() + 0.35
+        # Same arming beat as the order strip (ConfirmModal.ARM_DELAY_S): swallow
+        # a queued enter, but stay below human reaction so the deliberate confirm
+        # lands on the first press.
+        self._cancel_armed_at = time.monotonic() + 0.15
         strip = self.query_one("#market-cancel-strip", Static)
         strip.border_title = "CANCEL ORDER"
         strip.update(cancel_confirm_text(orders, show_chip=False))

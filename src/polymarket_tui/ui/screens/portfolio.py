@@ -667,7 +667,10 @@ class PortfolioPane(TierAware, Vertical):
         if order is None:
             return
         self._pending_cancel = order
-        self._cancel_armed_at = time.monotonic() + 0.35
+        # Same arming beat as the order strip (ConfirmModal.ARM_DELAY_S): swallow
+        # a queued enter, but stay below human reaction so the deliberate confirm
+        # lands on the first press.
+        self._cancel_armed_at = time.monotonic() + 0.15
         strip = self.query_one("#cancel-strip", Static)
         strip.update(cancel_confirm_text([order], self._order_titles_cache.get(order.market)))
         strip.display = True

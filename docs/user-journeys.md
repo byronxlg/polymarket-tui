@@ -131,9 +131,10 @@ bar, H, `<`, quick-order warnings.
 Confirm keys unified (Byron's request): enter proceeds and esc steps back
 on every confirm surface - the order strip (was y), both cancel strips
 (was y), and ConfirmModal (already enter). Every surface ignores keys for
-the 0.35s arming beat, so a queued or held enter cannot confirm; verified
-by sending a rapid double-enter (reviews, does not place) and a deliberate
-enter (places DRY).
+the 0.15s arming beat, so a queued or held enter cannot confirm while a
+deliberate confirm still lands on the first press; verified by sending a
+rapid double-enter (reviews, does not place) and a deliberate enter (places
+DRY).
 
 Visual pass on the same surfaces: op-confirm and the cancel strips get a
 severity-tinted full-width row (amber DRY / red LIVE-or-cancel) and shared
