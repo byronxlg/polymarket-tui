@@ -72,10 +72,16 @@ def fit_columns(
 ) -> list[ColumnSpec]:
     """Fit the set to `width` by resizing the primary text column.
 
-    Deficit shrinks it (floor 14). Surplus grows it - but only up to
-    flex_max (the longest actual cell content), so titles stop truncating
-    as soon as there is room without pushing the numeric columns into the
-    void when rows are short.
+    Deficit shrinks it (floor 14). Surplus grows it: pass flex_max (the
+    longest actual cell content) to cap growth there, so titles stop
+    truncating as soon as there is room without stranding the numeric
+    columns at the far edge when rows are short.
+
+    Omitting flex_max makes the flex column fill the whole surplus. That is
+    the safe default: a table that forgets to measure its longest cell
+    still fills the pane instead of clipping text while space sits empty -
+    the failure mode that motivated this being a shared helper. Callers
+    that want the tighter grow-to-content look pass flex_max.
     """
     delta = width - columns_need(columns, pad)
     if delta < 0:
@@ -83,9 +89,11 @@ def fit_columns(
             (key, label, max(14, w + delta) if key == flex_key else w)
             for key, label, w in columns
         ]
-    if delta > 0 and flex_max is not None:
+    if delta > 0:
+        # None -> fill (cap at width, which w + delta never exceeds).
+        cap = width if flex_max is None else flex_max
         return [
-            (key, label, max(w, min(flex_max, w + delta)) if key == flex_key else w)
+            (key, label, max(w, min(cap, w + delta)) if key == flex_key else w)
             for key, label, w in columns
         ]
     return list(columns)
