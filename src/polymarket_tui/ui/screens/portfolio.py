@@ -283,9 +283,20 @@ class PortfolioPane(TierAware, Vertical):
         ord_tier = effective_tier(self.tier, width, ord_columns)
         act_tier = effective_tier(self.tier, width, act_columns)
         pos_flex = max((len(p.title) for p in self._positions), default=0) or None
+        # Grow the title column to the longest actual title so wide panes fill
+        # instead of clipping (mirrors positions). Orders resolve titles via the
+        # cache; fall back to the raw condition id when a title isn't known yet.
+        titles = self._order_titles_cache
+        # Match the render's fallback (market[:20]) for orders whose title has
+        # not resolved yet, so the flex width tracks what is actually shown.
+        ord_flex = (
+            max((len(titles.get(o.market, o.market[:20])) for o in self._orders), default=0)
+            or None
+        )
+        act_flex = max((len(i.title) for i in self._history_items), default=0) or None
         pos_spec = fit_columns(pos_columns[pos_tier], width, "market", pos_flex)
-        ord_spec = fit_columns(ord_columns[ord_tier], width, "market")
-        act_spec = fit_columns(act_columns[act_tier], width, "market")
+        ord_spec = fit_columns(ord_columns[ord_tier], width, "market", ord_flex)
+        act_spec = fit_columns(act_columns[act_tier], width, "market", act_flex)
         if (pos_spec, ord_spec, act_spec) == (
             self._pos_spec,
             self._ord_spec,
@@ -405,6 +416,7 @@ class PortfolioPane(TierAware, Vertical):
         if not alive(self):
             return  # pane torn down while we fetched
         self._render_orders()
+        self._schedule_refit()  # resolved titles set the market flex width
 
     def _render_orders(self) -> None:
         table = self.query_one("#orders-table", VimDataTable)

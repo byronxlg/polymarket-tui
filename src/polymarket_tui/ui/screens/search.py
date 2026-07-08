@@ -19,6 +19,7 @@ from textual.widgets import Input, Static
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import Profile
+from polymarket_tui.ui.tiers import ColumnSpec, fit_columns, usable_width
 from polymarket_tui.ui.widgets.app_footer import AppFooter
 from polymarket_tui.ui.widgets.app_header import AppHeader
 from polymarket_tui.ui.widgets.event_table import EventsTable
@@ -27,6 +28,14 @@ from polymarket_tui.ui.widgets.trader_overview import TraderOverview
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
 
 DEBOUNCE_SECONDS = 0.35
+
+# Bio is the flex column: it grows to the longest actual bio so a wide results
+# pane fills instead of clipping bios at a fixed 50 while space sits empty.
+TRADERS_COLUMNS: tuple[ColumnSpec, ...] = (
+    ("name", "Trader", 32),
+    ("address", "Address", 16),
+    ("bio", "Bio", 50),
+)
 
 
 class SearchInput(Input):
@@ -88,12 +97,50 @@ class SearchScreen(Screen):
     def on_mount(self) -> None:
         self.title = "search"
         self._profiles: list[Profile] = []
-        traders = self.query_one("#traders-table", VimDataTable)
-        traders.add_column("Trader", width=32, key="name")
-        traders.add_column("Address", width=16, key="address")
-        traders.add_column("Bio", width=50, key="bio")
+        self._traders_spec: list[ColumnSpec] = list(TRADERS_COLUMNS)
+        self._build_traders_columns()
         self._apply_mode()
         self.query_one(SearchInput).focus()
+
+    def on_resize(self) -> None:
+        self.call_after_refresh(self._refit_traders)
+
+    def _build_traders_columns(self) -> None:
+        table = self.query_one("#traders-table", VimDataTable)
+        table.clear(columns=True)
+        for key, label, width in self._traders_spec:
+            table.add_column(label, width=width, key=key)
+
+    def _refit_traders(self) -> None:
+        table = next(iter(self.query("#traders-table")), None)
+        if table is None:
+            return  # screen torn down
+        width = usable_width(table)
+        if width <= 0 or not table.columns:
+            return  # hidden (markets mode) or not laid out yet
+        bio_flex = max((len(p.bio or "") for p in self._profiles), default=0) or None
+        spec = fit_columns(TRADERS_COLUMNS, width, "bio", bio_flex)
+        if spec == self._traders_spec:
+            return
+        self._traders_spec = spec
+        self._build_traders_columns()
+        self._render_traders()
+
+    def _render_traders(self) -> None:
+        table = self.query_one("#traders-table", VimDataTable)
+        table.clear()
+        widths = dict((k, w) for k, _, w in self._traders_spec)
+        for prof in self._profiles:
+            watched = self.app.watchlist.is_watched_user(prof.proxy_wallet)
+            cells = {
+                # leading star (2 cols) then the name in the remaining width
+                "name": ("*" if watched else " ")
+                + " "
+                + fmt.trunc(prof.display_name, widths["name"] - 2),
+                "address": f"{prof.proxy_wallet[:6]}...{prof.proxy_wallet[-4:]}",
+                "bio": fmt.trunc(prof.bio or "", widths["bio"]),
+            }
+            table.add_row(*(cells[key] for key, _, _ in self._traders_spec), key=prof.proxy_wallet)
 
     # -- mode ----------------------------------------------------------------
 
@@ -121,6 +168,8 @@ class SearchScreen(Screen):
         line.append("   (tab switches)", style="dim")
         self.query_one("#mode-line", Static).update(line)
         if not markets:
+            # The table measured 0 wide while hidden - fit bio once it is shown.
+            self.call_after_refresh(self._refit_traders)
             self._refresh_trader_overview()
 
     # -- search ---------------------------------------------------------------
@@ -156,16 +205,8 @@ class SearchScreen(Screen):
         browser.preview.show_event(events[0] if events else None)
 
         self._profiles = profiles[:10]
-        traders = self.query_one("#traders-table", VimDataTable)
-        traders.clear()
-        for prof in self._profiles:
-            star = "*" if self.app.watchlist.is_watched_user(prof.proxy_wallet) else " "
-            traders.add_row(
-                star + " " + fmt.trunc(prof.display_name, 29),
-                f"{prof.proxy_wallet[:6]}...{prof.proxy_wallet[-4:]}",
-                fmt.trunc(prof.bio or "", 50),
-                key=prof.proxy_wallet,
-            )
+        self._render_traders()
+        self._refit_traders()  # grow bio to fill once the longest bio is known
         if self._mode == "traders":
             self._refresh_trader_overview()
 
@@ -218,10 +259,11 @@ class SearchScreen(Screen):
             if profile is None:
                 return
             watched = self.app.watchlist.toggle_user(profile.proxy_wallet, profile.display_name)
+            name_w = dict((k, w) for k, _, w in self._traders_spec)["name"]
             self.query_one("#traders-table", VimDataTable).update_cell(
                 profile.proxy_wallet,
                 "name",
-                ("*" if watched else " ") + " " + fmt.trunc(profile.display_name, 29),
+                ("*" if watched else " ") + " " + fmt.trunc(profile.display_name, name_w - 2),
             )
             return
         table = self.query_one(EventsTable)

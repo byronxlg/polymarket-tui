@@ -11,13 +11,19 @@ from rich.text import Text
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import ActivityItem
 from polymarket_tui.ui.theme import DOWN, UP
+from polymarket_tui.ui.tiers import usable_width
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
+
+# Fixed-width columns that precede the flexible Trader column (time, side,
+# size, price, usdc) - used to size Trader to whatever the rail leaves.
+_TRADER_MIN = 24
 
 
 class TradesTable(VimDataTable):
     def __init__(self, compact: bool = True, **kwargs) -> None:
         super().__init__(cursor_type="row", zebra_stripes=True, **kwargs)
         self.compact = compact
+        self._trader_w = _TRADER_MIN
 
     def on_mount(self) -> None:
         self.build_columns()
@@ -30,7 +36,24 @@ class TradesTable(VimDataTable):
         self.add_column("Price", width=6, key="price")
         if not self.compact:
             self.add_column("USDC", width=9, key="usdc")
-            self.add_column("Trader", width=24, key="trader")
+            self._trader_w = self._fit_trader_width()
+            self.add_column("Trader", width=self._trader_w, key="trader")
+
+    def _fit_trader_width(self) -> int:
+        """Grow the trailing Trader column to fill the rail (floor _TRADER_MIN)
+        so a wide expanded view shows full names instead of clipping at a fixed
+        width while the rest of the pane sits empty."""
+        fixed = 8 + 4 + 7 + 6 + 9  # time, side, size, price, usdc
+        pad = 2 * self.cell_padding * 6  # padding both sides of all six columns
+        return max(_TRADER_MIN, usable_width(self) - fixed - pad)
+
+    def fit_trader_column(self) -> bool:
+        """Rebuild when the fitted Trader width changed (the expanded rail was
+        resized). Returns True if a rebuild happened so the caller re-renders."""
+        if self.compact or self._fit_trader_width() == self._trader_w:
+            return False
+        self.build_columns()
+        return True
 
     @staticmethod
     def _trade_keys(trades: list[ActivityItem]) -> list[str]:
@@ -65,7 +88,7 @@ class TradesTable(VimDataTable):
             ]
             if not self.compact:
                 row.append(fmt.money(trade.usdc_size) if trade.usdc_size else "-")
-                row.append(fmt.trunc(trade.trader, 24))
+                row.append(fmt.trunc(trade.trader, self._trader_w))
             self.add_row(*row, key=key)
         if cursor_key in set(keys):
             self.move_cursor(row=self.get_row_index(cursor_key))

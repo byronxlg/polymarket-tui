@@ -375,6 +375,9 @@ class MarketPane(TierAware, Vertical):
             trades.compact = want_compact
             trades.build_columns()
             self.load_trades()
+        elif trades.fit_trader_column():
+            # Full set already shown; the expanded rail resized - regrow Trader.
+            self.load_trades()
 
     def _apply_visibility(self) -> None:
         """Panel visibility as one function of tier + trades state.

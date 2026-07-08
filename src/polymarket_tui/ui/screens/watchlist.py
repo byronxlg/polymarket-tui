@@ -19,7 +19,7 @@ from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.liveness import alive
-from polymarket_tui.ui.tiers import Tier, TierAware, effective_tier
+from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
@@ -66,6 +66,7 @@ class WatchlistPane(TierAware, Vertical):
         # checks when focus returns from a drill child.
         self._users_rows: list[tuple[str, str, str]] = []  # (name, address, value)
         self._users_tier: Tier = "full"
+        self._users_spec: list[ColumnSpec] = list(USERS_TIER_COLUMNS["full"])
         self._loaded_slugs: set[str] = set()
         self._loaded_users: set[str] = set()
 
@@ -88,6 +89,7 @@ class WatchlistPane(TierAware, Vertical):
 
     def on_mount(self) -> None:
         self._users_tier = self.tier
+        self._users_spec = list(USERS_TIER_COLUMNS[self.tier])
         self._build_users_columns()
         for tabs in self.query("Tabs"):
             tabs.can_focus = False
@@ -146,7 +148,7 @@ class WatchlistPane(TierAware, Vertical):
     def _build_users_columns(self) -> None:
         table = self.query_one("#users-table", VimDataTable)
         table.clear(columns=True)
-        for key, label, width in USERS_TIER_COLUMNS[self._users_tier]:
+        for key, label, width in self._users_spec:
             table.add_column(label, width=width, key=key)
 
     def on_tier_changed(self, tier: Tier) -> None:
@@ -167,9 +169,14 @@ class WatchlistPane(TierAware, Vertical):
         if width <= 0:
             return
         tier = effective_tier(self.tier, width, USERS_TIER_COLUMNS)
-        if tier == self._users_tier:
+        # Grow the Trader column to the longest actual name so a wide pane fills
+        # instead of clipping names at the fixed tier width.
+        name_flex = max((len(n) for n, _, _ in self._users_rows), default=0) or None
+        spec = fit_columns(USERS_TIER_COLUMNS[tier], width, "name", name_flex)
+        if spec == self._users_spec:
             return
         self._users_tier = tier
+        self._users_spec = spec
         self._build_users_columns()
         self._render_users()
 
@@ -253,7 +260,7 @@ class WatchlistPane(TierAware, Vertical):
     def _render_users(self) -> None:
         table = self.query_one("#users-table", VimDataTable)
         table.clear()
-        columns = USERS_TIER_COLUMNS[self._users_tier]
+        columns = self._users_spec
         name_w = dict((k, w) for k, _, w in columns)["name"]
         for name, address, value in self._users_rows:
             cells = {
