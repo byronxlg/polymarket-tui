@@ -106,7 +106,7 @@ class EventPane(TierAware, Vertical):
         Binding("r", "related", "related"),
         Binding("b", "order('BUY')", "buy"),
         Binding("s", "order('SELL')", "sell"),
-        Binding("O", "open_web", "web", show=False, key_display="O"),
+        Binding("o", "open_web", "web", show=False),
     ]
 
     def __init__(self, event: Event, **kwargs) -> None:

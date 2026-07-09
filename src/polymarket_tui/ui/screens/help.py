@@ -36,8 +36,8 @@ The footer keeps the two vocabularies apart: contextual keys for the
 current screen on the left; Global navigation (blue, Capitalized - Quit,
 Search, Portfolio, Watched, Back, Help, Refresh) on the right. Global
 letter keys are capitals (W, P, Q, R, H, A, L, T, F); lowercase letters
-are always contextual. O is the one capital that is not global - it opens
-the current event or market on the web.
+are always contextual, and each one means the same thing everywhere it is
+bound - o always opens the thing under the cursor on polymarket.com.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), open the buy form on a market outcome or order from
@@ -68,7 +68,7 @@ expanded trades and full screen (F) collapse before the screen closes.
 
 | Key | Where | Action |
 |-----|-------|--------|
-| o | home | cycle sort (24h volume / liquidity / ending / newest) |
+| `,` | home | cycle sort (24h volume / liquidity / ending / newest) |
 | b / s | lists, event, market | order entry; from a list row it opens the market, panel up |
 | y / n | market | jump straight to the YES / NO book |
 | t | market | cycle the chart timeframe (tab flips the outcome here, so history demotes to t) |
@@ -77,12 +77,11 @@ expanded trades and full screen (F) collapse before the screen closes.
 | c | event, market | comments pop-out; up/down to move, right/enter opens the author; esc closes |
 | e | market | open the parent event |
 | r | event, market | related markets pop-out (series siblings for dailies); esc closes |
-| O | event, market | open this page on polymarket.com |
+| o | event, market, portfolio positions | open on polymarket.com (won positions redeem there) |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
 | m | market order book | recentre the book on the mid |
 | x | market book / portfolio orders | cancel a resting order (details shown, enter confirms) |
 | s | portfolio positions | cash out: sell form prefilled with the full position at the bid |
-| o | portfolio positions | open that market on the web (a won position redeems there) |
 
 List rows carry flags: * watched, o resting order, + position held (home
 and event outcome lists; holdings show in observer mode too).

@@ -52,7 +52,7 @@ class HomePane(TierAware, Vertical):
     header_title = "polymarket-tui"
 
     BINDINGS = [
-        Binding("o", "cycle_sort", "sort", show=False),
+        Binding("comma", "cycle_sort", "sort", show=False, key_display=","),
         Binding("space", "toggle_watch", "star"),
         Binding("tab", "next_tag", "category"),
         Binding("shift+tab", "prev_tag", "prev category", show=False),
@@ -82,7 +82,7 @@ class HomePane(TierAware, Vertical):
         out = Text(justify="center")
         out.append("sort ", style="dim")
         out.append(SORT_LABELS[SORT_ORDERS[self._sort_index]], style="bold")
-        out.append("  \u00b7  o cycle sort  \u00b7  tab category", style="dim")
+        out.append("  \u00b7  , cycle sort  \u00b7  tab category", style="dim")
         return out
 
     def on_mount(self) -> None:
