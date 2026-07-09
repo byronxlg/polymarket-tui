@@ -1,4 +1,9 @@
-"""Help screen: keybinding reference."""
+"""Help screen: keybinding reference.
+
+Every key bound anywhere in the app must appear in a table below; the first
+column of each markdown table is the authoritative list, enforced by
+tests/test_help_bindings.py. Prose explains, tables enumerate.
+"""
 
 from __future__ import annotations
 
@@ -23,15 +28,16 @@ Orders are dry-run (signed, never posted) unless LIVE mode is enabled.
 |-----|--------|
 | arrows | move; up/down also flow into adjacent panels (category bar, chart, search box) |
 | right or enter | open the selected row |
-| left or escape | back |
-| tab / shift+tab | cycle the screen's selector (category / timeframe / pane) |
+| left or escape or < | back - step out one level |
+| tab / shift+tab | cycle the screen's selector (category / timeframe / pane / outcome) |
 | space | the contextual toggle (see below) |
 
 The footer keeps the two vocabularies apart: contextual keys for the
 current screen on the left; Global navigation (blue, Capitalized - Quit,
 Search, Portfolio, Watched, Back, Help, Refresh) on the right. Global
 letter keys are capitals (W, P, Q, R, H, A, L, T, F); lowercase letters
-are always contextual.
+are always contextual. O is the one capital that is not global - it opens
+the current event or market on the web.
 
 space by screen: star an event or follow a trader (home, search,
 watchlist, related), open the buy form on a market outcome or order from
@@ -54,6 +60,7 @@ expanded trades and full screen (F) collapse before the screen closes.
 | L | toggle DRY/LIVE (going live asks for confirmation; the mode persists) |
 | T | toggle condensed/spacious density (spacious: two-line rows with market metadata; persists) |
 | F | full screen the focused pane; F or left/esc restores the split |
+| R | refresh what you're looking at (also refetches balances and flags) |
 | ? | this help |
 | Q | quit |
 
@@ -62,51 +69,73 @@ expanded trades and full screen (F) collapse before the screen closes.
 | Key | Where | Action |
 |-----|-------|--------|
 | o | home | cycle sort (24h volume / liquidity / ending / newest) |
-| b / s | lists, event, market | order entry; on a home/watchlist row it
-jumps straight into the market with the panel open |
+| b / s | lists, event, market | order entry; from a list row it opens the market, panel up |
 | y / n | market | jump straight to the YES / NO book |
+| t | market | cycle the chart timeframe (tab flips the outcome here, so history demotes to t) |
 | a | market | expand the inline trades to full width (right opens the trader) |
 | i | market | rules pop-out (resolution criteria); esc closes |
 | c | event, market | comments pop-out; up/down to move, right/enter opens the author; esc closes |
 | e | market | open the parent event |
 | r | event, market | related markets pop-out (series siblings for dailies); esc closes |
+| O | event, market | open this page on polymarket.com |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
+| m | market order book | recentre the book on the mid |
 | x | market book / portfolio orders | cancel a resting order (details shown, enter confirms) |
 | s | portfolio positions | cash out: sell form prefilled with the full position at the bid |
-| R | any data screen | refresh what you're looking at (also refetches balances and flags) |
+| o | portfolio positions | open that market on the web (a won position redeems there) |
 
 List rows carry flags: * watched, o resting order, + position held (home
 and event outcome lists; holdings show in observer mode too).
 
 ## Order entry
 
-space or enter on an outcome row opens the buy form; left (at the start of
-a field) or escape closes it. b/s/space switch the side at any time, even
-while typing in the fields.
+| Key | Action |
+|-----|--------|
+| space or enter | open the buy form on the selected outcome |
+| b / s | set the side to BUY / SELL, even while typing in a field |
+| space | flip BUY/SELL from inside the panel |
+| tab / shift+tab | hop fields (price -> size) |
+| up / down | bump the price by one tick, the size by one share |
+| shift+up / shift+down | bump by ten |
+| enter | review; a second enter places the order |
+| ctrl+g | cycle time-in-force (GTC / FOK / FAK) |
+| escape | step back, then close the form |
 
 Price (focused first) and size; price is in CENTS ('33.4' = 33.4c). Leave
-price empty for a market order at the touch. up/down bump by one tick or
-share, shift+up/down by ten. Selling: the form opens prefilled with your
-full position at the live bid (s, enter, enter cashes out) - trim the
-size, bump the price, or type a percentage ('50%') to sell that fraction;
-the held amount is shown in the panel.
-tab hops fields, enter reviews, a second enter places (the strip arms
-after a beat, so a held-down enter cannot), esc steps back. ctrl+g cycles
-TIF (GTC/FOK/FAK). The form sits top right; the book stays live beside it.
+price empty for a market order at the touch. Selling: the form opens
+prefilled with your full position at the live bid (s, enter, enter cashes
+out) - trim the size, bump the price, or type a percentage ('50%') to sell
+that fraction; the held amount is shown in the panel. The confirm strip
+arms after a beat, so a held-down enter cannot place an order. The form
+sits top right; the book stays live beside it.
 
 The app never blocks an order the exchange would accept. Hard stops exist
 only for orders that cannot succeed (closed market, bad tick, below minimum
 size, price out of range, insufficient cash/shares). Anything else - far
 off mid, large notional, rapid duplicate - is at most a yellow warning.
 
+## Credentials (A)
+
+| Key | Action |
+|-----|--------|
+| ctrl+s | apply and test the credentials |
+| ctrl+d | clear the stored credentials |
+| escape | close |
+
 ## Chart inspect
+
+| Key | Action |
+|-----|--------|
+| left / right | scrub through time |
+| shift+left / shift+right | scrub in big steps |
+| up / down / escape / x | leave inspect |
 
 Charts sit below/beside the prices they explain - history is context, not
 the headline. On an event, down past the last outcome row enters chart
-inspect: left/right scrub through time (shift for big steps), the legend
-shows values at the crosshair, up/down/esc exit. On a market, down past the
-last outcome row instead cursors into the order book (space orders from a
-level, x cancels a resting order there); the chart is display-only.
+inspect and the legend shows values at the crosshair. On a market, down
+past the last outcome row instead cursors into the order book (space orders
+from a level, m recentres it, x cancels a resting order there); the chart
+is display-only.
 
 The header clock ticks in milliseconds, corrected against network time
 (SNTP); "(sys)" means NTP was unreachable.
@@ -117,11 +146,12 @@ returns); enter opens the highlighted result from either side; space in the
 list stars an event or follows a trader. In traders mode the side pane
 previews the highlighted trader (value, top positions); opening a profile
 shows full positions/activity, space follows them there.
-The watchlist (w) keeps Events and Traders tabs. Market pages show your
+The watchlist (W) keeps Events and Traders tabs. Market pages show your
 position for that market under the outcome rows.
 
 Data: gamma-api.polymarket.com, clob.polymarket.com, data-api.polymarket.com.
 """
+
 
 class HelpScreen(Screen):
     BINDINGS = [
@@ -143,4 +173,3 @@ class HelpScreen(Screen):
     def action_scroll_help(self, amount: int) -> None:
         body = self.query_one("#help-body", VerticalScroll)
         body.scroll_relative(y=amount, animate=False)
-
