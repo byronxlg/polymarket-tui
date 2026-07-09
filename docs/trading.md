@@ -7,8 +7,9 @@ The only part of the app that moves money. Correctness and explicitness beat con
 1. **Every order passes the same validation pipeline** - no fast path.
 2. **Every order is confirmed** with a deliberate enter on an armed
    confirm strip showing exactly what will be signed. The strip ignores
-   keys for 0.35s after arming (ConfirmModal.ARM_DELAY_S), so the enter
-   that reviewed cannot also place.
+   keys for 0.15s after arming (ConfirmModal.ARM_DELAY_S), so the enter
+   that reviewed cannot also place - but the beat stays below human reaction
+   time, so a deliberate confirm lands on the first press.
 3. **Decimal everywhere.** Prices and sizes are `decimal.Decimal` from input to
    `OrderArgs`. Floats appear nowhere in order math.
 4. **Live-fire switch.** LIVE mode (global `L` toggle or auth-screen select,
@@ -70,8 +71,9 @@ much, then the money it moves:
 outcome carries the colour, and the mode word says what enter will do.
 
 A second enter places - the panel becomes focusable only at this point and
-ignores keys for the 0.35s arming beat, so a queued enter cannot fire it;
-esc/left steps back to editing.
+ignores keys for the 0.15s arming beat, so a queued enter cannot fire it
+while a deliberate confirm still lands on the first press; esc/left steps
+back to editing.
 
 ## Placement and result handling
 

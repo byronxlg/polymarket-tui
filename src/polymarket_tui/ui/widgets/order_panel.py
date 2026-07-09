@@ -3,7 +3,7 @@
 Keyboard-first: b/s opens it preset to a side, price/size are the only two
 fields (empty price = market order at the touch), up/down bump the price by
 one tick, enter advances price -> size -> review, and a deliberate second
-enter on the armed strip places (0.35s arming beat, so a queued enter
+enter on the armed strip places (0.15s arming beat, so a queued enter
 cannot) - the book stays visible and live the whole time.
 """
 

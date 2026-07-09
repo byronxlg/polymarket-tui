@@ -82,7 +82,14 @@ class ConfirmModal(ModalScreen[bool]):
                 id="modal-actions",
             )
 
-    ARM_DELAY_S = 0.35
+    # The confirm surface arms this long after it appears. It must swallow an
+    # enter that was already queued when the surface popped up (dispatched
+    # within an event-loop turn or two - tens of ms) yet let a deliberate
+    # confirm through. Human reaction to the freshly-shown strip is ~250ms+,
+    # so 0.15s sits below that: a user who presses enter as soon as they see
+    # the surface is NOT swallowed. Larger values (this was 0.35) ate the
+    # deliberate press, so confirming took two enters.
+    ARM_DELAY_S = 0.15
 
     def on_mount(self) -> None:
         # Arm after a short delay so an Enter queued from the previous screen
