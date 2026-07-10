@@ -214,7 +214,7 @@ class MarketPane(TierAware, Vertical):
         Binding("shift+tab", "flip_outcome", "flip outcome", show=False),
         Binding("t", "cycle_interval(1)", "timeframe"),
         Binding("r", "related", "related", show=False),
-        Binding("O", "open_web", "web", show=False, key_display="O"),
+        Binding("o", "open_web", "web", show=False),
         Binding("e", "open_event", "event", show=False),
     ]
 

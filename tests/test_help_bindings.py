@@ -45,6 +45,7 @@ KEY_GLYPHS = {
     "question_mark": "?",
     "slash": "/",
     "less_than_sign": "<",
+    "comma": ",",
 }
 
 
@@ -84,10 +85,15 @@ def _documented_keys() -> set[str]:
         cell = line.strip("|").split("|")[0].strip()
         if not cell or set(cell) <= {"-", ":"} or cell.lower() == "key":
             continue  # separator row or header
+        # Backticks quote a key that would otherwise look like a separator -
+        # the sort key is a literal comma, so the help writes it as `,`.
+        if literals := re.findall(r"`([^`]+)`", cell):
+            documented.update(t.strip() for t in literals if t.strip())
+            continue
         # " / " and " or " separate alternatives; a bare "/" is the search key,
         # so the slash separator requires surrounding whitespace.
         for token in re.split(r"\s+or\s+|\s+/\s+|\s*,\s*", cell):
-            token = token.strip().strip("`")
+            token = token.strip()
             if token:
                 documented.add(token)
     return documented
