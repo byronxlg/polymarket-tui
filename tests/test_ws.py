@@ -6,6 +6,7 @@ Exercised against real captured frames in tests/fixtures/ws_market_*.json.
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from polymarket_tui.models.ws import (
@@ -13,6 +14,7 @@ from polymarket_tui.models.ws import (
     LastTradeMessage,
     LiveBook,
     PriceChangeMessage,
+    TickSizeChangeMessage,
     UserOrderMessage,
     parse_market_message,
     parse_user_message,
@@ -52,8 +54,47 @@ def test_parse_real_last_trade_frame():
 
 
 def test_unknown_event_type_is_none():
-    assert parse_market_message({"event_type": "tick_size_change"}) is None
+    assert parse_market_message({"event_type": "some_future_frame"}) is None
     assert parse_market_message({}) is None
+
+
+def test_real_book_frame_carries_the_exchange_tick():
+    """The book frame is where the tick comes from - dropping it made the panel
+    render a 0.001 market at whole cents until the pane was reopened."""
+    raw = _load("ws_market_book.json")[0]
+    msg = parse_market_message(raw)
+    assert msg.tick_size == Decimal("0.001")
+
+
+def test_live_book_exposes_the_tick_and_keeps_it_across_deltas():
+    book_raw = _load("ws_market_book.json")[0]
+    lb = LiveBook()
+    lb.apply_book(BookMessage.model_validate(book_raw))
+    assert lb.order_book().tick_size == Decimal("0.001")
+
+    # price_change frames never carry a tick; the book must not lose it.
+    change_raw = _load("ws_market_price_change.json")[0]
+    change = PriceChangeMessage.model_validate(change_raw)
+    lb.apply_price_change(change, change.price_changes[0].asset_id)
+    assert lb.order_book().tick_size == Decimal("0.001")
+
+
+def test_tick_size_change_regrids_the_book():
+    lb = LiveBook()
+    lb.apply_book(BookMessage.model_validate(_load("ws_market_book.json")[0]))
+    msg = parse_market_message(
+        {
+            "event_type": "tick_size_change",
+            "asset_id": "1",
+            "old_tick_size": "0.001",
+            "new_tick_size": "0.0001",
+        }
+    )
+    assert isinstance(msg, TickSizeChangeMessage)
+    assert lb.apply_tick_size(msg) is True
+    assert lb.order_book().tick_size == Decimal("0.0001")
+    # The CLOB repeats the frame; a no-op change must not wake the UI.
+    assert lb.apply_tick_size(msg) is False
 
 
 def test_live_book_applies_snapshot():

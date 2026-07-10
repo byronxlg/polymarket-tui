@@ -250,7 +250,13 @@ Messages (each has `event_type`):
   hash, best_bid, best_ask}, ...]}`. One frame can carry changes for several assets
   in the market, so filter entries by `asset_id`. `side` BUY -> bid level, SELL -> ask.
   `size` is the new absolute level size; "0" removes the level.
-- `tick_size_change` - market's tick changed (price nearing 0/1). Not acted on yet.
+- `tick_size_change` - `{event_type, asset_id, market, old_tick_size, new_tick_size,
+  timestamp}`. The exchange re-grids a market (typically 0.01 -> 0.001) as its price
+  nears 0 or 1. Acted on: LiveBook adopts the new tick and the pane re-renders the
+  book and order form at it. **The CLOB is the only authority on the current tick** -
+  it is also stamped on every `book` frame and every REST `/book`. Gamma's
+  `orderPriceMinTickSize` mirrors it but is snapshotted when a pane opens (and the
+  home list can serve one a day old from disk cache), so it is a fallback only.
 - `last_trade_price` - trade prints: `{event_type, asset_id, price, side, size,
   timestamp, fee_rate_bps, transaction_hash}`.
 

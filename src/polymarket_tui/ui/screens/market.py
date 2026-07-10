@@ -29,7 +29,7 @@ from polymarket_tui.api.clob import INTERVALS
 from polymarket_tui.api.ws import MarketChannel
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event, Market, OrderBook
-from polymarket_tui.services.orders import price_decimals
+from polymarket_tui.services.orders import price_decimals, tick_size
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
@@ -522,8 +522,10 @@ class MarketPane(TierAware, Vertical):
             bits.append(f"spread {fmt.cents(m.spread)}")
         if m.liquidity is not None:
             bits.append(f"liquidity {fmt.vol(m.liquidity)}")
-        if m.order_price_min_tick_size:
-            bits.append(f"tick {m.order_price_min_tick_size}")
+        # The book's tick, not Gamma's - the exchange re-grids a market as its
+        # price nears 0 or 1 and the Market snapshot never learns about it.
+        if m.order_price_min_tick_size or (self._book and self._book.tick_size):
+            bits.append(f"tick {tick_size(m, self._book).normalize()}")
         if m.order_min_size:
             bits.append(f"min size {m.order_min_size:.0f}")
         if m.closed:
@@ -531,6 +533,10 @@ class MarketPane(TierAware, Vertical):
         else:
             bits.append(f"book: live ws (fallback {BOOK_POLL_SECONDS:.0f}s REST)")
         return "  |  ".join(bits)
+
+    def _refresh_info_line(self) -> None:
+        with contextlib.suppress(Exception):
+            self.query_one("#market-info", Static).update(self._info_line())
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -585,14 +591,21 @@ class MarketPane(TierAware, Vertical):
             return
         if not alive(self):
             return  # a frame can land in the teardown window (children pruned)
-        if kind in ("book", "price_change"):
+        if kind in ("book", "price_change", "tick_size_change"):
             book = self._channel.book(asset_id)
             if book is not None:
                 self._book = book
+                # update_book re-reads the tick off the book, so a
+                # tick_size_change re-renders the levels at the new resolution.
                 self.query_one(BookPanel).update_book(book)
                 self._refresh_book_badge()
                 with contextlib.suppress(Exception):
                     self.query_one(OutcomesToggle).update_from_book(self._outcome_index, book)
+            if kind in ("book", "tick_size_change"):
+                # `book` frames carry the tick; tick_size_change moves it. Either
+                # way the info line must stop advertising the old one. price_change
+                # deltas never touch it, so they skip this.
+                self._refresh_info_line()
 
     def _refresh_book_badge(self) -> None:
         with contextlib.suppress(Exception):
@@ -756,6 +769,7 @@ class MarketPane(TierAware, Vertical):
         self._book = book
         panel.update_book(book)
         self._refresh_book_badge()
+        self._refresh_info_line()  # the REST snapshot carries the exchange's tick
         self._maybe_open_pending_order()
 
     def _maybe_open_pending_order(self) -> None:

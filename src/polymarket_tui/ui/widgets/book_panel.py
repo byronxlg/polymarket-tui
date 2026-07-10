@@ -23,6 +23,7 @@ from textual.widgets import Static
 from polymarket_tui.core import fmt
 from polymarket_tui.models.market import BookLevel, OrderBook
 from polymarket_tui.models.portfolio import OpenOrder
+from polymarket_tui.services.orders import decimals_for_tick
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 
 DEPTH = 10
@@ -93,8 +94,10 @@ class BookPanel(Static):
         # The first book render (per outcome) drops the cursor at the mid -
         # the touch is what a trader acts on, not the deepest visible ask.
         self._cursor_centered = False
-        # Cents decimal places at the market's tick (set_price_decimals);
-        # 1 matches the app-wide default until the pane pins the real tick.
+        # Cents decimal places at the market's tick. Seeded from Gamma via
+        # set_price_decimals, then taken from each book's own tick_size - the
+        # exchange is the only authority on its current grid. 1 is the app-wide
+        # default until either lands.
         self._price_decimals = 1
         # Whether the row cursor should draw. Tracked here, set synchronously in
         # on_focus/on_blur, rather than read from the has_focus reactive: on the
@@ -134,12 +137,24 @@ class BookPanel(Static):
         self._cursor_centered = False
 
     def set_price_decimals(self, decimals: int) -> None:
-        """Pin the market's tick resolution: the book shows tick-true prices
-        (a 1c-tick market reads 33c, never a padded 33.0c)."""
+        """Seed the tick resolution from Gamma before any book has arrived.
+
+        Only a fallback: once a book lands, update_book takes the tick straight
+        from the exchange (see _adopt_book_tick)."""
         if decimals != self._price_decimals:
             self._price_decimals = decimals
             if self._book is not None:
                 self._render_book()
+
+    def _adopt_book_tick(self, book: OrderBook) -> None:
+        """Render at the tick the exchange stamped on this very book.
+
+        The CLOB re-grids a market (0.01 -> 0.001) as its price nears 0 or 1.
+        Reading the tick off each book means the panel follows that change with
+        the frame that carries it, rather than showing 33c for a 33.4c level
+        until the pane is reopened."""
+        if book.tick_size:
+            self._price_decimals = decimals_for_tick(book.tick_size)
 
     def set_own_orders(self, orders: list[OpenOrder]) -> None:
         """Your resting orders on this token: star their levels and enable x."""
@@ -300,6 +315,7 @@ class BookPanel(Static):
 
     def update_book(self, book: OrderBook) -> None:
         self._book = book
+        self._adopt_book_tick(book)
         self._render_book()
 
     def _render_book(self) -> None:

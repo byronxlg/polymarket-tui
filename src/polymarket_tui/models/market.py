@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -242,6 +243,13 @@ class OrderBook(BaseModel):
 
     bids: list[BookLevel] = Field(default_factory=list)
     asks: list[BookLevel] = Field(default_factory=list)
+    # The exchange's tick for this token, sent as a string ("0.001") on every
+    # REST /book and every ws `book` frame. This is the only live authority:
+    # the CLOB changes a market's tick as its price moves and announces it with
+    # `tick_size_change`. Gamma's orderPriceMinTickSize mirrors it but is
+    # snapshotted when the pane opens, so it goes stale. None until a book
+    # arrives (a locally-built book, or one from before this field existed).
+    tick_size: Decimal | None = None
 
     @property
     def best_bid(self) -> BookLevel | None:

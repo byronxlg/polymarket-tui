@@ -56,16 +56,26 @@ class OrderDraft:
     size: Decimal  # shares
     tif: Tif = Tif.GTC
     is_market_order: bool = False  # marketable limit + FAK
+    # The exchange's tick when this draft was built, off the live book. Carried
+    # on the draft so every surface that echoes the price back - the confirm
+    # strip, the summary, the audit line - reads it at the resolution it will be
+    # signed at, even if the tick moves between drafting and confirming.
+    tick: Decimal | None = None
 
     @property
     def notional(self) -> Decimal:
         return self.price * self.size
 
+    def price_label(self) -> str:
+        """The price exactly as it will be signed (min 1 place, per trading.md)."""
+        decimals = decimals_for_tick(self.tick) if self.tick else price_decimals(self.market)
+        return f"{self.price * 100:.{max(1, decimals)}f}c"
+
     def summary(self) -> str:
         kind = "MARKET" if self.is_market_order else f"LIMIT {self.tif}"
         return (
             f"{self.side} {format_shares(self.size)} {self.outcome_label.upper()}"
-            f" @ {format_price_cents(self.market, self.price)} ({kind})"
+            f" @ {self.price_label()} ({kind})"
         )
 
 
@@ -84,12 +94,27 @@ class PlaceResult:
         return not self.ok and not self.dry_run and "status unknown" in self.error.lower()
 
 
-def _tick(market: Market) -> Decimal:
+def _tick(market: Market, book: OrderBook | None = None) -> Decimal:
+    """The exchange's current tick for this market.
+
+    The CLOB is the only authority. It stamps tick_size on every book snapshot
+    (REST and ws) and announces changes with `tick_size_change` as a price nears
+    0 or 1. Gamma's orderPriceMinTickSize mirrors it, but a pane snapshots its
+    Market once and the home list can serve one a day old from disk cache - so
+    it is the fallback for the window before the first book lands, never the
+    answer once we have a book. Pass the book wherever one is in hand.
+
+    The fallback rounds *up* to the coarser 0.01. That direction is deliberate:
+    an over-coarse tick makes us render 33c for 33.4c, which is visibly wrong,
+    where an over-fine one would silently offer prices the exchange rejects.
+    """
+    if book is not None and book.tick_size:
+        return book.tick_size
     return Decimal(str(market.order_price_min_tick_size or 0.01))
 
 
-def tick_size(market: Market) -> Decimal:
-    return _tick(market)
+def tick_size(market: Market, book: OrderBook | None = None) -> Decimal:
+    return _tick(market, book)
 
 
 def parse_price(raw: str) -> Decimal | None:
@@ -108,28 +133,34 @@ def parse_price(raw: str) -> Decimal | None:
     return value / 100
 
 
-def round_to_tick(market: Market, price: Decimal) -> Decimal:
-    tick = _tick(market)
+def round_to_tick(market: Market, price: Decimal, book: OrderBook | None = None) -> Decimal:
+    tick = _tick(market, book)
     return (price / tick).quantize(Decimal(1), rounding=ROUND_HALF_UP) * tick
 
 
-def price_decimals(market: Market) -> int:
-    """Decimal places a CENTS price can carry at this market's tick.
+def decimals_for_tick(tick: Decimal) -> int:
+    """Decimal places a CENTS price can carry at `tick`.
 
     Cents resolution is the tick scaled to cents: 0.01$ tick -> 1c steps ->
     0 places; 0.001$ -> 0.1c -> 1 place; 0.0001$ -> 0.01c -> 2 places.
+    Ticks need not be powers of ten: World Cup markets trade on 0.0025 -> 2.
     """
-    exponent = (_tick(market) * 100).normalize().as_tuple().exponent
+    exponent = (tick * 100).normalize().as_tuple().exponent
     return max(0, -exponent) if isinstance(exponent, int) else 0
 
 
-def format_price_cents(market: Market, price: Decimal) -> str:
+def price_decimals(market: Market, book: OrderBook | None = None) -> int:
+    """Decimal places a CENTS price can carry at this market's tick."""
+    return decimals_for_tick(_tick(market, book))
+
+
+def format_price_cents(market: Market, price: Decimal, book: OrderBook | None = None) -> str:
     """A dollar price as cents at the market's tick resolution (min 1 place).
 
     What the user confirms must be exactly what is signed: fmt.cents' fixed
     .1f would show 33.45c as 33.4c on a 0.01c-tick market.
     """
-    return f"{price * 100:.{max(1, price_decimals(market))}f}c"
+    return f"{price * 100:.{max(1, price_decimals(market, book))}f}c"
 
 
 def format_shares(size: Decimal) -> str:
@@ -215,15 +246,17 @@ class OrderService:
             issues.append(Issue(IssueLevel.BLOCK, "Price must be between 0c and 100c."))
             return issues
 
-        # 2. tick size
-        tick = _tick(market)
+        # 2. tick size. The live book's tick, not Gamma's snapshot: blocking a
+        # 33.4c order as "not a multiple of 0.01" on a market the exchange has
+        # already re-gridded to 0.001 is exactly the paternalism trading.md bans.
+        tick = _tick(market, book)
         if (draft.price % tick) != 0:
-            nearest = round_to_tick(market, draft.price)
+            nearest = round_to_tick(market, draft.price, book)
             issues.append(
                 Issue(
                     IssueLevel.BLOCK,
                     f"Price must be a multiple of {tick} - nearest valid"
-                    f" {format_price_cents(market, nearest)}.",
+                    f" {format_price_cents(market, nearest, book)}.",
                 )
             )
 

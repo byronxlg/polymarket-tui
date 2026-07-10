@@ -40,7 +40,7 @@ rejections. Everything judgment-shaped is at most a rare yellow warning.
 | Check | Source | Outcome |
 |---|---|---|
 | Market open (`active && !closed && acceptingOrders`) | Gamma | block |
-| Tick size: price % `orderPriceMinTickSize` == 0 | Gamma | block, with nearest-valid suggestion |
+| Tick size: price % tick == 0 | live book (`tick_size`), Gamma fallback | block, with nearest-valid suggestion |
 | Min size: size >= `orderMinSize` (usually 5) | Gamma | block |
 | Price in (0, 1) exclusive | - | block |
 | Balance: BUY needs `cost <= usdc_balance`; SELL needs `size <= position` | CLOB / data-api | block |
@@ -50,6 +50,23 @@ rejections. Everything judgment-shaped is at most a rare yellow warning.
 
 Warnings render inline in the order panel in yellow and never prevent the
 confirm step; blocks list the reason and keep the panel in edit state.
+
+### Where the tick comes from
+
+The exchange re-grids a market (typically 0.01 -> 0.001) as its price nears 0
+or 1, announcing it with the `tick_size_change` ws frame and stamping the
+current value on every `book` frame and every REST `/book`. **That is the only
+authority.** Gamma's `orderPriceMinTickSize` is a mirror, snapshotted into
+`MarketPane._market` when the pane opens and never refreshed - and the home
+list can hand a pane one up to 24h old from disk cache.
+
+So `OrderBook.tick_size` wins wherever a book is in hand: `_tick(market, book)`
+in services/orders.py, the book panel's own render resolution, and `OrderDraft.
+tick` (carried on the draft so the confirm strip echoes the price at the
+resolution it will be signed at). Gamma is the fallback for the window before
+the first book lands. Reading the stale value made the app render 33.4c as 33c
+and hard-block a legal 33.4c order as "not a multiple of 0.01" - which py-clob-
+client, resolving the tick from the CLOB itself, would have signed happily.
 
 ## Confirm step
 

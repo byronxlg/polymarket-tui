@@ -24,6 +24,7 @@ from polymarket_tui.services.orders import (
     parse_price,
     price_decimals,
     round_to_tick,
+    tick_size,
 )
 
 
@@ -43,10 +44,14 @@ def make_market(**overrides) -> Market:
     return Market.model_validate(base)
 
 
-def make_book(bid: float = 0.32, ask: float = 0.34) -> OrderBook:
-    return OrderBook.model_validate(
-        {"bids": [{"price": str(bid), "size": "100"}], "asks": [{"price": str(ask), "size": "100"}]}
-    )
+def make_book(bid: float = 0.32, ask: float = 0.34, tick: str | None = None) -> OrderBook:
+    raw = {
+        "bids": [{"price": str(bid), "size": "100"}],
+        "asks": [{"price": str(ask), "size": "100"}],
+    }
+    if tick is not None:
+        raw["tick_size"] = tick  # the CLOB stamps this on every book
+    return OrderBook.model_validate(raw)
 
 
 def make_draft(**overrides) -> OrderDraft:
@@ -340,6 +345,63 @@ class TestPlace:
         assert result.ok and not result.dry_run
         assert authed.posted is True
         assert len(service._recent) == 1
+
+
+class TestLiveTick:
+    """The exchange re-grids a market (0.01 -> 0.001) as its price nears 0 or 1.
+    Gamma's orderPriceMinTickSize is a snapshot taken when the pane opened, so
+    the book's own tick_size wins wherever a book is in hand."""
+
+    def test_book_tick_overrides_a_stale_gamma_snapshot(self):
+        market = make_market(orderPriceMinTickSize=0.01)  # stale: exchange moved to 0.001
+        book = make_book(tick="0.001")
+        assert tick_size(market, book) == Decimal("0.001")
+        assert price_decimals(market, book) == 1
+        assert round_to_tick(market, Decimal("0.334"), book) == Decimal("0.334")
+
+    def test_stale_tick_no_longer_blocks_a_price_the_exchange_accepts(self):
+        # The reported bug: a legal 33.4c order rejected as "not a multiple of 0.01".
+        market = make_market(orderPriceMinTickSize=0.01)
+        draft = make_draft(market=market, price=Decimal("0.334"))
+        service = OrderService(Settings(pmtui_max_notional=500), authed=None)
+        issues = service.validate(draft, make_book(tick="0.001"), 100.0, None)
+        assert not [i for i in issues if i.level is IssueLevel.BLOCK]
+
+    def test_off_tick_still_blocks_against_the_live_tick(self):
+        # The block must still fire - just against the exchange's real grid.
+        market = make_market(orderPriceMinTickSize=0.001)
+        draft = make_draft(market=market, price=Decimal("0.3345"))
+        service = OrderService(Settings(pmtui_max_notional=500), authed=None)
+        issues = service.validate(draft, make_book(tick="0.001"), 100.0, None)
+        blocks = [i for i in issues if i.level is IssueLevel.BLOCK]
+        assert len(blocks) == 1 and "multiple of 0.001" in blocks[0].message
+
+    def test_falls_back_to_gamma_before_the_first_book_arrives(self):
+        market = make_market(orderPriceMinTickSize=0.001)
+        assert tick_size(market, None) == Decimal("0.001")
+        # A book from before this field existed carries no tick: fall back, never crash.
+        assert tick_size(market, make_book()) == Decimal("0.001")
+
+    def test_missing_tick_everywhere_falls_back_to_the_coarser_penny(self):
+        # Coarse is the safe direction: visibly wrong, rather than silently
+        # offering sub-tick prices the exchange would reject.
+        assert tick_size(make_market(orderPriceMinTickSize=None), None) == Decimal("0.01")
+
+    def test_non_power_of_ten_tick(self):
+        # World Cup markets trade on 0.0025 -> 0.25c -> 2 decimal places.
+        market = make_market(orderPriceMinTickSize=0.01)
+        book = make_book(tick="0.0025")
+        assert price_decimals(market, book) == 2
+        assert round_to_tick(market, Decimal("0.3340"), book) == Decimal("0.3350")
+
+    def test_draft_price_label_uses_the_tick_it_was_drafted_at(self):
+        draft = make_draft(
+            market=make_market(orderPriceMinTickSize=0.01),
+            price=Decimal("0.334"),
+            tick=Decimal("0.001"),
+        )
+        assert draft.price_label() == "33.4c"
+        assert "33.4c" in draft.summary()
 
 
 class TestHelpers:

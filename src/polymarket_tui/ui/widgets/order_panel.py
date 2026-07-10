@@ -28,7 +28,6 @@ from polymarket_tui.services.orders import (
     Side,
     Tif,
     format_cents_input,
-    format_price_cents,
     format_shares,
     parse_price,
     price_decimals,
@@ -288,7 +287,9 @@ class OrderPanel(Vertical):
         if preset_price is not None:
             price_input.value = self._fmt_price(preset_price)
         elif book is not None and book.midpoint is not None and not price_input.value:
-            price_input.value = self._fmt_price(round_to_tick(market, Decimal(str(book.midpoint))))
+            price_input.value = self._fmt_price(
+                round_to_tick(market, Decimal(str(book.midpoint)), book)
+            )
         if preset_size is not None:
             size_input.value = _fmt_size(preset_size)
         # Whether price carries a real value (book level or midpoint) vs the 0
@@ -393,8 +394,11 @@ class OrderPanel(Vertical):
         return "Yes" if self._outcome_index == 0 else "No"
 
     def _price_decimals(self) -> int:
-        """Cents decimal places this market's tick allows (1 if not set yet)."""
-        return price_decimals(self._market) if self._market else 1
+        """Cents decimal places this market's tick allows (1 if not set yet).
+
+        Reads the tick off the live book, so the form follows the exchange when
+        it re-grids a market mid-session."""
+        return price_decimals(self._market, self._screen_book()) if self._market else 1
 
     def _fmt_price(self, dollars: Decimal) -> str:
         """A tick-aligned dollar price as a cents string at market resolution."""
@@ -455,6 +459,7 @@ class OrderPanel(Vertical):
                 size=size,
                 tif=tif,
                 is_market_order=is_market,
+                tick=tick_size(market, book),
             ),
             "",
         )
@@ -501,7 +506,7 @@ class OrderPanel(Vertical):
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
         out.append(f"{format_shares(draft.size)} ", style="bold")
         out.append(f"{draft.outcome_label.upper()} ", style=self._outcome_style)
-        out.append(f"@ {format_price_cents(draft.market, draft.price)} ", style="bold")
+        out.append(f"@ {draft.price_label()} ", style="bold")
         out.append(f"({kind})", style="dim")
         summary.update(out)
 
@@ -554,7 +559,7 @@ class OrderPanel(Vertical):
         out.append(draft.outcome_label.upper(), style=self._outcome_style)
         out.append("\n")
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
-        out.append(f"@ {format_price_cents(draft.market, draft.price)}", style="bold")
+        out.append(f"@ {draft.price_label()}", style="bold")
         out.append(f"   {kind}", style="dim")
         out.append("\n\n")
         if draft.side is Side.BUY:
@@ -615,8 +620,8 @@ class OrderPanel(Vertical):
         if current is None:
             if book is None or book.midpoint is None:
                 return
-            current = round_to_tick(self._market, Decimal(str(book.midpoint)))
-        tick = tick_size(self._market)
+            current = round_to_tick(self._market, Decimal(str(book.midpoint)), book)
+        tick = tick_size(self._market, book)
         bumped = max(tick, min(Decimal("1") - tick, current + tick * direction))
         price_input.value = self._fmt_price(bumped)
 
