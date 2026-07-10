@@ -153,10 +153,16 @@ class PolymarketApp(App):
         self.notify("refreshing...", timeout=1.5)
 
     def notify(self, message: str, **kwargs) -> None:
-        """Toasts render literally by default: API/validation errors carry
+        """Toasts always render literally: API/validation errors carry
         [bracketed] text that Textual would parse as markup and crash the
-        whole app on (trader search, 2026-07-05)."""
-        kwargs.setdefault("markup", False)
+        whole app on (trader search, 2026-07-05).
+
+        This must OVERWRITE markup, not setdefault it. Textual's Widget.notify
+        defaults markup=True and forwards it explicitly, so every self.notify()
+        from a screen/widget reaches here with markup already True - setdefault
+        was a no-op for exactly the error toasts this guard exists to protect.
+        No toast in this app uses markup, so forcing it off is safe."""
+        kwargs["markup"] = False
         super().notify(message, **kwargs)
 
     def on_mount(self) -> None:

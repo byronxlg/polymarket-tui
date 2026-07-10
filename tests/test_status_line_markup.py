@@ -44,3 +44,57 @@ async def test_updating_with_a_text_wrapper_is_safe() -> None:
         line = app.query_one("#balance-line", Static)
         line.update(Text(BAD))  # must not raise
         assert "502" in line.render().plain
+
+
+# -- title lines carry API/user text and must render literally too -------------
+
+
+def test_market_title_line_returns_text_even_with_bracketed_question():
+    """A Gamma question like "Will X drop [before Y]?" must not reach the
+    Static as a markup string. _title_line now returns a Text."""
+    from rich.text import Text as RichText
+
+    from polymarket_tui.models.market import Market
+    from polymarket_tui.ui.screens.market import MarketPane
+
+    market = Market.model_validate(
+        {
+            "question": "Will BTC dip [below $50k] in July?",
+            "slug": "btc-dip",
+            "clobTokenIds": '["1", "2"]',
+            "outcomes": '["Yes", "No"]',
+            "active": True,
+            "closed": False,
+        }
+    )
+    pane = object.__new__(MarketPane)  # skip Textual widget __init__
+    pane._market = market
+    pane._event = None
+    line = pane._title_line()
+    assert isinstance(line, RichText)
+    assert "[below $50k]" in line.plain  # literal, not swallowed as markup
+
+
+def test_user_title_line_returns_text_even_with_bracketed_name():
+    from rich.text import Text as RichText
+
+    from polymarket_tui.ui.screens.user import UserPane
+
+    class _WL:
+        def is_watched_user(self, _addr):
+            return False
+
+    class _App:
+        watchlist = _WL()
+
+    import unittest.mock as m
+
+    pane = object.__new__(UserPane)  # skip Textual widget __init__
+    pane._address = "0x" + "ab" * 20
+    pane._trader_name = "trader[bracket]name"
+    # _title_line reads self.app.watchlist; Widget.app is a read-only property,
+    # so stub it on the class for the duration of the call.
+    with m.patch.object(UserPane, "app", property(lambda self: _App())):
+        line = pane._title_line()
+    assert isinstance(line, RichText)
+    assert "trader[bracket]name" in line.plain

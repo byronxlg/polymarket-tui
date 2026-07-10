@@ -92,9 +92,12 @@ class UserPane(TierAware, Vertical):
         table_id = dict(PANES).get(self._active_pane(), "#user-positions")
         self.query_one(table_id, VimDataTable).focus()
 
-    def _title_line(self) -> str:
+    def _title_line(self) -> Text:
+        # A Text, not a markup string: the trader name is a user-set display
+        # name from the API and a '[' in it would crash the Static's markup
+        # parser (see the balance-line 502). This line carries no markup.
         watched = " | watched" if self.app.watchlist.is_watched_user(self._address) else ""
-        return f"{self._trader_name}  |  {self._address[:6]}...{self._address[-4:]}{watched}"
+        return Text(f"{self._trader_name}  |  {self._address[:6]}...{self._address[-4:]}{watched}")
 
     def _pos_columns(self) -> dict[Tier, tuple]:
         """Positions column sets for the current density (spacious re-composes rows)."""
