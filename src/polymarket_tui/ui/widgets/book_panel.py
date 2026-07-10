@@ -94,6 +94,13 @@ class BookPanel(Static):
         # The first book render (per outcome) drops the cursor at the mid -
         # the touch is what a trader acts on, not the deepest visible ask.
         self._cursor_centered = False
+        # Has the user actually put the cursor on a level, or is it just parked
+        # where the first render left it? The book takes focus by default when
+        # the market pane opens, so "the book has focus" alone never meant the
+        # user picked a price - and the parked row is the best ASK, which
+        # silently overrode the SELL cash-out prefill with a price that cannot
+        # cross. Only a deliberate move counts (see cursor_chosen).
+        self._cursor_moved = False
         # Cents decimal places at the market's tick. Seeded from Gamma via
         # set_price_decimals, then taken from each book's own tick_size - the
         # exchange is the only authority on its current grid. 1 is the app-wide
@@ -124,14 +131,26 @@ class BookPanel(Static):
             return None
         return self._levels[self._cursor][1].price
 
+    @property
+    def cursor_chosen(self) -> bool:
+        """True once the user moved the cursor onto a level themselves.
+
+        Prefilling an order from `cursor_price` is only "the price you are
+        looking at" if you put the cursor there. Until then it sits on the best
+        ask, which is the wrong side of the book for a sell.
+        """
+        return self._cursor_moved
+
     def focus_top(self) -> None:
         """Enter the book at its top row (called when arrowing down into it)."""
         self._cursor = 0
+        self._cursor_moved = True  # arrowing in is a deliberate landing
 
     def reset_depth(self) -> None:
         """Back to the default window (call when the shown token changes -
         an outcome flip must not inherit the other book's explored depth).
         The next render re-centers the cursor on the new book's mid."""
+        self._cursor_moved = False  # a new book is nobody's chosen level yet
         self._ask_depth = DEPTH
         self._bid_depth = DEPTH
         self._cursor_centered = False
@@ -209,6 +228,7 @@ class BookPanel(Static):
         if target >= len(self._levels):
             return  # clamp at the last row
         self._cursor = target
+        self._cursor_moved = True
         self._maybe_expand(delta)
         self.post_message(self.CursorMoved())
         self._render_book()
@@ -245,6 +265,7 @@ class BookPanel(Static):
         if not self._levels:
             return
         self._cursor = self._center_row()
+        self._cursor_moved = True  # pressing m is a choice, unlike the parked default
         self.post_message(self.CursorMoved())  # drop a stale armed cancel
         self._render_book()
 

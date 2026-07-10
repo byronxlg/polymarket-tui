@@ -17,11 +17,14 @@ from polymarket_tui.services.orders import (
     PlaceResult,
     Side,
     Tif,
+    fill_split,
+    fill_split_label,
     format_cents_input,
     format_price_cents,
     format_shares,
     map_error,
     parse_price,
+    placement_label,
     price_decimals,
     round_to_tick,
     tick_size,
@@ -569,3 +572,159 @@ class TestFormatCentsInput:
             shown = format_cents_input(raw, 1)
             if shown and shown != "33.":
                 assert parse_price(shown) is not None
+
+
+# -- fill split: does this order fill now, or rest on the book? -----------------
+
+
+def deep_book(bids: list[tuple[str, str]], asks: list[tuple[str, str]]) -> OrderBook:
+    return OrderBook.model_validate(
+        {
+            "bids": [{"price": p, "size": s} for p, s in bids],
+            "asks": [{"price": p, "size": s} for p, s in asks],
+        }
+    )
+
+
+def test_fill_split_none_without_a_book():
+    assert fill_split(make_draft(), None) is None
+
+
+def test_sell_at_the_bid_rests_the_part_the_bid_cannot_absorb():
+    """The cash-out prefill: full position at the best bid, GTC. The bid holds
+    40 of the 100 shares, so 60 rest on the book - silently, before this."""
+    book = deep_book(bids=[("0.33", "40"), ("0.32", "500")], asks=[("0.34", "100")])
+    draft = make_draft(side=Side.SELL, price=Decimal("0.33"), size=Decimal("100"))
+    split = fill_split(draft, book)
+    assert (split.fills, split.rests) == (Decimal("40"), Decimal("60"))
+    assert not split.fills_all and not split.fills_none
+    assert fill_split_label(draft, split) == "fills ~40 now, ~60 rests on the book"
+
+
+def test_sell_sweeps_every_bid_at_or_above_the_limit():
+    book = deep_book(bids=[("0.33", "40"), ("0.32", "500")], asks=[("0.34", "100")])
+    draft = make_draft(side=Side.SELL, price=Decimal("0.32"), size=Decimal("100"))
+    split = fill_split(draft, book)
+    assert split.fills == Decimal("100") and split.fills_all
+    assert fill_split_label(draft, split) == "fills all ~100 now"
+
+
+def test_sell_above_the_bid_rests_entirely():
+    book = deep_book(bids=[("0.33", "1000")], asks=[("0.36", "100")])
+    draft = make_draft(side=Side.SELL, price=Decimal("0.35"), size=Decimal("10"))
+    split = fill_split(draft, book)
+    assert split.fills_none and split.rests == Decimal("10")
+    assert fill_split_label(draft, split) == "nothing fills now - it rests on the book"
+
+
+def test_buy_crosses_only_asks_at_or_below_the_limit():
+    book = deep_book(bids=[("0.30", "999")], asks=[("0.34", "25"), ("0.35", "999")])
+    draft = make_draft(side=Side.BUY, price=Decimal("0.34"), size=Decimal("60"))
+    split = fill_split(draft, book)
+    assert (split.fills, split.rests) == (Decimal("25"), Decimal("35"))
+
+
+def test_market_order_remainder_is_cancelled_not_rested():
+    """A market order is a FAK marketable limit at the touch: what the touch
+    cannot absorb is killed, and must never read as 'rests on the book'."""
+    book = deep_book(bids=[("0.33", "40"), ("0.32", "500")], asks=[("0.34", "100")])
+    draft = make_draft(
+        side=Side.SELL,
+        price=Decimal("0.33"),
+        size=Decimal("100"),
+        tif=Tif.FAK,
+        is_market_order=True,
+    )
+    split = fill_split(draft, book)
+    assert (split.fills, split.rests) == (Decimal("40"), Decimal("60"))
+    assert fill_split_label(draft, split) == "fills ~40 now, ~60 cancelled"
+
+
+def test_fok_fills_all_or_nothing():
+    book = deep_book(bids=[("0.33", "40")], asks=[("0.34", "100")])
+    draft = make_draft(side=Side.SELL, price=Decimal("0.33"), size=Decimal("100"), tif=Tif.FOK)
+    split = fill_split(draft, book)
+    assert split.fills_none and split.fills == Decimal("0")
+    assert "killed" in fill_split_label(draft, split)
+    # ...but a book deep enough fills the whole thing.
+    deep = deep_book(bids=[("0.33", "100")], asks=[("0.34", "100")])
+    assert fill_split(draft, deep).fills_all
+
+
+def test_fok_that_fills_exactly_is_not_killed():
+    book = deep_book(bids=[("0.33", "100")], asks=[("0.34", "1")])
+    draft = make_draft(side=Side.SELL, price=Decimal("0.33"), size=Decimal("100"), tif=Tif.FOK)
+    assert fill_split(draft, book).fills_all
+
+
+def test_empty_book_side_fills_nothing():
+    draft = make_draft(side=Side.SELL, price=Decimal("0.33"), size=Decimal("10"))
+    assert fill_split(draft, deep_book(bids=[], asks=[("0.34", "5")])).fills_none
+
+
+# -- placement_label: assert only what the CLOB status proves ------------------
+
+
+def test_placement_label_live_says_nothing_filled():
+    draft = make_draft(side=Side.SELL, size=Decimal("100"), price=Decimal("0.334"))
+    label = placement_label(draft, PlaceResult(ok=True, dry_run=False, status="live"))
+    assert label == "Resting on the book: SELL 100 YES @ 33.4c - nothing filled"
+
+
+def test_placement_label_matched_gtc_never_claims_a_fill_size():
+    """`matched` proves the order crossed, not that it crossed fully - a GTC
+    remainder rests. The response has no trustworthy fill size, so don't invent
+    one; point at open orders instead."""
+    draft = make_draft(side=Side.SELL, size=Decimal("100"), price=Decimal("0.334"))
+    label = placement_label(draft, PlaceResult(ok=True, dry_run=False, status="matched"))
+    assert label.startswith("Matched: SELL 100 YES @ 33.4c")
+    assert "check open orders for any remainder" in label
+    assert "Filled" not in label
+
+
+def test_placement_label_matched_market_order_says_remainder_cancelled():
+    draft = make_draft(
+        side=Side.SELL,
+        size=Decimal("100"),
+        price=Decimal("0.334"),
+        tif=Tif.FAK,
+        is_market_order=True,
+    )
+    label = placement_label(draft, PlaceResult(ok=True, dry_run=False, status="matched"))
+    assert "any remainder was cancelled" in label
+
+
+def test_placement_label_falls_back_to_the_raw_status():
+    draft = make_draft(side=Side.BUY, size=Decimal("5"), price=Decimal("0.5"))
+    assert placement_label(draft, PlaceResult(ok=True, dry_run=False, status="delayed")).startswith(
+        "Order delayed: BUY 5 YES @ 50.0c"
+    )
+
+
+# -- a full-position prefill must not exceed the position ----------------------
+
+
+class TestFullPositionSellDoesNotBlockItself:
+    """`s` on a fractional holding prefills the whole position. Rounding that
+    prefill to 2dp rounded it UP past the holding, so the app's own inventory
+    guard hard-blocked it - with both numbers rendered as whole shares, the
+    message read "Selling 28 but you hold 28."  (Real position: 28.3393.)"""
+
+    HELD = 28.3393
+
+    def test_format_shares_keeps_every_fraction_digit(self):
+        assert format_shares(Decimal("28.3393")) == "28.3393"
+        assert format_shares(Decimal("1234.5")) == "1,234.5"
+        assert format_shares(Decimal("10")) == "10"
+        assert format_shares(Decimal("0")) == "0"
+
+    def test_prefilling_the_whole_position_validates_clean(self, service):
+        draft = make_draft(side=Side.SELL, size=Decimal(str(self.HELD)), price=Decimal("0.33"))
+        issues = service.validate(draft, make_book(), cash_balance=1000.0, position_size=self.HELD)
+        assert IssueLevel.BLOCK.value not in levels(issues), messages(issues)
+
+    def test_a_size_above_the_holding_still_blocks_and_names_both_numbers(self, service):
+        draft = make_draft(side=Side.SELL, size=Decimal("28.34"), price=Decimal("0.33"))
+        issues = service.validate(draft, make_book(), cash_balance=1000.0, position_size=self.HELD)
+        assert IssueLevel.BLOCK.value in levels(issues)
+        assert "Selling 28.34 but you hold 28.3393." in messages(issues)

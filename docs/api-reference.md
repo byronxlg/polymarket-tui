@@ -180,6 +180,18 @@ Response:
  "makingAmount": "3.7", "takingAmount": "5", "transactionsHashes": ["0x..."]}
 ```
 
+`status`: `live` = resting on the book, `matched` = crossed a resting order,
+`delayed` = marketable, held in a matching delay, `unmatched` = marketable but
+the delay failed (placement still succeeded). **`matched` does not mean fully
+filled** - a GTC that crosses a thin book matches part and rests the rest.
+
+**Never derive a fill size from `makingAmount`/`takingAmount`.** Which one is
+shares and which is USDC depends on the side, and Polymarket's docs do not
+specify it (checked Jul 2026); both are `""` for a `live` order. The only
+trustworthy share count is `size_matched`, on the `/ws/user` order frame and on
+`GET /orders`. `services/orders.py` reads `success`/`status`/`orderID`/
+`errorMsg` and nothing else.
+
 No native market order: use marketable limit (cross the spread) + FAK.
 
 Cancels: `client.cancel(order_id)`, `cancel_orders([ids])`, `cancel_all()`,

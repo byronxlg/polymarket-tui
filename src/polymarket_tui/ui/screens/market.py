@@ -1125,8 +1125,14 @@ class MarketPane(TierAware, Vertical):
         # not the mid/touch default (space in the book already does this via
         # RowActioned; those keys have no book binding, so they land here). Wins
         # over the SELL best-bid default; the held size prefill above stays.
+        #
+        # Only once the cursor has actually been MOVED, though: the book takes
+        # focus whenever the pane opens, with the cursor parked on the best ask.
+        # Honouring that parked row overrode the cash-out prefill above and
+        # armed every `s` at the ask - a sell that can never cross, so it rested
+        # on the book instead of filling, with nothing on screen saying so.
         book = self.query_one(BookPanel)
-        if book.has_focus and book.cursor_price is not None:
+        if book.has_focus and book.cursor_chosen and book.cursor_price is not None:
             preset_price = Decimal(str(book.cursor_price))
         panel.open(
             self._market,

@@ -36,6 +36,7 @@ from polymarket_tui.ui.screens.user import UserPane
 from polymarket_tui.ui.screens.watchlist import WatchlistPane
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, PMTUI_THEME, UP
 from polymarket_tui.ui.widgets.confirm_modal import ConfirmModal
+from polymarket_tui.ui.widgets.order_details import order_event_label
 
 
 class PolymarketApp(App):
@@ -208,14 +209,9 @@ class PolymarketApp(App):
     def _on_user_event(self, kind: str, msg: object) -> None:
         """Own order/fill arrived over the socket: toast it and refresh open orders."""
         if kind == "order" and isinstance(msg, UserOrderMessage):
-            verb = {"LIVE": "resting", "CANCELED": "canceled", "MATCHED": "filled"}.get(
-                msg.status, msg.status.lower()
-            )
-            self.notify(
-                f"Order {verb}: {msg.side} {msg.original_size} {msg.outcome} @ "
-                f"{fmt.cents_exact(float(msg.price))}",
-                timeout=6,
-            )
+            # size_matched, not original_size: a LIVE order that partly filled is
+            # both a fill and a resting order, and only the split says which.
+            self.notify(order_event_label(msg), timeout=6)
         elif kind == "trade" and isinstance(msg, UserTradeMessage):
             if msg.id in self._toasted_trades:
                 return  # same fill, later status - already toasted and refreshed

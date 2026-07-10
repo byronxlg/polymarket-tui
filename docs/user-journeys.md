@@ -204,3 +204,29 @@ History / trader History as the 30% drill parent, or any narrow fit)
 dropped it - a trade feed reading "$20.00" with no direction. The compact
 tier now carries a 1-wide colored B/S letter column (the trades-rail
 idiom); wider tiers keep the full word.
+
+### Iteration 9 (2026-07-10) - selling says whether it filled
+
+Byron: "selling is a bit cumbersome, and it is hard to see whether the
+sell was filled straight away or a limit order was placed." Driving C7
+against the live APIs found three faults stacked on one path, not two:
+
+1. `s` prefilled the position rounded to 2dp (28.34 for a 28.3393-share
+   holding), which is *more* than the holding, so the inventory guard
+   hard-blocked the app's own prefill - with both numbers rendered as
+   whole shares: "Selling 28 but you hold 28."
+2. The book takes focus when the pane opens, cursor parked on the best
+   ask, and `action_order` honoured any focused book's cursor price. That
+   overrode the best-bid cash-out prefill, so every `s` armed a sell at
+   the ask - a price that cannot cross. It rested on the book, always.
+3. Nothing said so. The confirm card showed "@ 34.0c limit GTC" and a
+   `proceeds` figure that assumed a full fill; the placement toast was
+   suppressed whenever /ws/user was up; and the ws toast quoted
+   `original_size`, announcing a 100-share sell that filled 40 as "Order
+   resting: SELL 100 Yes".
+
+Byron's own audit log had 8 `matched` and 4 `live` sells - the ambiguity
+was live. Fixed: exact sizes end to end, `cursor_chosen` gates the cursor
+override, and every surface now names the split (confirm card "fills
+~736.23 now, ~263.77 rests on the book"; toasts led by Filled / Partly
+filled / Resting). See docs/trading.md.

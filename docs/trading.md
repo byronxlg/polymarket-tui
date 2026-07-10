@@ -31,6 +31,23 @@ stays fully visible beside it):
 - A bold summary line (side muted, outcome colored, price cyan) plus
   cost/payout re-render on every keystroke.
 
+### Sell prefills: `s` means cash out
+
+`s` prefills the **whole held position at the best bid**, so `s -> enter ->
+enter` cashes out. Two rules keep that promise:
+
+- **Sizes are exact.** The prefill is the position to the last digit
+  (28.3393, never a rounded 28.34). Rounding it to 2dp rounded *up* past the
+  holding, and the inventory guard then hard-blocked the app's own prefill.
+  `format_shares` therefore keeps every fraction digit: what is shown is what
+  is signed, for size exactly as for price.
+- **A parked book cursor is not a chosen price.** `b`/`s` from a focused book
+  prefill the highlighted level - but only once the user has *moved* the
+  cursor (`BookPanel.cursor_chosen`). The book takes focus whenever the pane
+  opens, with the cursor parked on the best ask, and honouring that parked row
+  armed every sell at the ask: a price that cannot cross, so the "cash out"
+  rested on the book instead of filling.
+
 ## Validation pipeline (`services/orders.py`)
 
 Policy: **the app never blocks an order the exchange would accept.** Hard
@@ -80,12 +97,29 @@ much, then the money it moves:
     DRY-RUN · signs, never posts
     BUY 10 YES
     @ 33.4c   limit GTC
+    fills all ~10 now
     cost   $3.34
     payout $10.00 if it wins
     enter place   esc edit
 
 (a SELL shows `proceeds $X` instead of cost/payout.) Numbers are bold, the
 outcome carries the colour, and the mode word says what enter will do.
+
+### Does it fill, or does it rest?
+
+The line under the price answers the question the card could never answer, from
+the live book (`fill_split` in services/orders.py): sum the depth the limit
+price crosses - bids at or above it for a SELL, asks at or below it for a BUY.
+
+    fills all ~28.3393 now                    (green)
+    fills ~736.23 now, ~263.77 rests on the book   (amber - the surprising case)
+    nothing fills now - it rests on the book   (dim - an ordinary limit order)
+
+The leftover's fate is named, never implied: a GTC remainder **rests**, a
+market/FAK/FOK remainder is **cancelled**, and a FOK that cannot fill whole
+fills nothing. Sizes carry `~` because the book moves between drafting and
+matching. When only part of it crosses, `cost`/`proceeds` read "if it all
+fills" - they price the whole order, not the fill.
 
 A second enter places - the panel becomes focusable only at this point and
 ignores keys for the 0.15s arming beat, so a queued enter cannot fire it
@@ -114,20 +148,36 @@ truly enforce it. Builder fees stay at the profile default of 0 bps - the user p
 builder cost. A non-zero fee would be a user-visible cost and must be disclosed in the
 order panel first (design principle: money is never careless).
 
-Map response to UX:
+Map response to UX. The post response carries `makingAmount`/`takingAmount`, but
+the CLOB does **not** document which is shares and which is USDC for a given
+side, so no fill size is ever derived from them. `status` is documented, and
+`size_matched` on the `/ws/user` order frame is the trustworthy share count.
 
 | Result | UX |
 |---|---|
-| `success && status == "matched"` | green toast "Filled: 100 @ 12.3c", refresh position strip |
-| `success && status == "live"` | toast "Resting on book", order appears via user WS |
-| `success && status in (delayed, unmatched)` | yellow toast with `errorMsg`, keep tracking via WS |
+| `success && status == "matched"` | "Matched: SELL 100 YES @ 33.4c - check open orders for any remainder" (a matched GTC may have crossed only partly). A market/FAK/FOK order says "any remainder was cancelled" |
+| `success && status == "live"` | "Resting on the book: ... - nothing filled" |
+| `success && status in (delayed, unmatched)` | falls back to the raw status word |
 | `success == False` | sticky red toast with mapped `errorMsg`; form retains values |
+
+Those are `placement_label`, and they only fire when `/ws/user` is **down**.
+While the socket is up it echoes the exact split from `size_matched`
+(`order_event_label` in ui/widgets/order_details.py), and the local toast is
+suppressed so one placement raises one alert:
+
+| ws order frame | toast |
+|---|---|
+| `MATCHED` | `Filled: SELL 100 Yes @ 33.4c` |
+| `LIVE`, `size_matched > 0` | `Partly filled: SELL 100 Yes @ 33.4c - 40 filled, 60 resting` |
+| `LIVE`, `size_matched == 0` | `Resting on the book: SELL 100 Yes @ 33.4c - nothing filled` |
+| `CANCELED` | `Canceled: SELL 60 Yes @ 33.4c (40 of 100 had filled)` |
+
+The lead word answers "filled, or resting?" before the numbers land. Quoting
+`original_size` here (as it once did) announced a 100-share sell that filled 40
+as "Order resting: SELL 100 Yes".
 
 After any placement: invalidate balance + positions caches; append to the session order
 log (in-memory + JSONL at `~/.local/share/polymarket-tui/orders.jsonl` for audit).
-
-Fills will arrive authoritatively on the user WS channel once M2 lands;
-today the open-orders tab refetches on demand.
 
 ## Cancels
 
