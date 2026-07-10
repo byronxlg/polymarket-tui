@@ -17,6 +17,29 @@ def trunc(text: str, width: int) -> str:
     return text[: width - 1].rstrip() + "…"
 
 
+def error_brief(exc: object, width: int = 80) -> str:
+    """A short, single-line description of an error for a status line.
+
+    API errors embed the whole HTTP response body in their message: a 502's
+    error_message is a multi-thousand-character HTML page. Dumping that into a
+    one-line status field is useless, and its stray '[' broke Rich markup and
+    crashed the app. Prefer a bare 'HTTP 502' when the exception carries a
+    status code; otherwise the first line of the message, whitespace collapsed
+    and truncated. (Rendering the result as a Text - not markup - is what
+    actually prevents the crash; this just makes the line readable.)
+    """
+    status = getattr(exc, "status_code", None)
+    if status:
+        return f"HTTP {status}"
+    # Prefer the exception's own message field over its repr: PolyApiException's
+    # __str__ is "PolyApiException[status_code=..., error_message=...]", noise in
+    # a status line. Fall back to str() for plain exceptions.
+    msg = getattr(exc, "error_msg", None) or getattr(exc, "msg", None) or str(exc)
+    raw = str(msg).strip()
+    first = raw.splitlines()[0] if raw else exc.__class__.__name__
+    return trunc(" ".join(first.split()), width)
+
+
 def cents(price: float | None, signed: bool = False) -> str:
     if price is None:
         return "-"

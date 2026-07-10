@@ -376,10 +376,13 @@ class PortfolioPane(TierAware, Vertical):
                 if value is not None:
                     parts.insert(0, f"total {fmt.money(balance + value)}")
         except Exception as exc:
-            parts.append(f"balance error: {exc}")
+            parts.append(f"balance error: {fmt.error_brief(exc)}")
         if not alive(self):
             return  # pane torn down while we fetched
-        self.query_one("#balance-line", Static).update("  |  ".join(parts))
+        # Render as a Text, never a markup string: an API error message embeds
+        # the raw HTTP body (a 502's HTML page), and its '[' crashed the markup
+        # parser (MarkupError). This line carries no markup anyway.
+        self.query_one("#balance-line", Static).update(Text("  |  ".join(parts)))
 
     @work(exclusive=True, group="positions")
     async def load_positions(self) -> None:
