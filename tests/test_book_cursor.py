@@ -263,3 +263,42 @@ async def test_book_prices_render_true_to_tick() -> None:
             )
         )
         assert "mid 32.5c" in str(rendered[-1])
+
+
+def _book_with_tick(tick: str | None) -> OrderBook:
+    raw = {
+        "bids": [{"price": "0.333", "size": "100"}],
+        "asks": [{"price": "0.334", "size": "80"}],
+    }
+    if tick is not None:
+        raw["tick_size"] = tick
+    return OrderBook.model_validate(raw)
+
+
+async def test_book_renders_at_the_exchange_tick_not_the_gamma_snapshot() -> None:
+    """The reported bug: a 0.001-tick market drawn at whole cents.
+
+    The pane seeds decimals from Gamma's orderPriceMinTickSize, which is a
+    snapshot and goes stale when the exchange re-grids the market. Every book
+    the CLOB sends stamps the real tick, so the panel must follow that instead.
+    """
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.set_price_decimals(0)  # stale Gamma seed: "tick 0.01"
+        await pilot.pause()
+
+        book.update_book(_book_with_tick("0.001"))
+        rendered = str(book.render())
+        assert "33.4c" in rendered and "33.3c" in rendered
+        assert "33c" not in rendered.replace("33.3c", "").replace("33.4c", "")
+
+
+async def test_book_keeps_the_gamma_seed_when_a_book_carries_no_tick() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.set_price_decimals(0)
+        await pilot.pause()
+        book.update_book(_book_with_tick(None))
+        assert "33c" in str(book.render())

@@ -9,6 +9,8 @@ from prior docs: it carries `price_changes` (plural), each entry with its own
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from polymarket_tui.models.market import BookLevel, OrderBook
@@ -29,6 +31,7 @@ class BookMessage(BaseModel):
     market: str = ""
     bids: list[WsLevel] = Field(default_factory=list)
     asks: list[WsLevel] = Field(default_factory=list)
+    tick_size: Decimal | None = None  # the exchange's current tick, e.g. "0.001"
     timestamp: int = 0
 
 
@@ -64,16 +67,37 @@ class LastTradeMessage(BaseModel):
     timestamp: int = 0
 
 
+class TickSizeChangeMessage(BaseModel):
+    """`tick_size_change` - the exchange re-priced this token's tick grid.
+
+    Emitted as a market's price approaches 0 or 1, where the CLOB switches to a
+    finer tick (typically 0.01 -> 0.001). Acting on this is what keeps the book
+    and the order form at the exchange's real resolution: Gamma's
+    orderPriceMinTickSize only catches up on the next fetch, and a pane holds
+    its Market snapshot for its whole life.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    event_type: str = "tick_size_change"
+    asset_id: str = ""
+    market: str = ""
+    old_tick_size: Decimal | None = None
+    new_tick_size: Decimal | None = None
+    timestamp: int = 0
+
+
 _TYPES = {
     "book": BookMessage,
     "price_change": PriceChangeMessage,
     "last_trade_price": LastTradeMessage,
+    "tick_size_change": TickSizeChangeMessage,
 }
 
+MarketMessage = BookMessage | PriceChangeMessage | LastTradeMessage | TickSizeChangeMessage
 
-def parse_market_message(raw: dict) -> BookMessage | PriceChangeMessage | LastTradeMessage | None:
-    """Type one frame by its event_type. Returns None for unknown types
-    (e.g. tick_size_change, which we do not act on yet)."""
+
+def parse_market_message(raw: dict) -> MarketMessage | None:
+    """Type one frame by its event_type. Returns None for unknown types."""
     model = _TYPES.get(raw.get("event_type", ""))
     return model.model_validate(raw) if model else None
 
@@ -144,6 +168,9 @@ class LiveBook:
         self._bids: dict[str, float] = {}  # price string -> size
         self._asks: dict[str, float] = {}
         self._ts: int = 0
+        # Survives price_change deltas (which never carry it) and outlives any
+        # single snapshot, so the book always renders at the exchange's tick.
+        self._tick: Decimal | None = None
         self.applied: int = 0  # frames applied, for staleness/debug
 
     def apply_book(self, msg: BookMessage) -> bool:
@@ -152,7 +179,17 @@ class LiveBook:
         self._bids = {lvl.price: float(lvl.size) for lvl in msg.bids if float(lvl.size) > 0}
         self._asks = {lvl.price: float(lvl.size) for lvl in msg.asks if float(lvl.size) > 0}
         self._ts = msg.timestamp or self._ts
+        if msg.tick_size:
+            self._tick = msg.tick_size
         self.applied += 1
+        return True
+
+    def apply_tick_size(self, msg: TickSizeChangeMessage) -> bool:
+        """Adopt a new tick. Returns True when it actually moved, so the channel
+        only wakes the UI on a real change (the CLOB repeats the frame)."""
+        if not msg.new_tick_size or msg.new_tick_size == self._tick:
+            return False
+        self._tick = msg.new_tick_size
         return True
 
     def apply_price_change(self, msg: PriceChangeMessage, asset_id: str) -> bool:
@@ -178,4 +215,5 @@ class LiveBook:
         return OrderBook(
             bids=[BookLevel(price=float(p), size=s) for p, s in self._bids.items()],
             asks=[BookLevel(price=float(p), size=s) for p, s in self._asks.items()],
+            tick_size=self._tick,
         )

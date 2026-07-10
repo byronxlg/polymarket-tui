@@ -25,6 +25,7 @@ from polymarket_tui.models.ws import (
     LastTradeMessage,
     LiveBook,
     PriceChangeMessage,
+    TickSizeChangeMessage,
     UserOrderMessage,
     UserTradeMessage,
     parse_market_message,
@@ -183,6 +184,15 @@ class MarketChannel:
             for asset_id, lb in self._books.items():
                 if lb.apply_price_change(msg, asset_id):
                     self._emit("price_change", asset_id)
+        elif isinstance(msg, TickSizeChangeMessage):
+            # The frame names one token, but a tick is a property of the market:
+            # both outcomes re-grid together. An empty asset_id (seen on some
+            # frames) therefore means "all of them", not "none".
+            targets = [msg.asset_id] if msg.asset_id else list(self._books)
+            for asset_id in targets:
+                lb = self._books.get(asset_id)
+                if lb and lb.apply_tick_size(msg):
+                    self._emit("tick_size_change", asset_id)
         elif isinstance(msg, LastTradeMessage):
             self._trades[msg.asset_id] = msg
             self._emit("last_trade_price", msg.asset_id)
