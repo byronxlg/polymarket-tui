@@ -256,6 +256,12 @@ def fill_split(draft: OrderDraft, book: OrderBook | None) -> FillSplit | None:
     FOK is all-or-nothing, so a book that cannot fill the whole size fills none
     of it. Returns None when there is no book to reason about (the caller then
     says nothing rather than guessing).
+
+    One way this can read high: the streamed book includes your OWN resting
+    orders, and the engine will not self-trade against them. Crossing a level
+    you are yourself sitting on therefore fills less than the depth suggests.
+    That is the only direction the estimate can err, and it is why every
+    surface renders these sizes with a '~' rather than as a promise.
     """
     if book is None:
         return None

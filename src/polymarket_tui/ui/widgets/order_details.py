@@ -76,6 +76,9 @@ def order_event_label(msg: UserOrderMessage) -> str:
         total = Decimal(msg.original_size or "0")
     except InvalidOperation:
         matched, total = Decimal(0), Decimal(0)
+    # A well-formed frame never matches more than it placed, but a toast must
+    # not render "-20 resting" if one ever does. Clamp rather than trust.
+    matched = min(matched, total)
     resting = total - matched
 
     def line(size: Decimal) -> str:
@@ -93,11 +96,13 @@ def order_event_label(msg: UserOrderMessage) -> str:
             )
         return f"Canceled: {line(total)}"
     if msg.status == "LIVE":
-        if matched > 0:
+        if 0 < matched < total:
             return (
                 f"Partly filled: {line(total)}"
                 f" - {format_shares(matched)} filled, {format_shares(resting)} resting"
             )
+        if matched > 0:
+            return f"Filled: {line(total)}"  # LIVE but nothing left resting
         return f"Resting on the book: {line(total)} - nothing filled"
     return f"Order {msg.status.lower() or 'updated'}: {line(total)}"
 

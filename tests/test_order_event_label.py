@@ -67,3 +67,24 @@ def test_unknown_status_falls_back_without_crashing():
 
 def test_garbage_sizes_do_not_raise():
     assert order_event_label(msg(original_size="", size_matched="abc"))
+
+
+# -- defensive: a frame must never render a negative share count ---------------
+
+
+def test_matched_above_original_never_renders_negative_resting():
+    label = order_event_label(msg(original_size="100", size_matched="150"))
+    assert "-" not in label.replace("@", "")
+    assert "resting" not in label  # nothing is left resting
+
+
+def test_cancel_with_matched_above_original_never_renders_negative():
+    label = order_event_label(msg(original_size="100", size_matched="120", status="CANCELED"))
+    assert "-20" not in label
+    assert "100 of 100 had filled" in label
+
+
+def test_live_fully_matched_does_not_claim_a_resting_remainder():
+    assert order_event_label(msg(original_size="100", size_matched="100")) == (
+        "Filled: SELL 100 Yes @ 33.4c"
+    )
