@@ -11,7 +11,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation, localcontext
 from enum import StrEnum
 from pathlib import Path
 
@@ -163,11 +163,30 @@ def format_price_cents(market: Market, price: Decimal, book: OrderBook | None = 
     return f"{price * 100:.{max(1, price_decimals(market, book))}f}c"
 
 
+def normalize_shares(size: Decimal) -> Decimal:
+    """Drop trailing zeros without ever dropping a significant digit."""
+    q = size.normalize()
+    if q != q.to_integral_value():
+        return q
+    # normalize() turns 10 into 1E+1; put whole numbers back into plain form.
+    # A size past the Decimal context's precision cannot be quantized - no real
+    # book has one, but a formatter must not raise on the money path.
+    with localcontext() as ctx:
+        ctx.traps[InvalidOperation] = False
+        plain = q.quantize(Decimal(1))
+    return q if plain.is_nan() else plain
+
+
 def format_shares(size: Decimal) -> str:
-    """Shares for display: whole when whole, any fraction kept (12.5 sells
-    from a '50%' entry must not confirm as '12')."""
-    text = f"{size:,.2f}".rstrip("0").rstrip(".")
-    return text or "0"
+    """Shares for display: whole when whole, every fraction digit kept.
+
+    The price_label rule applies to size too - what the user confirms must be
+    exactly what is signed. A `.2f` here rounded a 28.3393-share cash-out to
+    "28.34", which is not only the wrong number on the card but *more than the
+    position*, so the inventory guard hard-blocked the app's own prefill with
+    "Selling 28 but you hold 28."
+    """
+    return f"{normalize_shares(size):,f}" or "0"
 
 
 def format_cents_input(raw: str, decimals: int) -> str:
@@ -198,6 +217,104 @@ def format_cents_input(raw: str, decimals: int) -> str:
     if frac_part or (had_dot and decimals):
         return f"{int_part}.{frac_part}"
     return int_part
+
+
+@dataclass(frozen=True)
+class FillSplit:
+    """How much of a draft crosses the live book right now, and what becomes of
+    the rest. Derived locally from the book we already stream - never from the
+    post response, whose makingAmount/takingAmount orientation the CLOB does
+    not document (docs/api-reference.md). An estimate by nature: the book moves
+    between drafting and matching, so every surface renders it with a '~'.
+    """
+
+    fills: Decimal  # shares that cross at this limit price
+    rests: Decimal  # shares left over (resting for GTC, cancelled for FAK)
+
+    @property
+    def total(self) -> Decimal:
+        return self.fills + self.rests
+
+    @property
+    def fills_all(self) -> bool:
+        return self.rests <= 0 and self.fills > 0
+
+    @property
+    def fills_none(self) -> bool:
+        return self.fills <= 0
+
+
+def fill_split(draft: OrderDraft, book: OrderBook | None) -> FillSplit | None:
+    """Shares of `draft` that the resting book would fill immediately.
+
+    A SELL crosses every bid priced at or above its limit; a BUY crosses every
+    ask priced at or below it. Summing that depth answers the question the
+    order panel could never answer before: does this fill now, or does it sit
+    on the book? A GTC sell at the best bid - the cash-out prefill - fills only
+    as deep as that bid, and quietly rests the remainder.
+
+    FOK is all-or-nothing, so a book that cannot fill the whole size fills none
+    of it. Returns None when there is no book to reason about (the caller then
+    says nothing rather than guessing).
+    """
+    if book is None:
+        return None
+    if draft.side is Side.SELL:
+        levels = [lvl for lvl in book.bids if Decimal(str(lvl.price)) >= draft.price]
+    else:
+        levels = [lvl for lvl in book.asks if Decimal(str(lvl.price)) <= draft.price]
+    depth = sum((Decimal(str(lvl.size)) for lvl in levels), Decimal(0))
+    fills = min(draft.size, depth)
+    if draft.tif is Tif.FOK and fills < draft.size:
+        fills = Decimal(0)  # fill-or-kill: partial depth fills nothing
+    return FillSplit(fills=fills, rests=draft.size - fills)
+
+
+def fill_split_label(draft: OrderDraft, split: FillSplit) -> str:
+    """One plain-English line: what happens the instant this order is signed.
+
+    The leftover's fate is the TIF's, so it is named rather than implied - a
+    resting remainder is the thing users miss, and a cancelled one must never
+    read as a fill. Sizes carry '~' because the book moves under us.
+    """
+    # A market order is a FAK marketable limit at the touch; both kill the rest.
+    kills = draft.is_market_order or draft.tif in (Tif.FAK, Tif.FOK)
+    if split.fills_none:
+        if draft.tif is Tif.FOK:
+            return "nothing fills now - too little depth, the order is killed"
+        if kills:
+            return "nothing fills now - the order is cancelled, not rested"
+        return "nothing fills now - it rests on the book"
+    if split.fills_all:
+        return f"fills all ~{format_shares(split.fills)} now"
+    leftover = format_shares(split.rests)
+    fate = "cancelled" if kills else "rests on the book"
+    return f"fills ~{format_shares(split.fills)} now, ~{leftover} {fate}"
+
+
+def placement_label(draft: OrderDraft, result: PlaceResult) -> str:
+    """Plain-English outcome of a live post, asserting only what `status` proves.
+
+    The CLOB documents `live` (resting on the book) and `matched` (crossed a
+    resting order) but not makingAmount/takingAmount, so a `matched` GTC that
+    only partly crossed cannot be given a fill size from the response alone.
+    The exact split arrives on /ws/user as size_matched; this line is the
+    fallback for when that socket is down, so it points at the open-orders tab
+    instead of inventing a number. Never say "Filled: SELL 100" when 40 filled.
+    """
+    order = (
+        f"{draft.side.value} {format_shares(draft.size)} "
+        f"{draft.outcome_label.upper()} @ {draft.price_label()}"
+    )
+    status = (result.status or "").lower()
+    if status == "live":
+        return f"Resting on the book: {order} - nothing filled"
+    if status == "matched":
+        # A market/FAK/FOK remainder is killed; a GTC remainder rests silently.
+        kills = draft.is_market_order or draft.tif in (Tif.FAK, Tif.FOK)
+        tail = "any remainder was cancelled" if kills else "check open orders for any remainder"
+        return f"Matched: {order} - {tail}"
+    return f"Order {result.status or 'submitted'}: {order}"
 
 
 # Known CLOB rejection strings -> user-facing messages (trading.md).
@@ -281,8 +398,15 @@ class OrderService:
             # sell the exchange would accept - mirror the BUY cash guard above.
             held = Decimal(str(position_size))
             if draft.size > held:
+                # Both sizes at full precision: rounding them to whole shares
+                # rendered a 28.34-vs-28.3393 overshoot as "Selling 28 but you
+                # hold 28.", which reads as a bug in the app rather than a
+                # number the user can act on.
                 issues.append(
-                    Issue(IssueLevel.BLOCK, f"Selling {draft.size:,.0f} but you hold {held:,.0f}.")
+                    Issue(
+                        IssueLevel.BLOCK,
+                        f"Selling {format_shares(draft.size)} but you hold {format_shares(held)}.",
+                    )
                 )
 
         # Blocks above mirror exchange rejections only - an order failing them

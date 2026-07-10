@@ -9,10 +9,14 @@ in every place an order can be cancelled.
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
 from rich.text import Text
 
 from polymarket_tui.core import fmt
 from polymarket_tui.models.portfolio import OpenOrder
+from polymarket_tui.models.ws import UserOrderMessage
+from polymarket_tui.services.orders import format_shares
 from polymarket_tui.ui.theme import DOWN, UP
 
 
@@ -54,6 +58,48 @@ def cancel_confirm_text(
         out.append("\n")
     out.append_text(action_hints(("enter", "confirm cancel"), ("esc", "keep")))
     return out
+
+
+def order_event_label(msg: UserOrderMessage) -> str:
+    """One toast line for an own-order transition arriving on /ws/user.
+
+    `size_matched` is the only fill size the exchange hands us that we can trust
+    (the post response carries makingAmount/takingAmount, whose orientation the
+    CLOB does not document). A LIVE order is only *partly* resting once some of
+    it has filled, so the two numbers must both appear: quoting original_size
+    alone - as this toast used to - announced a 100-share sell that filled 40 as
+    "Order resting: SELL 100 Yes", which is the exact confusion between an
+    immediate fill and a resting limit order that this line exists to settle.
+    """
+    try:
+        matched = Decimal(msg.size_matched or "0")
+        total = Decimal(msg.original_size or "0")
+    except InvalidOperation:
+        matched, total = Decimal(0), Decimal(0)
+    resting = total - matched
+
+    def line(size: Decimal) -> str:
+        price = fmt.cents_exact(float(msg.price or 0))
+        return f"{msg.side} {format_shares(size)} {msg.outcome} @ {price}"
+
+    # The lead word answers "filled, or resting?" before the numbers land.
+    if msg.status == "MATCHED":
+        return f"Filled: {line(total)}"
+    if msg.status == "CANCELED":
+        if matched > 0:
+            return (
+                f"Canceled: {line(resting)}"
+                f" ({format_shares(matched)} of {format_shares(total)} had filled)"
+            )
+        return f"Canceled: {line(total)}"
+    if msg.status == "LIVE":
+        if matched > 0:
+            return (
+                f"Partly filled: {line(total)}"
+                f" - {format_shares(matched)} filled, {format_shares(resting)} resting"
+            )
+        return f"Resting on the book: {line(total)} - nothing filled"
+    return f"Order {msg.status.lower() or 'updated'}: {line(total)}"
 
 
 def order_detail_text(order: OpenOrder, title: str | None = None) -> Text:

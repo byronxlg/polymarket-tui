@@ -27,9 +27,13 @@ from polymarket_tui.services.orders import (
     OrderDraft,
     Side,
     Tif,
+    fill_split,
+    fill_split_label,
     format_cents_input,
     format_shares,
+    normalize_shares,
     parse_price,
+    placement_label,
     price_decimals,
     round_to_tick,
     tick_size,
@@ -42,9 +46,14 @@ TIF_CYCLE = [Tif.GTC, Tif.FOK, Tif.FAK]
 
 
 def _fmt_size(size: Decimal) -> str:
-    """Book sizes are shares - show whole shares, keep any fraction the level has."""
-    text = f"{size:.2f}".rstrip("0").rstrip(".")
-    return text or "0"
+    """The size field's text: the shares it means, exactly.
+
+    No thousands separators (the input's restrict pattern rejects a comma) and
+    no rounding. A `.2f` here rounded a 28.3393-share position prefill up to
+    28.34 - more than the position - so `s` on a fractional holding armed a
+    sell its own inventory guard then blocked.
+    """
+    return f"{normalize_shares(size):f}" or "0"
 
 
 class SideKey(Message):
@@ -561,10 +570,28 @@ class OrderPanel(Vertical):
         kind = "MARKET" if draft.is_market_order else f"limit {draft.tif.value}"
         out.append(f"@ {draft.price_label()}", style="bold")
         out.append(f"   {kind}", style="dim")
+        out.append("\n")
+        # The question this card could never answer: does it fill now, or sit on
+        # the book? The cash-out sell (full size at the bid, GTC) does both when
+        # the bid is thinner than the position - and the leftover rested
+        # silently. A partial split is the surprising case, so it reads amber.
+        split = fill_split(draft, self._screen_book())
+        if split is not None:
+            if split.fills_all:
+                style = UP
+            elif split.fills_none:
+                style = "dim"  # a plain resting limit order: expected, not a warning
+            else:
+                style = AMBER
+            out.append(fill_split_label(draft, split), style=style)
         out.append("\n\n")
+        # Cost/proceeds price the whole order; say so when only part of it fills.
+        partial = split is not None and not split.fills_all
         if draft.side is Side.BUY:
             out.append("cost   ", style="dim")
             out.append(fmt.money(float(draft.notional)), style="bold")
+            if partial:
+                out.append(" if it all fills", style="dim")
             out.append("\n")
             out.append("payout ", style="dim")
             out.append(fmt.money(float(draft.size)), style=UP)
@@ -572,6 +599,8 @@ class OrderPanel(Vertical):
         else:
             out.append("proceeds ", style="dim")
             out.append(fmt.money(float(draft.notional)), style="bold")
+            if partial:
+                out.append(" if it all fills", style="dim")
         out.append("\n\n")
         out.append_text(action_hints(("enter", "place"), ("esc", "edit")))
         if confirm is not None:
@@ -707,13 +736,11 @@ class OrderPanel(Vertical):
                 # indexes fills late. Also covers a down /ws/user socket.
                 if getattr(pane, "is_mounted", False) and hasattr(pane, "refresh_after_fill"):
                     pane.refresh_after_fill()
-                # The /ws/user socket echoes a detailed "Order resting/filled:
-                # ..." toast for the placement; only announce here when it is
-                # down, or a single placement shows two alerts.
+                # The /ws/user socket echoes an exact "Filled/Partly filled/
+                # Resting" toast (it carries size_matched); only announce here
+                # when it is down, or a single placement shows two alerts.
                 if not app.user_ws_connected:
-                    app.notify(
-                        f"Order {result.status or 'submitted'}: {draft.summary()}", timeout=6
-                    )
+                    app.notify(placement_label(draft, result), timeout=8)
             elif result.status_unknown:
                 # A live post that raised: it may have landed, so it is never
                 # auto-retried. State the facts and let the user check Open

@@ -302,3 +302,71 @@ async def test_book_keeps_the_gamma_seed_when_a_book_carries_no_tick() -> None:
         await pilot.pause()
         book.update_book(_book_with_tick(None))
         assert "33c" in str(book.render())
+
+
+# -- cursor_chosen: a parked cursor is not a chosen price ----------------------
+#
+# The book takes focus whenever the market pane opens, and the first render
+# parks the cursor on the best ask ("the buy touch"). MarketPane.action_order
+# used to prefill from cursor_price whenever the book merely *had* focus, which
+# silently overrode the SELL cash-out prefill (the best bid) with the ask - a
+# sell that cannot cross, so it always rested on the book instead of filling.
+
+
+async def test_parked_cursor_is_not_a_chosen_price() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_book())
+        await pilot.pause()
+        # Parked on the best ask by the first render...
+        assert book.cursor_price == 0.34
+        # ...but nobody put it there.
+        assert book.cursor_chosen is False
+
+
+async def test_moving_the_cursor_chooses_the_price() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_book())
+        await pilot.pause()
+        book.action_cursor(1)  # down onto the best bid
+        await pilot.pause()
+        assert book.cursor_chosen is True
+        assert book.cursor_price == 0.32
+
+
+async def test_pressing_m_counts_as_choosing_the_mid() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_book())
+        await pilot.pause()
+        book.action_center()
+        await pilot.pause()
+        assert book.cursor_chosen is True
+
+
+async def test_arrowing_into_the_book_counts_as_choosing() -> None:
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_book())
+        await pilot.pause()
+        book.focus_top()
+        assert book.cursor_chosen is True
+
+
+async def test_a_new_book_forgets_the_old_choice() -> None:
+    """An outcome flip must not carry the previous book's chosen level."""
+    app = _Host()
+    async with app.run_test(size=(80, 20)) as pilot:
+        book = app.query_one(BookPanel)
+        book.update_book(_book())
+        await pilot.pause()
+        book.action_cursor(1)
+        await pilot.pause()
+        assert book.cursor_chosen is True
+        book.reset_depth()
+        assert book.cursor_chosen is False
