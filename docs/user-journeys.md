@@ -200,7 +200,7 @@ crashed within 5).
 
 Byron: "User activity does not show buy vs sell." At full and medium
 widths the Side column exists, but the compact activity tier (portfolio
-History / trader Activity as the 30% drill parent, or any narrow fit)
+History / trader History as the 30% drill parent, or any narrow fit)
 dropped it - a trade feed reading "$20.00" with no direction. The compact
 tier now carries a 1-wide colored B/S letter column (the trades-rail
 idiom); wider tiers keep the full word.

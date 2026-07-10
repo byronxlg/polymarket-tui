@@ -77,7 +77,7 @@ expanded trades and full screen (F) collapse before the screen closes.
 | c | event, market | comments pop-out; up/down to move, right/enter opens the author; esc closes |
 | e | market | open the parent event |
 | r | event, market | related markets pop-out (series siblings for dailies); esc closes |
-| o | event, market, portfolio positions | open on polymarket.com (won positions redeem there) |
+| o | event, market, positions | open on polymarket.com (winners redeem; resolved live only there) |
 | space | market order book | order prefilled from the level (ask -> BUY, bid -> SELL) |
 | m | market order book | recentre the book on the mid |
 | x | market book / portfolio orders | cancel a resting order (details shown, enter confirms) |

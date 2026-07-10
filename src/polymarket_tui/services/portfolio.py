@@ -6,10 +6,10 @@ import asyncio
 import time
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
-from polymarket_tui.api.data import DataApiClient
+from polymarket_tui.api.data import CLOSED_LIMIT, DataApiClient
 from polymarket_tui.core.config import Settings
 from polymarket_tui.models.market import Event
-from polymarket_tui.models.portfolio import ActivityItem, OpenOrder, Position
+from polymarket_tui.models.portfolio import ActivityItem, ClosedPosition, OpenOrder, Position
 
 POSITIONS_TTL = 30.0
 VALUE_TTL = 60.0
@@ -101,6 +101,13 @@ class PortfolioService:
         if not self.user:
             return []
         return await self._data.activity(self.user, limit=limit)
+
+    async def closed_positions(self, limit: int = CLOSED_LIMIT) -> list[ClosedPosition]:
+        """Settled positions. Uncached like activity(): it is history, so a
+        stale read is never the thing a trading decision rests on."""
+        if not self.user:
+            return []
+        return await self._data.closed_positions(self.user, limit=limit)
 
     async def open_orders(self, force: bool = False) -> list[OpenOrder]:
         if self._authed is None:

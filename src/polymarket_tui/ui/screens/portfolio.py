@@ -1,4 +1,5 @@
-"""Portfolio: positions with live P&L, open orders, activity history.
+"""Portfolio: active positions with live P&L, settled positions with realized
+P&L, open orders, activity history.
 
 A NavHost root pane (like Home and Watched, Byron's request 2026-07-05):
 'p' switches the drill root here, so opening a market from a position keeps
@@ -17,25 +18,39 @@ from textual.binding import Binding
 from textual.containers import Vertical
 from textual.widgets import Static, TabbedContent, TabPane
 
+from polymarket_tui.api.data import CLOSED_LIMIT
 from polymarket_tui.core import fmt
-from polymarket_tui.core.links import copy_to_clipboard, market_url, open_in_browser
-from polymarket_tui.models.portfolio import OpenOrder, Position
+from polymarket_tui.core.links import market_url, open_and_copy
+from polymarket_tui.models.portfolio import ClosedPosition, OpenOrder, Position
 from polymarket_tui.ui.liveness import alive
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
+from polymarket_tui.ui.widgets.closed_table import ClosedTable
 from polymarket_tui.ui.widgets.order_details import cancel_confirm_text
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
 from polymarket_tui.ui.widgets.tables import (
     ACTIVITY_SPACIOUS_TIER_COLUMNS,
     ACTIVITY_TIER_COLUMNS,
+    CLOSED_SPACIOUS_TIER_COLUMNS,
+    CLOSED_TIER_COLUMNS,
     POSITIONS_SPACIOUS_TIER_COLUMNS,
     POSITIONS_TIER_COLUMNS,
     activity_row,
+    closed_row,
     position_row,
     setup_activity_columns,
+    setup_closed_columns,
     setup_positions_columns,
 )
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
+
+# Tab pane id -> its table, in tab order.
+PANE_TABLES: dict[str, str] = {
+    "pane-positions": "#positions-table",
+    "pane-closed": "#closed-table",
+    "pane-orders": "#orders-table",
+    "pane-history": "#history-table",
+}
 
 ORDERS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
     "full": (
@@ -164,6 +179,7 @@ class PortfolioPane(TierAware, Vertical):
         super().__init__(**kwargs)
         self._orders: list[OpenOrder] = []
         self._positions: list[Position] = []
+        self._closed_positions: list[ClosedPosition] = []
         self._history_items: list = []
         self._order_titles_cache: dict[str, str] = {}
         self._pending_cancel: OpenOrder | None = None
@@ -171,6 +187,7 @@ class PortfolioPane(TierAware, Vertical):
         self._pos_spec: list[ColumnSpec] = list(POSITIONS_TIER_COLUMNS["full"])
         self._pos_tier: Tier = "full"
         self._rendered_density: str = "condensed"
+        self._closed_spec: list[ColumnSpec] = list(CLOSED_TIER_COLUMNS["full"])
         self._ord_spec: list[ColumnSpec] = list(ORDERS_TIER_COLUMNS["full"])
         self._act_spec: list[ColumnSpec] = list(ACTIVITY_TIER_COLUMNS["full"])
 
@@ -178,9 +195,12 @@ class PortfolioPane(TierAware, Vertical):
         yield Static("loading balances...", id="balance-line", classes="screen-title")
         yield Static(id="cancel-strip")
         with TabbedContent(id="portfolio-tabs"):
-            with TabPane("Positions", id="pane-positions"):
+            with TabPane("Active", id="pane-positions"):
                 yield PositionsTable(cursor_type="row", zebra_stripes=True, id="positions-table")
                 yield Static(id="lost-note")
+            with TabPane("Closed", id="pane-closed"):
+                yield ClosedTable(cursor_type="row", zebra_stripes=True, id="closed-table")
+                yield Static(id="closed-note")
             with TabPane("Open orders", id="pane-orders"):
                 yield OrdersTable(cursor_type="row", zebra_stripes=True, id="orders-table")
             with TabPane("History", id="pane-history"):
@@ -188,11 +208,7 @@ class PortfolioPane(TierAware, Vertical):
         yield PnlStrip(id="pnl-pane")
 
     def focus_inner(self) -> None:
-        table_id = {
-            "pane-positions": "#positions-table",
-            "pane-orders": "#orders-table",
-            "pane-history": "#history-table",
-        }.get(self._active_pane())
+        table_id = PANE_TABLES.get(self._active_pane())
         if table_id:
             self.query_one(table_id, VimDataTable).focus()
 
@@ -209,6 +225,12 @@ class PortfolioPane(TierAware, Vertical):
             return POSITIONS_SPACIOUS_TIER_COLUMNS
         return POSITIONS_TIER_COLUMNS
 
+    def _closed_columns(self) -> dict[Tier, tuple]:
+        """Closed-positions column sets for the current density."""
+        if self.app.density == "spacious":
+            return CLOSED_SPACIOUS_TIER_COLUMNS
+        return CLOSED_TIER_COLUMNS
+
     def _ord_columns(self) -> dict[Tier, tuple]:
         """Open-orders column sets for the current density (spacious re-composes rows)."""
         if self.app.density == "spacious":
@@ -224,9 +246,11 @@ class PortfolioPane(TierAware, Vertical):
     def on_mount(self) -> None:
         self.query_one("#cancel-strip", Static).display = False
         self.query_one("#lost-note", Static).display = False
+        self.query_one("#closed-note", Static).display = False
         self._rendered_density = self.app.density
         self._pos_spec = list(self._pos_columns()[self.tier])
         self._pos_tier = self.tier
+        self._closed_spec = list(self._closed_columns()[self.tier])
         self._ord_spec = list(self._ord_columns()[self.tier])
         self._act_spec = list(self._act_columns()[self.tier])
         self._build_columns()
@@ -246,6 +270,9 @@ class PortfolioPane(TierAware, Vertical):
         setup_positions_columns(
             positions, flag_column=self._pos_tier == "full", columns=self._pos_spec
         )
+        closed = self.query_one("#closed-table", ClosedTable)
+        closed.clear(columns=True)
+        setup_closed_columns(closed, columns=self._closed_spec)
         orders = self.query_one("#orders-table", OrdersTable)
         orders.clear(columns=True)
         for key, label, width in self._ord_spec:
@@ -267,7 +294,7 @@ class PortfolioPane(TierAware, Vertical):
 
     def _schedule_refit(self) -> None:
         # The tables live in tabs (the hidden ones measure 0 wide), so fit
-        # all three against the pane's own width after layout settles.
+        # all four against the pane's own width after layout settles.
         self.call_after_refresh(self._refit)
 
     def _refit(self) -> None:
@@ -277,12 +304,15 @@ class PortfolioPane(TierAware, Vertical):
         if width <= 0:
             return
         pos_columns = self._pos_columns()
+        closed_columns = self._closed_columns()
         ord_columns = self._ord_columns()
         act_columns = self._act_columns()
         pos_tier = effective_tier(self.tier, width, pos_columns)
+        closed_tier = effective_tier(self.tier, width, closed_columns)
         ord_tier = effective_tier(self.tier, width, ord_columns)
         act_tier = effective_tier(self.tier, width, act_columns)
         pos_flex = max((len(p.title) for p in self._positions), default=0) or None
+        closed_flex = max((len(p.title) for p in self._closed_positions), default=0) or None
         # Grow the title column to the longest actual title so wide panes fill
         # instead of clipping (mirrors positions). Orders resolve titles via the
         # cache; fall back to the raw condition id when a title isn't known yet.
@@ -295,19 +325,23 @@ class PortfolioPane(TierAware, Vertical):
         )
         act_flex = max((len(i.title) for i in self._history_items), default=0) or None
         pos_spec = fit_columns(pos_columns[pos_tier], width, "market", pos_flex)
+        closed_spec = fit_columns(closed_columns[closed_tier], width, "market", closed_flex)
         ord_spec = fit_columns(ord_columns[ord_tier], width, "market", ord_flex)
         act_spec = fit_columns(act_columns[act_tier], width, "market", act_flex)
-        if (pos_spec, ord_spec, act_spec) == (
+        if (pos_spec, closed_spec, ord_spec, act_spec) == (
             self._pos_spec,
+            self._closed_spec,
             self._ord_spec,
             self._act_spec,
         ) and self._rendered_density == self.app.density:
             return
-        self._pos_spec, self._ord_spec, self._act_spec = pos_spec, ord_spec, act_spec
+        self._pos_spec, self._closed_spec = pos_spec, closed_spec
+        self._ord_spec, self._act_spec = ord_spec, act_spec
         self._pos_tier = pos_tier
         self._rendered_density = self.app.density
         self._build_columns()
         self._render_positions()
+        self._render_closed()
         self._render_orders()
         self._render_history()
 
@@ -320,6 +354,7 @@ class PortfolioPane(TierAware, Vertical):
     def load_all(self) -> None:
         self.load_balances()
         self.load_positions()
+        self.load_closed()
         self.load_orders()
         self.load_history()
         self.load_pnl()
@@ -392,6 +427,44 @@ class PortfolioPane(TierAware, Vertical):
                     f"{lost} resolved {word} hidden - worth 0, nothing to claim",
                     style="dim",
                 )
+            )
+
+    @work(exclusive=True, group="closed")
+    async def load_closed(self) -> None:
+        try:
+            closed = await self.app.portfolio.closed_positions()
+        except Exception as exc:
+            self.notify(f"closed positions unavailable: {exc}", severity="warning")
+            return
+        if not alive(self):
+            return  # pane torn down while we fetched
+        self._closed_positions = closed
+        self._render_closed()
+        self._schedule_refit()  # loaded titles set the market flex width
+
+    def _render_closed(self) -> None:
+        table = self.query_one("#closed-table", ClosedTable)
+        table.clear()
+        density = self.app.density
+        height = 2 if density == "spacious" else 1
+        urls: dict[str, str] = {}
+        # Already most-recently-closed first from the API - do not re-sort.
+        for pos in self._closed_positions:
+            key = f"{pos.slug}|{pos.asset}"
+            urls[key] = market_url(pos.event_slug, pos.slug)
+            table.add_row(
+                *closed_row(pos, columns=self._closed_spec, density=density),
+                key=key,
+                height=height,
+            )
+        table.set_web_urls(urls)
+        # A read that filled the cap is a cap, not the end of the history.
+        note = self.query_one("#closed-note", Static)
+        truncated = len(self._closed_positions) >= CLOSED_LIMIT
+        note.display = truncated and self._pos_tier != "compact"
+        if truncated:
+            note.update(
+                Text(f"showing the {CLOSED_LIMIT} most recently closed", style="dim")
             )
 
     @staticmethod
@@ -496,25 +569,20 @@ class PortfolioPane(TierAware, Vertical):
     def _active_pane(self) -> str:
         return self.query_one(TabbedContent).active
 
-    def action_next_pane(self) -> None:
+    def _step_pane(self, delta: int) -> None:
         tabbed = self.query_one(TabbedContent)
-        panes = ["pane-positions", "pane-orders", "pane-history"]
-        idx = (panes.index(tabbed.active) + 1) % len(panes) if tabbed.active in panes else 0
+        panes = list(PANE_TABLES)
+        idx = (panes.index(tabbed.active) + delta) % len(panes) if tabbed.active in panes else 0
         tabbed.active = panes[idx]
+
+    def action_next_pane(self) -> None:
+        self._step_pane(1)
 
     def action_prev_pane(self) -> None:
-        tabbed = self.query_one(TabbedContent)
-        panes = ["pane-positions", "pane-orders", "pane-history"]
-        idx = (panes.index(tabbed.active) - 1) % len(panes) if tabbed.active in panes else 0
-        tabbed.active = panes[idx]
+        self._step_pane(-1)
 
     def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
-        pane = event.pane.id or ""
-        table_id = {
-            "pane-positions": "#positions-table",
-            "pane-orders": "#orders-table",
-            "pane-history": "#history-table",
-        }.get(pane)
+        table_id = PANE_TABLES.get(event.pane.id or "")
         if table_id:
             self.query_one(table_id, VimDataTable).focus()
         self.refresh_bindings()
@@ -522,12 +590,15 @@ class PortfolioPane(TierAware, Vertical):
     def on_data_table_row_selected(self, event) -> None:
         # enter/right drill into the underlying market, consistent with the
         # events tables. Positions key rows as slug|asset; orders key by id;
-        # history keys as index|slug (same shape as the trader Activity tab,
+        # history keys as index|slug (same shape as the trader History tab,
         # which drills - this tab must too).
         pane = self._active_pane()
         if pane == "pane-positions":
             slug, _, asset = str(event.row_key.value).partition("|")
             self.open_position_market(slug, asset)
+        elif pane == "pane-closed":
+            _, _, asset = str(event.row_key.value).partition("|")
+            self.open_closed_market(asset)
         elif pane == "pane-orders":
             order = next(
                 (o for o in self._orders if o.id == str(event.row_key.value)), None
@@ -547,6 +618,26 @@ class PortfolioPane(TierAware, Vertical):
             return
         try:
             market = await self.app.gamma.market_by_slug(slug)
+        except Exception as exc:
+            self.notify(f"could not open market: {exc}", severity="error")
+            return
+        if market is None:
+            self.notify("Market is no longer listed (resolved)", severity="warning")
+            return
+        self.app.open_market(market)
+
+    @work(exclusive=True, group="open-market")
+    async def open_closed_market(self, asset: str) -> None:
+        """Drill into a settled position's market. These are resolved, so the
+        slug lookup often misses - go by condition id, which the row carries."""
+        pos = next((p for p in self._closed_positions if p.asset == asset), None)
+        if pos is None:
+            return
+        market = None
+        try:
+            market = await self.app.gamma.market_by_slug(pos.slug)
+            if market is None and pos.condition_id:
+                market = await self.app.gamma.market_by_condition(pos.condition_id)
         except Exception as exc:
             self.notify(f"could not open market: {exc}", severity="error")
             return
@@ -623,11 +714,7 @@ class PortfolioPane(TierAware, Vertical):
         if not url:
             self.notify("No web URL for this position", severity="warning")
             return
-        opened = open_in_browser(url)
-        copied = copy_to_clipboard(url)
-        note = "Opened" if opened else "Copied" if copied else "URL"
-        suffix = "  (copied)" if copied and opened else ""
-        self.notify(f"{note} {url}{suffix}", timeout=6)
+        self.notify(open_and_copy(url), timeout=6)
 
     def action_sell_position(self) -> None:
         """s: cash out - open the market with the sell form prefilled to the
