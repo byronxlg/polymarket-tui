@@ -3,7 +3,7 @@
 Gamma leaves long-expired events flagged active/closed=false - over 1000 of
 them on 2026-07-10, all sorting ahead of anything live under endDate ascending.
 The home pane drops ended events client-side, so without a server-side
-end_date_min the whole page filters away and the list renders empty (#132).
+end_date_min the whole page filters away and the list renders empty (#133).
 """
 
 from __future__ import annotations

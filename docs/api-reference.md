@@ -26,7 +26,7 @@ Params: `limit` (default 100, and a hard ceiling - `limit=500` still returns 100
 `active=true&closed=false` does NOT mean "still running". Gamma leaves long-expired events
 flagged that way - on 2026-07-09 the first 1000+ rows of `order=endDate&ascending=true` had
 end dates months in the past, so an "ending soonest" browse returns nothing but dead markets
-and any client-side ended-events filter empties the page (#132). Pass `end_date_min=<now>`
+and any client-side ended-events filter empties the page (#133). Pass `end_date_min=<now>`
 to get a live-only window. It filters out dateless events too, so scope it to the endDate
 sort; the other orders carry only a handful of expired rows (0-10 per 100) and the
 client-side filter handles those.
