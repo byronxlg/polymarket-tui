@@ -36,6 +36,49 @@ class Position(BaseModel):
         return self.redeemable and self.cur_price < 0.5
 
 
+class ClosedPosition(BaseModel):
+    """A settled position from data-api /closed-positions.
+
+    Not a Position with size 0: the endpoint returns a different shape. The
+    shares are gone, so there is no size/current value to mark - the money is
+    realized_pnl measured against total_bought (the USDC that went in).
+
+    cur_price is 1 or 0 for a position held to resolution, but a mid price for
+    one sold out beforehand, so it does not mean "won". The sign of
+    realized_pnl is the fact; the app states it and draws no verdict.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    asset: str = ""  # token id
+    condition_id: str = Field(default="", alias="conditionId")
+    event_slug: str = Field(default="", alias="eventSlug")
+    slug: str = ""
+    title: str = ""
+    outcome: str = ""
+    outcome_index: int = Field(default=0, alias="outcomeIndex")
+    avg_price: float = Field(default=0.0, alias="avgPrice")
+    cur_price: float = Field(default=0.0, alias="curPrice")
+    total_bought: float = Field(default=0.0, alias="totalBought")
+    realized_pnl: float = Field(default=0.0, alias="realizedPnl")
+    timestamp: int = 0  # when the position closed
+    end_date: datetime | None = Field(default=None, alias="endDate")
+
+    @property
+    def percent_pnl(self) -> float:
+        """Return on cost. The endpoint sends no percentage (unlike /positions),
+        and total_bought is the cost basis the realized figure is earned on."""
+        if not self.total_bought:
+            return 0.0
+        return self.realized_pnl / self.total_bought * 100.0
+
+    @property
+    def closed_at(self) -> datetime | None:
+        if not self.timestamp:
+            return None
+        return datetime.fromtimestamp(self.timestamp, tz=UTC)
+
+
 class ActivityItem(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 

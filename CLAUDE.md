@@ -77,3 +77,10 @@ Trading path invariants (see .claude/rules/design-principles.md for the rest):
   while panels are closed); container widgets need can_focus=True set
   explicitly before .focus() works; Tabs/VerticalScroll consume arrow keys
   unless can_focus=False.
+- Textual owns many `self._x` names on every widget: `_closed` (MessagePump
+  sets it True at shutdown) and `_name` (the DOM name) both bit a pane. Never
+  store pane state under a name a bare Vertical() already has -
+  tests/test_pane_attribute_shadowing.py enforces this.
+- A `height: auto` DataTable in a TabPane takes the whole pane once it has many
+  rows: a sibling note gets squeezed out and the table has no overflow left to
+  scroll. Give long tables `height: 1fr` (see #closed-table in app.tcss).

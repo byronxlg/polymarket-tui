@@ -209,10 +209,53 @@ This single endpoint gives the entire positions table including P&L - no client-
 computation needed. Additional params worth verifying at impl: `sortBy=CURRENT|CASHPNL`,
 `sizeThreshold`, `redeemable=true`.
 
+### GET /closed-positions?user=0x...&limit=&offset=&sortBy=&sortDirection=
+
+Backs the Closed tab (profile + portfolio). A *different shape* from `/positions`, not
+the same rows with `size: 0`:
+
+```
+asset (token id), conditionId, eventSlug, slug, title, icon,
+outcome, outcomeIndex, oppositeAsset, oppositeOutcome,
+avgPrice, curPrice, totalBought, realizedPnl,
+timestamp (when it closed), endDate, proxyWallet
+```
+
+Quirks pinned 2026-07-10:
+
+- **The page caps at 50 rows.** `limit=500` returns 50; `offset=100` returns another 50.
+  Walk offsets until a short page (`api/data.py: CLOSED_PAGE_LIMIT`).
+- `sortBy` accepts only `[REALIZEDPNL AVGPRICE PRICE TITLE TIMESTAMP]` - `CURRENT` and
+  `PERCENTREALIZEDPNL` (both valid on `/positions`) 400 here. The **default is
+  REALIZEDPNL** (biggest wins first), so a history view must pass `sortBy=TIMESTAMP`.
+- No `size` (the shares are gone) and no percentage: return on cost is
+  `realizedPnl / totalBought`.
+- `curPrice` is 1/0 for a position held to resolution but a mid price for one sold out
+  beforehand - it does **not** mean won/lost. Only the sign of `realizedPnl` is a fact.
+- `endDate` carries a full timestamp (`2026-06-06T00:00:00Z`) where `/positions` sends a
+  bare date (`2026-07-10`).
+- `closed=true` and `eventStatus=resolved` on `/positions` are silently ignored (they
+  return the active set), so there is no way to get this from `/positions`.
+
 ### GET /value?user=0x...
 
 Verified: `[{"user": "0x...", "value": 9.4937}]` - total portfolio value (positions
 mark-to-market). Header-bar stat alongside USDC cash balance from CLOB.
+
+### GET /traded?user=0x...
+
+Verified: `{"user": "0x...", "traded": 339}` - count of markets ever traded. The
+"markets" stat on the profile header.
+
+### Leaderboard - lb-api.polymarket.com
+
+`GET /volume?window=all&limit=1&address=0x...` and `GET /profit?...` (same params) each
+answer `[{proxyWallet, amount, pseudonym, name, bio, profileImage}]`, or `[]` for an
+address that never traded. `amount` is the stat; these are the profile header's Volume
+and Profit. `/profit` agrees with the last point of `user-pnl` (682.41 for
+wettor-bettor-b on 2026-07-10). Different host from data-api, hence a separate failure
+domain: `profile_stats()` gathers all four concurrently and drops any field whose
+service errored rather than blanking the line.
 
 ### GET /activity?user=0x...&limit=&offset=
 

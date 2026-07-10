@@ -305,9 +305,35 @@ PriceChartPanel {
     padding: 0 1;
 }
 
+/* Same line under a closed table that hit its read cap. */
+#closed-note,
+#user-closed-note {
+    height: 1;
+    padding: 0 1;
+}
+
+/* The closed tables always run to their 150-row read cap, unlike the short
+   positions tables the `height: auto` default was written for. At that length
+   auto takes the whole tab pane: the note is squeezed out and the table has no
+   overflow left to scroll. Claim the remaining height explicitly (the two-id
+   selector outranks the `#<tabs> DataTable` rule above). */
+#user-tabs #user-closed,
+#portfolio-tabs #closed-table {
+    height: 1fr;
+}
+
 #pnl-pane {
     height: 30%;
     min-height: 10;
+}
+
+/* Trader profile: the header stats line (positions/profit/volume/markets).
+   Visibility is inline (display flag) because it depends on the data and the
+   width tier - it is context, so it goes in the 30% compact slot. */
+#user-stats {
+    height: 1;
+    padding: 0 1;
+    color: $text-muted;
 }
 
 /* Trader profile: same shape - fixed profit strip, tables take the rest */

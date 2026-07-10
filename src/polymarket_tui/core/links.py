@@ -40,3 +40,15 @@ def copy_to_clipboard(text: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def open_and_copy(url: str) -> str:
+    """Open `url` and copy it, returning the toast that says what happened.
+
+    A headless box opens nothing and a non-mac copies nothing, so the message
+    reports which of the two actually landed rather than claiming both."""
+    opened = open_in_browser(url)
+    copied = copy_to_clipboard(url)
+    note = "Opened" if opened else "Copied" if copied else "URL"
+    suffix = "  (copied)" if copied and opened else ""
+    return f"{note} {url}{suffix}"

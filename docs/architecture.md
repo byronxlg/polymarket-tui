@@ -38,7 +38,7 @@ src/polymarket_tui/
     fmt.py               # cents/money/size/date formatters, trunc
   models/
     market.py            # Tag, Series, Market, Event, OrderBook, PricePoint
-    portfolio.py         # Position, ActivityItem, Profile, OpenOrder
+    portfolio.py         # Position, ClosedPosition, ActivityItem, Profile, OpenOrder
   api/
     gamma.py             # async httpx: events, markets, tags, search, comments
     clob.py              # async httpx: public book + price history

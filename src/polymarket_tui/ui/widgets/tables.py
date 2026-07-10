@@ -1,4 +1,5 @@
-"""Shared table configuration for positions and activity (portfolio + trader profiles).
+"""Shared table configuration for active positions, closed positions, and
+activity (portfolio + trader profiles).
 
 Column sets are tier-aware (see ui.tiers): "full" keeps the historical
 layout (with the width knobs the portfolio screen passes), "medium" and
@@ -11,7 +12,7 @@ from __future__ import annotations
 from rich.text import Text
 
 from polymarket_tui.core import fmt
-from polymarket_tui.models.portfolio import ActivityItem, Position
+from polymarket_tui.models.portfolio import ActivityItem, ClosedPosition, Position
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import Tier
 from polymarket_tui.ui.widgets.vim_table import VimDataTable
@@ -140,6 +141,97 @@ def position_row(
     return [cells[key] for key, _, _ in columns]
 
 
+# Closed positions carry no size or current value - the shares are gone. The
+# money column is the realized P&L against Cost (what went in), and Closed is
+# the date it settled. Same drop-lowest-value-first order as positions.
+CLOSED_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("market", "Market", 42),
+        ("outcome", "Outcome", 12),
+        ("avg", "Avg", 7),
+        ("cost", "Cost", 10),
+        ("realized", "Realized", 16),
+        ("closed", "Closed", 13),
+    ),
+    "medium": (
+        ("market", "Market", 36),
+        ("outcome", "Outcome", 10),
+        ("cost", "Cost", 10),
+        ("realized", "Realized", 16),
+    ),
+    "compact": (
+        ("market", "Market", 26),
+        ("realized", "Realized", 13),
+    ),
+}
+
+CLOSED_SPACIOUS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
+    "full": (
+        ("market", "Market", 52),
+        ("cost", "Cost", 10),
+        ("realized", "Realized", 12),
+    ),
+    "medium": (
+        ("market", "Market", 40),
+        ("realized", "Realized", 12),
+    ),
+    "compact": (
+        ("market", "Market", 26),
+        ("realized", "Realized", 12),
+    ),
+}
+
+
+def closed_meta(pos: ClosedPosition) -> str:
+    """The dim second line of a spacious closed row:
+    No · avg 54.3c · closed Jun 06."""
+    parts = [pos.outcome, f"avg {fmt.cents(pos.avg_price)}"]
+    if pos.closed_at:
+        parts.append(f"closed {pos.closed_at.astimezone().strftime('%b %d')}")
+    return " · ".join(p for p in parts if p)
+
+
+def setup_closed_columns(table: VimDataTable, columns: list | None = None) -> None:
+    for key, label, width in columns or CLOSED_TIER_COLUMNS["full"]:
+        table.add_column(label, width=width, key=key)
+
+
+def closed_row(
+    pos: ClosedPosition,
+    tier: Tier = "full",
+    columns: list | None = None,
+    density: str = "condensed",
+) -> list:
+    if columns is None:
+        columns = (
+            CLOSED_SPACIOUS_TIER_COLUMNS[tier]
+            if density == "spacious"
+            else CLOSED_TIER_COLUMNS[tier]
+        )
+    widths = {key: width for key, _, width in columns}
+    if density == "spacious":
+        w = widths["market"]
+        market = Text(fmt.trunc(pos.title, w))
+        market.append("\n" + fmt.trunc(closed_meta(pos), w), style="dim")
+        cells: dict[str, object] = {
+            "market": market,
+            "cost": fmt.money(pos.total_bought),
+            "realized": pnl_text_stacked(pos.realized_pnl, pos.percent_pnl),
+        }
+    else:
+        cells = {
+            "market": fmt.trunc(pos.title, widths["market"]),
+            "outcome": fmt.trunc(pos.outcome, widths.get("outcome", 12)),
+            "avg": fmt.cents(pos.avg_price),
+            "cost": fmt.money(pos.total_bought),
+            "realized": pnl_text(pos.realized_pnl, pos.percent_pnl),
+            "closed": pos.closed_at.astimezone().strftime("%b %d %Y")
+            if pos.closed_at
+            else "-",
+        }
+    return [cells[key] for key, _, _ in columns]
+
+
 def _activity_full_columns(market_width: int, size_width: int) -> tuple:
     return (
         ("when", "When", 13),
@@ -218,7 +310,7 @@ def setup_activity_columns(
     tier: Tier = "full",
     columns: list | None = None,
 ) -> None:
-    """Columns for a trade/activity history table (portfolio History, trader Activity)."""
+    """Columns for a trade/activity history table (portfolio + trader History)."""
     if columns is None:
         columns = (
             _activity_full_columns(market_width, size_width)
