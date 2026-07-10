@@ -18,8 +18,18 @@ Rate limits: CLOB ~50 req/s per key; Gamma/Data-API unspecified - back off on 42
 
 Primary browse endpoint. The web UI's home page is essentially this call.
 
-Params: `limit` (default 100), `offset`, `active=true`, `closed=false`, `archived=false`,
-`order=volume24hr|liquidity|startDate|endDate`, `ascending=false`, `tag_slug`, `tag_id`.
+Params: `limit` (default 100, and a hard ceiling - `limit=500` still returns 100), `offset`,
+`active=true`, `closed=false`, `archived=false`,
+`order=volume24hr|liquidity|startDate|endDate`, `ascending=false`, `tag_slug`, `tag_id`,
+`end_date_min`/`end_date_max` (ISO-8601; `+00:00` and `Z` offsets both accepted).
+
+`active=true&closed=false` does NOT mean "still running". Gamma leaves long-expired events
+flagged that way - on 2026-07-09 the first 1000+ rows of `order=endDate&ascending=true` had
+end dates months in the past, so an "ending soonest" browse returns nothing but dead markets
+and any client-side ended-events filter empties the page (#132). Pass `end_date_min=<now>`
+to get a live-only window. It filters out dateless events too, so scope it to the endDate
+sort; the other orders carry only a handful of expired rows (0-10 per 100) and the
+client-side filter handles those.
 
 Response: array of events. Verified shape (relevant fields):
 

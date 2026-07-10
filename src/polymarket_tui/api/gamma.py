@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -38,7 +39,18 @@ class GammaClient:
         order: str = "volume24hr",
         ascending: bool = False,
         tag_slug: str | None = None,
+        end_date_min: datetime | None = None,
     ) -> list[Event]:
+        """Active events, one page.
+
+        `end_date_min` filters server-side to events ending at or after that
+        instant. Gamma leaves long-expired events flagged active/closed=false
+        (~1000+ of them, 2026-07-10), so an endDate-ascending sort without this
+        returns nothing but stale rows - the caller's own ended-events filter
+        then empties the page. Dateless events are excluded by the filter, which
+        is correct for "ending soonest" and wrong for every other sort: pass it
+        only when the end date is the sort key.
+        """
         params: dict[str, Any] = {
             "limit": limit,
             "offset": offset,
@@ -50,6 +62,8 @@ class GammaClient:
         }
         if tag_slug:
             params["tag_slug"] = tag_slug
+        if end_date_min is not None:
+            params["end_date_min"] = end_date_min.isoformat()
         data = await self._get("/events", params)
         return [Event.model_validate(e) for e in data]
 

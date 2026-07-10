@@ -72,6 +72,11 @@ class HomePane(TierAware, Vertical):
         self._loading = False
         self._load_gen = 0
         self._exhausted = False  # Gamma returned a short page: no more to fetch
+        # Cutoff for the endDate sort, pinned when a fresh load starts. Recomputing
+        # it per page would shift every offset as markets expire mid-browse (the
+        # 5m crypto events at the head of this list expire constantly), so an
+        # append would skip rows.
+        self._end_date_min: datetime | None = None
 
     def compose(self) -> ComposeResult:
         yield Tabs(*(Tab(label, id=slug) for label, slug in CATEGORIES), id="tag-bar")
@@ -139,11 +144,12 @@ class HomePane(TierAware, Vertical):
         self._load_gen += 1
         gen = self._load_gen
         try:
+            order = SORT_ORDERS[self._sort_index]
+            ascending = order == "endDate"
             if not append:
                 self._offset = 0
                 self._exhausted = False
-            order = SORT_ORDERS[self._sort_index]
-            ascending = order == "endDate"
+                self._end_date_min = datetime.now(UTC) if ascending else None
             try:
                 events = await app.gamma.events(
                     limit=PAGE_SIZE,
@@ -151,6 +157,7 @@ class HomePane(TierAware, Vertical):
                     order=order,
                     ascending=ascending,
                     tag_slug=self._tag_slug,
+                    end_date_min=self._end_date_min,
                 )
             except Exception as exc:
                 if alive(self):
