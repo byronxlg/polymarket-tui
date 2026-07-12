@@ -339,7 +339,10 @@ class MarketPane(TierAware, Vertical):
         except IndexError:
             return "?"
 
-    def _title_line(self) -> str:
+    def _title_line(self) -> Text:
+        # A Text, not a markup string: the question/event title come from Gamma
+        # and a '[' in one would crash the Static's markup parser (see the
+        # balance-line 502). This line carries no markup anyway.
         m = self._market
         bits = [m.question.strip()]
         status = fmt.market_status(m)
@@ -347,7 +350,7 @@ class MarketPane(TierAware, Vertical):
             bits.append(status)
         if self._event and self._event.title.strip() != m.question.strip():
             bits.append(self._event.title.strip())  # .screen-title wraps: full name shows
-        return "  |  ".join(bits)
+        return Text("  |  ".join(bits))
 
     def on_tier_changed(self, tier: Tier) -> None:
         self._apply_visibility()
