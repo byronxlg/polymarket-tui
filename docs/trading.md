@@ -85,6 +85,25 @@ the first book lands. Reading the stale value made the app render 33.4c as 33c
 and hard-block a legal 33.4c order as "not a multiple of 0.01" - which py-clob-
 client, resolving the tick from the CLOB itself, would have signed happily.
 
+### Reconciling the client's tick before signing
+
+py-clob-client-v2 does NOT resolve the tick fresh per order: `get_tick_size`
+caches a token's tick for the whole session and never refreshes it, and its
+`price_valid` only bounds-checks (`tick <= price <= 1-tick`), not `price % tick`.
+So on a long-running session where a market re-grids 0.01 -> 0.001, the client
+keeps the stale coarse 0.01, and `create_order` silently `round_normal`s the
+confirmed price DOWN to it - a 98.1c order signs and posts as 98.0c, no error.
+This broke the "what the user confirms is exactly what is signed" invariant.
+
+`place()` closes it: before it signs or posts, `AuthedClobClient.resolved_tick`
+drops the client's cached tick (it exposes no public refresh, so we clear the
+name-mangled `__tick_sizes` entry) and re-reads the exchange's current tick. If
+that is still coarser than `draft.tick` (the live book we validated against),
+the client would alter the confirmed price, so we refuse and post nothing -
+a factual "would be rounded, market looks mid re-grid, try again" result. When
+the ticks agree (the norm once the re-grid propagates), the refreshed client
+signs at the right resolution and the price is preserved.
+
 ## Confirm step
 
 Enter runs the pipeline; if nothing blocks, the panel arms in place. The
