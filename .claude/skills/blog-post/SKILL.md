@@ -112,5 +112,14 @@ Content rules:
 
 Branch `blog/<slug>`, commit everything as `Blog: <title>`, push, and open a
 PR with a one-paragraph description of the topic and target search intent.
-Do not merge; a human reviews every post. In the GitHub Actions run, `gh` is
-already authenticated via `GITHUB_TOKEN`.
+The PR is the audit trail and revert point, not a review gate: if its diff
+is only the post plus its sync files, squash-merge it yourself
+(`gh pr merge --squash --delete-branch`) - Byron authorized unattended
+merges for post-only PRs (2026-07-17). If the diff touches anything else
+(workflow, skill, app code), leave the PR open for review instead.
+
+After merging from the GitHub Actions run, dispatch the site deploy with
+`gh workflow run pages.yml`: pushes made with `GITHUB_TOKEN` do not trigger
+it on their own. A merge done interactively (a human's `gh` auth) triggers
+it automatically. In the Actions run, `gh` is already authenticated via
+`GITHUB_TOKEN`.
