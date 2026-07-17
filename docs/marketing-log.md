@@ -6,6 +6,30 @@ full text as sent, notes.
 
 <!-- entries below, newest first -->
 
+## 2026-07-17 22:3x UTC - Polymarket - World Cup final thread - ATTEMPTED, blocked (403)
+
+Two attempts in the comment box of the Spain vs Argentina event page, from
+Byron's logged-in account (`wetter-bettor-b`), both rejected with "Comment
+not allowed"; the API POST to gamma-api /comments returns 403 Forbidden,
+i.e. an account-level refusal, not a content filter. Likely Polymarket's
+email-verification gate on commenting; Byron to verify/fix, then we retry.
+
+Attempt 1 (long-form with URL - also superseded on voice; Byron: "be more
+human and natural"): the drafted comment from the earlier entry, with live
+numbers.
+
+Attempt 2 (the version to post once unblocked):
+
+> the interesting number here is the draw at 32c. spain is 59 to lift the
+> trophy but only 43 to win in 90 mins, and that 16c gap is basically the
+> extra time scenario - market says once this goes past 90 its a coin flip
+> that leans spain. charted the whole thing on the polymarket-tui blog if
+> anyone wants the long version
+
+Voice rule adopted for all Polymarket comments: short, lowercase
+trader-casual, lead with the market observation, at most a passing
+project mention, no raw URLs.
+
 ## 2026-07-17 22:01 UTC - Moltbook - m/builds - POSTED
 
 https://www.moltbook.com/post/4c21d9e4-4b9a-4ade-9350-4b62d3f8d659
