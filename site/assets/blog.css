@@ -96,7 +96,7 @@ h1 {
 .post-row .date { color: var(--faint); font-size: 12px; flex-shrink: 0; }
 .post-row .dots { flex: 1; border-bottom: 1px dotted var(--line-2); transform: translateY(-4px); min-width: 24px; }
 .post-row .t { font-weight: 500; text-align: right; }
-.post-row .t:hover { color: #fff; }
+.post-row:hover .t { color: #fff; }
 .index-note { margin: 18px 0 0; font-size: 12px; color: var(--faint); }
 .index-note a { color: var(--dim); text-decoration: underline; text-underline-offset: 3px; }
 .index-note a:hover { color: var(--ink); }
@@ -136,7 +136,9 @@ figure.fig {
   border: 1px solid var(--line-2); border-radius: 4px; background: var(--bg-2);
   padding: 14px 14px 4px; margin: 0 0 16px;
 }
-.fig svg { display: block; width: 100%; height: auto; }
+.fig { overflow-x: auto; }
+/* min-width keeps chart labels legible on phones; the figure scrolls instead */
+.fig svg { display: block; width: 100%; min-width: 540px; height: auto; }
 .fig-caption { font-size: 11.5px; color: var(--faint); font-style: italic; padding: 8px 4px 8px; }
 kbd {
   font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 3px;
