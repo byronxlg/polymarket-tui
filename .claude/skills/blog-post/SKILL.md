@@ -21,14 +21,47 @@ A post touches exactly these files:
 | `site/index.html` | landing `#blog` section: add the row, keep only the 3 newest |
 | `site/blog/feed.xml` | new `<item>` at the top of the items |
 | `site/sitemap.xml` | new `<url>` with `<lastmod>` |
-| `docs/blog-todo.md` | move the topic from Queue to Shipped, with date and path |
+| `docs/blog-todo.md` | record the post under Shipped, with date and path |
 
 ## 1. Pick the topic
 
-Take the **topmost unchecked topic** in `docs/blog-todo.md`. The queue is
-ordered by value, so do not cherry-pick lower entries. If the queue is empty,
-first refill it: add 5 new topics that target real search intent (what would
-someone type into Google that this post answers?), then take the first.
+Posts are **current-events-first**: the best search traffic and the most
+interesting reading come from connecting a live news story to what
+Polymarket is pricing. The evergreen queue in `docs/blog-todo.md` is the
+fallback for quiet days.
+
+Find the day's story in the markets themselves:
+
+- Trending by money: `curl 'https://gamma-api.polymarket.com/events?order=volume24hr&ascending=false&limit=12&closed=false'` -
+  what is everyone trading right now?
+- Big moves: markets whose `oneDayPriceChange` is large. A move of 10c or
+  more on a liquid market means news landed.
+- Then use WebSearch/WebFetch to get the story behind the numbers and check
+  the basic facts of the event itself.
+
+Write the current-events post when there is a genuine story: a liquid market
+(roughly $250k+ 24h volume) with a sharp move, or an imminent decision date
+(election, verdict, launch, final) the news is already talking about. The
+post's job is to connect the event to the numbers: what the market prices
+now, how it got there, what the book and spread say about conviction, and
+what would move it next.
+
+Fall back to the queue when nothing qualifies. A quiet day gets an evergreen
+post, not a forced take on a thin market. Take the **topmost unchecked
+topic** (the queue is ordered by value; do not cherry-pick). If the queue is
+empty, refill it with 5 new intent-targeted topics, then take the first.
+
+Extra rules for current-events posts:
+
+- Timestamp every number: "as of 2026-07-17 09:00 UTC". Odds move; the post
+  must stay honest after they do.
+- Report what the market prices, never what "will" happen. No predictions,
+  no takes on the outcome - the neutral register of a market report.
+- Slug and title name the event the way people search for it, and include
+  the year (elections, championships, and verdicts recur).
+- Do not re-cover an event written up in the last two weeks unless the
+  picture changed materially (a 15c+ move or a resolution). Check the
+  Shipped list in `docs/blog-todo.md` first - every post lands there.
 
 ## 2. Get the facts right
 
@@ -41,6 +74,9 @@ traffic and trust. Every claim about how Polymarket works must be verifiable:
 - For anything not covered there, probe the live APIs with curl
   (gamma-api.polymarket.com, clob.polymarket.com, data-api.polymarket.com)
   and describe what you observed.
+- Every market number in a current-events post (price, move, volume) must be
+  fetched at write time, never recalled or estimated - quote what the API
+  returned, timestamped.
 - App behaviour (keys, dry-run, screens) comes from the README and
   `docs/user-journeys.md`, not from guessing.
 
@@ -94,8 +130,10 @@ Content rules:
 - `site/blog/feed.xml`: new `<item>` first, `pubDate` in RFC 822 format
   (`Fri, 17 Jul 2026 09:00:00 +0000`), `guid` = the canonical URL.
 - `site/sitemap.xml`: new `<url>` with `<loc>` and `<lastmod>` (YYYY-MM-DD).
-- `docs/blog-todo.md`: check the topic off, move it to Shipped with the date
-  and file path.
+- `docs/blog-todo.md`: add a Shipped line with the date and file path. For a
+  fallback post, also check the topic off the Queue; a current-events post
+  just gets the new Shipped line (this is what the two-week repeat check
+  reads).
 
 ## 5. Verify before shipping
 

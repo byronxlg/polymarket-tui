@@ -1,17 +1,22 @@
 # Blog to-do
 
-Topic queue for the blog at `site/blog/`. The daily workflow
-(`.github/workflows/blog-post.yml`) picks the **topmost unchecked topic**,
-writes it following `.claude/skills/blog-post/SKILL.md`, and opens a PR.
+Topic pipeline for the blog at `site/blog/`. The daily workflow
+(`.github/workflows/blog-post.yml`) is **current-events-first**: it scans
+Polymarket for the day's story (trending 24h volume, sharp price moves, an
+imminent decision the news is covering) and writes about how the event and
+the market relate - signals and rules in `.claude/skills/blog-post/SKILL.md`.
 
-Rules for the queue:
+The queue below is the **fallback for quiet days** with no big trend. Rules:
 
 - Keep it ordered: most valuable next post at the top of the unchecked list.
 - One line per topic: working title, then the search intent it targets.
 - When a post ships, check it off and append the date and filename.
 - Add new ideas at whatever position their value deserves, not just the end.
 
-## Queue
+Every published post - current-events or fallback - gets a line under
+Shipped; that list is how the workflow avoids re-covering an event.
+
+## Queue (fallback)
 
 - [ ] Limit vs market orders on Polymarket (and why market orders are really
   marketable limits) - intent: "polymarket limit order", "polymarket market order"
