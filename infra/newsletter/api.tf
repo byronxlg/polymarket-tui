@@ -24,9 +24,20 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_route" "default" {
+# Explicit routes, deliberately no $default: a catch-all matches OPTIONS too,
+# which routes browser CORS preflights to the lambda (404) instead of API
+# Gateway's automatic preflight responder. With no route matching OPTIONS,
+# the gateway answers preflights itself from cors_configuration.
+resource "aws_apigatewayv2_route" "routes" {
+  for_each = toset([
+    "POST /subscribe",
+    "GET /confirm",
+    "GET /unsubscribe",
+    "POST /unsubscribe",
+  ])
+
   api_id    = aws_apigatewayv2_api.api.id
-  route_key = "$default"
+  route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
