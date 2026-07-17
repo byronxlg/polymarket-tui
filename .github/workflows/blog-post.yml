@@ -31,6 +31,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Explicit token instead of the Claude GitHub App (not installed on
+          # this repo). Known trade-off: events created with GITHUB_TOKEN do
+          # not trigger other workflows - irrelevant here, no PR-triggered CI.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Read .claude/skills/blog-post/SKILL.md and follow it end to end:
             pick the topmost unchecked topic in docs/blog-todo.md, verify the
