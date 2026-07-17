@@ -7,7 +7,7 @@ using [asciinema](https://asciinema.org) - a small JS player plus a `.cast`
 text file, both vendored, no external CDN and no server.
 
 Deployed to GitHub Pages by `.github/workflows/pages.yml` on push to `main`.
-Live URL (once Pages is enabled): https://byronxlg.github.io/polymarket-tui/
+Live URL (once Pages is enabled): https://polymarket-tui.botsmith.dev/
 
 ## Files
 

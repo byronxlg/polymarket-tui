@@ -2,32 +2,32 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
   <title>polymarket-tui blog</title>
-  <link>https://byronxlg.github.io/polymarket-tui/blog/</link>
+  <link>https://polymarket-tui.botsmith.dev/blog/</link>
   <description>Notes on prediction markets and trading them from the terminal.</description>
   <language>en</language>
-  <atom:link href="https://byronxlg.github.io/polymarket-tui/blog/feed.xml" rel="self" type="application/rss+xml" />
+  <atom:link href="https://polymarket-tui.botsmith.dev/blog/feed.xml" rel="self" type="application/rss+xml" />
 
   <!-- ITEMS: newest first. -->
   <item>
     <title>Spain vs Argentina: 2026 World Cup final odds on Polymarket</title>
-    <link>https://byronxlg.github.io/polymarket-tui/blog/spain-vs-argentina-2026-world-cup-final-odds.html</link>
-    <guid>https://byronxlg.github.io/polymarket-tui/blog/spain-vs-argentina-2026-world-cup-final-odds.html</guid>
+    <link>https://polymarket-tui.botsmith.dev/blog/spain-vs-argentina-2026-world-cup-final-odds.html</link>
+    <guid>https://polymarket-tui.botsmith.dev/blog/spain-vs-argentina-2026-world-cup-final-odds.html</guid>
     <pubDate>Fri, 17 Jul 2026 11:00:00 +0000</pubDate>
     <description>Polymarket prices Spain at 58.6c to win the 2026 World Cup final against Argentina. Why the champion and 90-minute markets differ, and what the book shows.</description>
   </item>
 
   <item>
     <title>What a Polymarket price means</title>
-    <link>https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html</link>
-    <guid>https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html</guid>
+    <link>https://polymarket-tui.botsmith.dev/blog/what-a-polymarket-price-means.html</link>
+    <guid>https://polymarket-tui.botsmith.dev/blog/what-a-polymarket-price-means.html</guid>
     <pubDate>Fri, 17 Jul 2026 10:00:00 +0000</pubDate>
     <description>Polymarket prices are quoted in cents but they are probabilities. What a 33c share implies, why YES and NO always sum to 100c, and how prices move as odds change.</description>
   </item>
 
   <item>
     <title>How to read a Polymarket order book</title>
-    <link>https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html</link>
-    <guid>https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html</guid>
+    <link>https://polymarket-tui.botsmith.dev/blog/how-to-read-a-polymarket-order-book.html</link>
+    <guid>https://polymarket-tui.botsmith.dev/blog/how-to-read-a-polymarket-order-book.html</guid>
     <pubDate>Fri, 17 Jul 2026 09:00:00 +0000</pubDate>
     <description>Bids, asks, spread, depth, and ticks on Polymarket, explained. What a YES price of 33c actually means, how the YES and NO books mirror each other, and how to read one live.</description>
   </item>

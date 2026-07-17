@@ -6,7 +6,7 @@ description: Write and publish a new blog post for the polymarket-tui site (site
 # Writing a blog post
 
 The blog is plain static HTML in `site/`, deployed to GitHub Pages at
-`https://byronxlg.github.io/polymarket-tui/` by `.github/workflows/pages.yml`
+`https://polymarket-tui.botsmith.dev/` by `.github/workflows/pages.yml`
 on merge to main. There is no build step and no generator: publishing a post
 means writing one HTML file and keeping five other files in sync by hand.
 Miss one and the site quietly rots (a post that exists but is unreachable, a
@@ -121,7 +121,7 @@ exact shape):
   `— polymarket-tui blog`
 - `<meta name="description">`: 140-160 chars, states what the reader learns
 - `<link rel="canonical">` and `og:url`: the full
-  `https://byronxlg.github.io/polymarket-tui/blog/<slug>.html` URL
+  `https://polymarket-tui.botsmith.dev/blog/<slug>.html` URL
 - `og:type` article, `og:title`, `og:description`, `og:image` (reuse
   `assets/og.png`), `article:published_time`
 - JSON-LD `BlogPosting` with the same headline, description, and date
