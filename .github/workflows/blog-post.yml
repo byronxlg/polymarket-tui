@@ -13,6 +13,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write # claude-code-action mints its GitHub token via OIDC
 
 concurrency:
   group: blog-post
