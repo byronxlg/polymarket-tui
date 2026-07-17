@@ -1,0 +1,45 @@
+name: Deploy newsletter
+
+# Terraform for the daily digest newsletter (infra/newsletter). Pull requests
+# run plan only; pushes to main plan and apply the same plan. The lambda code
+# ships inside the Terraform config (archive_file of src/), so code pushes
+# redeploy through the same pipeline - there is no separate code-deploy path.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/newsletter/**"
+      - ".github/workflows/newsletter.yml"
+  pull_request:
+    paths:
+      - "infra/newsletter/**"
+      - ".github/workflows/newsletter.yml"
+
+concurrency:
+  group: newsletter-terraform
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ap-southeast-2
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+      - run: terraform fmt -check -recursive
+        working-directory: infra/newsletter
+      - run: terraform init
+        working-directory: infra/newsletter
+      - run: terraform validate
+        working-directory: infra/newsletter
+      # Plan and apply the same freshly computed plan in one run so the apply
+      # is exactly what the logs show (pdw convention).
+      - run: terraform plan -out=tfplan -no-color
+        working-directory: infra/newsletter
+      - if: github.event_name == 'push'
+        run: terraform apply -no-color tfplan
+        working-directory: infra/newsletter
