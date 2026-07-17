@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spain vs Argentina: 2026 World Cup final odds on Polymarket — polymarket-tui blog</title>
+<meta name="description" content="Polymarket prices Spain at 58.6c to win the 2026 World Cup final against Argentina. Why the champion and 90-minute markets differ, and what the book shows." />
+<link rel="canonical" href="https://byronxlg.github.io/polymarket-tui/blog/spain-vs-argentina-2026-world-cup-final-odds.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://byronxlg.github.io/polymarket-tui/blog/spain-vs-argentina-2026-world-cup-final-odds.html" />
+<meta property="og:title" content="Spain vs Argentina: 2026 World Cup final odds on Polymarket" />
+<meta property="og:description" content="Polymarket prices Spain at 58.6c to win the 2026 World Cup final against Argentina. Why the champion and 90-minute markets differ, and what the book shows." />
+<meta property="og:image" content="https://byronxlg.github.io/polymarket-tui/assets/og.png" />
+<meta property="article:published_time" content="2026-07-17" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Spain vs Argentina: 2026 World Cup final odds on Polymarket",
+  "description": "Polymarket prices Spain at 58.6c to win the 2026 World Cup final against Argentina. Why the champion and 90-minute markets differ, and what the book shows.",
+  "datePublished": "2026-07-17",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://byronxlg.github.io/polymarket-tui/blog/spain-vs-argentina-2026-world-cup-final-odds.html",
+  "image": "https://byronxlg.github.io/polymarket-tui/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>world-cup-final</p>
+<h1>Spain vs Argentina: 2026 World Cup final odds on Polymarket</h1>
+<p class="post-meta"><span>2026-07-17</span><span class="d">/</span><span>6 min read</span><span class="d">/</span><span>market report</span></p>
+
+<article>
+
+<p class="lead">The 2026 World Cup final is set: Spain play Argentina on Sunday,
+July 19 at MetLife Stadium in New Jersey. Polymarket's championship market has
+Spain at 58.6c and Argentina at 41.2c, but the market on the match itself tells
+a more interesting story - one where the most likely single result is a draw.
+All numbers below were pulled from the live APIs on 2026-07-17 at 07:50 UTC;
+they will have moved by the time you read this.</p>
+
+<span class="sec-label"><i>01</i>The headline number</span>
+<h2>Spain 58.6c, Argentina 41.2c to lift the trophy</h2>
+
+<p>Both semifinals are done. Spain beat France 2-0 in Dallas on July 14
+(an Oyarzabal penalty and a Porro goal), and Argentina came from behind to
+beat England 2-1 in Atlanta on July 15, with Enzo Fern&aacute;ndez equalising
+in the 85th minute and Lautaro Mart&iacute;nez heading the winner in stoppage
+time. That leaves two names in the <b>World Cup winner</b> market, and as of
+2026-07-17 07:50 UTC it prices them:</p>
+
+<pre><code><span class="c">        WORLD CUP WINNER                 LAST     BID/ASK       24H VOLUME</span>
+        Spain                            <span class="g">58.6c</span>    58.5 / 58.6   $1.35M
+        Argentina                        <span class="r">41.2c</span>    41.1 / 41.2   $2.93M
+</code></pre>
+
+<p>A price is a probability: the market currently treats Spain as roughly a
+59% favourite to be champion (see <a href="what-a-polymarket-price-means.html">
+what a Polymarket price means</a>). The two prices sum to about 100c, as they
+must in a two-horse race. This is a heavily traded market - $4.28M in the last
+24 hours across the event, with $17.7M of liquidity resting in its books.</p>
+
+<span class="sec-label"><i>02</i>Two markets, two questions</span>
+<h2>Winning the Cup is not the same as winning in 90 minutes</h2>
+
+<p>Here is where reading the resolution rules earns you something. Alongside
+the championship market, Polymarket runs a market on the <b>match itself</b>,
+and its prices look very different (same timestamp, mid prices):</p>
+
+<pre><code><span class="c">        SPAIN VS. ARGENTINA, JULY 19     MID      BID/ASK</span>
+        Spain wins                       <span class="g">42.5c</span>    42 / 43
+        Draw                             31.5c    31 / 32
+        Argentina wins                   <span class="r">26.5c</span>    26 / 27
+</code></pre>
+
+<p>Spain at 58.6c to be champion but only 42.5c to win the match is not a
+contradiction. The match market's rules state it "refers only to the outcome
+within the first 90 minutes of regular play plus stoppage time" - extra time
+and penalties do not count. The championship market resolves to whichever
+team lifts the trophy, however the final is decided. A final that is level
+after 90 minutes goes to extra time and possibly a shootout, and only the
+championship market cares who survives that.</p>
+
+<p>The gap between the two prices is exactly the draw scenario. Spain's
+champion price (58.6c) minus its 90-minute win price (42.5c) is about 16c,
+and the draw trades at 31.5c: the market is pricing Spain to win a final
+that goes past 90 minutes at roughly even odds, a shade in Spain's favour.
+That is arithmetic on live prices, not a prediction - but it is the kind of
+structure you only see by reading both markets together.</p>
+
+<p>One more reason to read the rules: this draw market resolves to Yes if the
+game is cancelled entirely with no make-up game. Edge cases like that are
+spelled out in every market's resolution text, and they are always worth the
+thirty seconds before you trade.</p>
+
+<span class="sec-label"><i>03</i>How the price got here</span>
+<h2>A week of repricing</h2>
+
+<p>A week ago Spain's championship price was 16.4c (2026-07-10 12:00 UTC, per
+the CLOB price history). It drifted up to about 21c going into the semifinal,
+then jumped to 58c overnight on July 14 after the 2-0 win over France - a
+market seeing a field of four collapse into a field of two. Gamma reports the
+one-week change as +41.4c.</p>
+
+<p>Argentina's path was more dramatic. During the England semifinal, its
+championship price collapsed while England led, then repriced completely in
+the final minutes. Ten-minute prints from the price history on July 15:</p>
+
+<pre><code><span class="c">        "ARGENTINA WINS THE WORLD CUP" DURING THE SEMIFINAL (2026-07-15 UTC)</span>
+        20:00   19.8c   <span class="c">second half about to begin, 0-0</span>
+        20:20   <span class="r">11.1c</span>   <span class="c">England lead through Gordon</span>
+        20:40    <span class="r">9.9c</span>   <span class="c">still 1-0 England, minutes left in normal time</span>
+        21:00   <span class="g">40.9c</span>   <span class="c">Fern&aacute;ndez 85', Mart&iacute;nez 90+2', full time</span>
+</code></pre>
+
+<p>From under 10c to over 40c in twenty minutes of football. This is what "a
+price is a live probability" means in practice: the chart of a market is a
+tick-by-tick record of the news, and a late goal reprices a World Cup.</p>
+
+<span class="sec-label"><i>04</i>What the book says</span>
+<h2>Depth, spread, and how sure the money is</h2>
+
+<p>Prices alone do not tell you how much to trust a market; the order book
+does (see <a href="how-to-read-a-polymarket-order-book.html">how to read a
+Polymarket order book</a>). The Spain championship book trades on a 0.1c tick,
+and at 07:50 UTC it was one tick wide with heavy size on both sides:</p>
+
+<pre><code><span class="c">        SPAIN YES - BOOK TOP, 2026-07-17 07:50 UTC</span>
+        <span class="g">BID   58.5c   248,465 shares</span>
+        <span class="r">ASK   58.6c   234,234 shares</span>
+        <span class="c">...with 2.1M more shares bid at 58.3c</span>
+</code></pre>
+
+<p>A one-tick spread with six-figure size at the touch means conviction: you
+can trade hundreds of thousands of shares without moving the price, and the
+58.6c estimate is backed by real money rather than a few stray orders. Thin
+markets show the opposite pattern - a wide spread and a price that jumps on
+small trades. By book depth, this final is one of the most confidently priced
+events on the exchange right now.</p>
+
+<span class="sec-label"><i>05</i>Watching the final in the terminal</span>
+<h2>Following the match markets in polymarket-tui</h2>
+
+<p>Sunday's match is the rare event where the book, the chart, and the tape
+are all worth watching live, and
+<a href="https://github.com/byronxlg/polymarket-tui">polymarket-tui</a> puts
+them in one terminal screen: the live order book beside the price chart, a
+trades tape as prints land, and <kbd>space</kbd> to star the championship and
+match markets into a watchlist so both are one keystroke away during the
+game. Prices are shown in cents, the same way this post quotes them.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">No account is needed to browse markets, books, and charts.
+The <a href="../#install">install page</a> has Homebrew and one-liner options.</p>
+
+</article>
+
+<p class="post-foot">Odds quoted are snapshots from 2026-07-17 and will have
+moved. More posts on the <a href="./">blog index</a>, or subscribe via
+<a href="feed.xml">RSS</a>. Not affiliated with Polymarket; nothing here is
+financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
