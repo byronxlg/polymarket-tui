@@ -30,14 +30,25 @@ interesting reading come from connecting a live news story to what
 Polymarket is pricing. The evergreen queue in `docs/blog-todo.md` is the
 fallback for quiet days.
 
-Find the day's story in the markets themselves:
+Scan from both directions and pick the strongest story:
 
-- Trending by money: `curl 'https://gamma-api.polymarket.com/events?order=volume24hr&ascending=false&limit=12&closed=false'` -
-  what is everyone trading right now?
-- Big moves: markets whose `oneDayPriceChange` is large. A move of 10c or
-  more on a liquid market means news landed.
-- Then use WebSearch/WebFetch to get the story behind the numbers and check
-  the basic facts of the event itself.
+- **Markets first** - what is the money doing?
+  - Trending by money: `curl 'https://gamma-api.polymarket.com/events?order=volume24hr&ascending=false&limit=12&closed=false'` -
+    what is everyone trading right now?
+  - Big moves: markets whose `oneDayPriceChange` is large. A move of 10c or
+    more on a liquid market means news landed.
+  - Then WebSearch the story behind the numbers.
+- **News first** - what are the headlines, and do markets have a view?
+  - WebSearch the day's top stories in the domains Polymarket trades:
+    politics, geopolitics, sports, crypto, business, entertainment.
+  - Map a story to its markets:
+    `curl 'https://gamma-api.polymarket.com/public-search?q=<terms>&limit_per_type=5'`.
+  - The strong news-first angles: a big story the markets are actively
+    repricing, and the quieter twist - a loud headline whose market barely
+    moved (the market saw it coming, or does not believe it).
+
+Whichever direction found the story, verify the event's facts with
+WebSearch/WebFetch and every number against Gamma/CLOB.
 
 Write the current-events post when there is a genuine story: a liquid market
 (roughly $250k+ 24h volume) with a sharp move, or an imminent decision date
