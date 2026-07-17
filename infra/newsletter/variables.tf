@@ -16,9 +16,9 @@ variable "site_url" {
 }
 
 variable "api_domain" {
-  description = "Public hostname for the signup/confirm/unsubscribe API"
+  description = "Public hostname for the signup/confirm/unsubscribe API. Must be a first-level name under the apex: a name under polymarket-tui.botsmith.dev inherits github.io's CAA records through the Pages CNAME during the tree-climb, and ACM cannot issue (CAA_ERROR, seen on the first deploy)."
   type        = string
-  default     = "api.polymarket-tui.botsmith.dev"
+  default     = "polymarket-tui-api.botsmith.dev"
 }
 
 variable "sender_domain" {

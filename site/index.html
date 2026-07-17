@@ -563,7 +563,7 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
     }
     btn.disabled = true;
     status.textContent = "subscribing…";
-    fetch("https://api.polymarket-tui.botsmith.dev/subscribe", {
+    fetch("https://polymarket-tui-api.botsmith.dev/subscribe", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: email, website: digestForm.website.value }),

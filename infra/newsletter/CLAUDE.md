@@ -10,8 +10,12 @@ scale; both functions carry reserved-concurrency caps.
 
 - `polymarket-tui-newsletter-api` (python3.12/arm64): POST /subscribe,
   GET /confirm, GET|POST /unsubscribe, behind an HTTP API at
-  `api.polymarket-tui.botsmith.dev` (ACM cert, Cloudflare DNS, throttled).
+  `polymarket-tui-api.botsmith.dev` (ACM cert, Cloudflare DNS, throttled).
   The signup form in `site/index.html` posts here and hardcodes the hostname.
+  The hostname must stay a first-level name under the apex: anything under
+  `polymarket-tui.botsmith.dev` inherits github.io's CAA records through the
+  Pages CNAME during the CA's tree-climb, and ACM cannot issue a cert
+  (CAA_ERROR - hit on the first deploy with `api.polymarket-tui.`).
 - `polymarket-tui-newsletter-digest` (python3.12/arm64): builds the digest
   from Gamma and sends via SES. EventBridge Scheduler fires it daily at 07:00
   Pacific/Auckland. Retries are disabled at both the schedule and the lambda
@@ -35,7 +39,7 @@ separate code-deploy path. The modules that don't touch AWS (`digest_data`,
 The botsmith.dev zone also carries the landing-page Pages CNAME
 (`polymarket-tui.botsmith.dev`), which is managed in x402-services' Terraform,
 not here. This config only manages newsletter-specific record names (DKIM
-under `_domainkey.`, `bounce.`, `_dmarc.`, `api.`), so the two states never
+under `_domainkey.`, `bounce.`, `_dmarc.`, `polymarket-tui-api.`), so the two states never
 touch the same records.
 
 ## State
