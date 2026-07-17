@@ -4,7 +4,8 @@ name: Daily blog post
 # Runs Claude Code on plan (subscription) usage, not API billing: create the
 # secret with a token from `claude setup-token` ->
 #   gh secret set CLAUDE_CODE_OAUTH_TOKEN
-# Posts are never merged automatically; a human reviews every PR.
+# Post-only PRs are merged by the run itself (authorized by Byron,
+# 2026-07-17); the PR remains as the audit trail and revert point.
 on:
   schedule:
     - cron: "23 6 * * *" # daily 06:23 UTC; offset to dodge on-the-hour load
@@ -14,6 +15,7 @@ permissions:
   contents: write
   pull-requests: write
   id-token: write # claude-code-action mints its GitHub token via OIDC
+  actions: write # dispatch pages.yml after merging (GITHUB_TOKEN pushes don't trigger it)
 
 concurrency:
   group: blog-post
@@ -42,6 +44,14 @@ jobs:
             post, sync the blog index, landing page, feed, sitemap, and to-do
             list, verify the links, then create branch blog/<slug>, commit as
             "Blog: <title>", push, and open a pull request.
+
+            Then, if and only if the PR's diff is the post plus its sync files
+            (site/blog/*, the landing #blog list, sitemap, docs/blog-todo.md),
+            merge it: gh pr merge --squash --delete-branch, then dispatch the
+            site deploy with: gh workflow run pages.yml
+            (a merge made with GITHUB_TOKEN does not trigger it by itself).
+            If the merge fails or the diff includes anything else, leave the
+            PR open and say why.
 
             If an open PR whose branch starts with blog/ already exists, stop
             without writing anything and say so - one pending post at a time.
