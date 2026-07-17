@@ -40,6 +40,9 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Spain vs Argentina: 2026 World Cup final odds on Polymarket
+  (current events: World Cup final, July 19) - 2026-07-17,
+  `site/blog/spain-vs-argentina-2026-world-cup-final-odds.html`
 - [x] How to read a Polymarket order book - 2026-07-17,
   `site/blog/how-to-read-a-polymarket-order-book.html`
 - [x] Prices are probabilities: what a 33c share really tells you - 2026-07-17,
