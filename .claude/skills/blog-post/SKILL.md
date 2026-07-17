@@ -144,6 +144,9 @@ Content rules:
   tag for the topic ("world-cup-final").
 - One `<pre>` example rendering something terminal-shaped is on-brand and
   breaks up the text; use the `.g`/`.r`/`.c` spans for green/red/faint.
+  Keep pre lines to at most ~66 characters with no leading indent (the box
+  padding does the framing): longer lines force a scrollbar at the article
+  measure on desktop.
 
 ### Charts
 
