@@ -14,6 +14,7 @@
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
+<link rel="alternate" type="application/rss+xml" title="polymarket-tui blog" href="https://byronxlg.github.io/polymarket-tui/blog/feed.xml" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
 <link rel="stylesheet" href="assets/asciinema-player.css" />
 <style>
@@ -206,6 +207,22 @@
   .keyrow .dots { flex: 1; border-bottom: 1px dotted var(--line-2); transform: translateY(-4px); min-width: 24px; }
   .keyrow .act { color: var(--dim); text-align: right; }
 
+  /* ---- blog: post list with dotted leaders ---- */
+  .posts { border: 1px solid var(--line); margin: 0 0 18px; }
+  .post-row {
+    display: flex; align-items: baseline; gap: 14px;
+    padding: 15px 22px; font-size: 13px; border-bottom: 1px solid var(--line);
+  }
+  .post-row:last-child { border-bottom: none; }
+  .post-row:hover { background: var(--bg-2); }
+  .post-row .date { color: var(--faint); font-size: 12px; flex-shrink: 0; }
+  .post-row .dots { flex: 1; border-bottom: 1px dotted var(--line-2); transform: translateY(-4px); min-width: 24px; }
+  .post-row .t { color: var(--ink); font-weight: 500; text-align: right; }
+  .post-row:hover .t { color: #fff; }
+  .blog-more { margin: 0 0 56px; font-size: 12.5px; color: var(--faint); }
+  .blog-more a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .blog-more a:hover { color: var(--accent); }
+
   /* ---- install ---- */
   .split { display: grid; grid-template-columns: 1fr; gap: 0; border: 1px solid var(--line); margin: 0 0 56px; }
   .split > * { min-width: 0; }
@@ -273,6 +290,9 @@
     .feats { grid-template-columns: 1fr; }
     .keys-wrap { grid-template-columns: 1fr; }
     .split { grid-template-columns: 1fr; }
+    .post-row { flex-wrap: wrap; }
+    .post-row .dots { display: none; }
+    .post-row .t { text-align: left; width: 100%; }
     .nav-links a:not(.gh) { display: none; }
     .manline .mid { display: none; }
   }
@@ -288,6 +308,7 @@
       <a href="#keys"><i>02</i> Keymap</a>
       <a href="#access"><i>03</i> Access</a>
       <a href="#install"><i>04</i> Install</a>
+      <a href="#blog"><i>05</i> Blog</a>
       <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
     </div>
   </div>
@@ -405,6 +426,24 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
   </div>
 </section>
 
+<section id="blog">
+  <div class="sec-head">
+    <span class="sec-label"><i>05</i>Blog</span>
+    <h2>Notes from the order book</h2>
+    <p class="lead">Short posts on prediction markets and trading them from the
+      terminal: what the numbers mean and how to act on them.</p>
+  </div>
+  <!-- LATEST POSTS: keep the 3 newest, newest first; full list lives at blog/ -->
+  <div class="posts">
+    <a class="post-row" href="blog/how-to-read-a-polymarket-order-book.html">
+      <span class="date">2026-07-17</span>
+      <span class="dots"></span>
+      <span class="t">How to read a Polymarket order book</span>
+    </a>
+  </div>
+  <p class="blog-more"><a href="blog/">All posts</a> &middot; <a href="blog/feed.xml">RSS</a></p>
+</section>
+
 <section class="disc">
   <p><span class="lbl">Disclaimer</span> Unofficial client, not affiliated with Polymarket.
     It can place real orders with real money when LIVE mode is explicitly enabled; you are
@@ -422,6 +461,7 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
     <div class="foot-links">
       <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
       <a href="https://polymarket.com" target="_blank" rel="noopener">Polymarket</a>
+      <a href="blog/">Blog</a>
       <a href="#install">Install</a>
     </div>
   </div>

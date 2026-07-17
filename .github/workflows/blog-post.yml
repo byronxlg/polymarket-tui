@@ -1,0 +1,45 @@
+name: Daily blog post
+
+# Writes the next blog post from docs/blog-todo.md and opens a PR for review.
+# Runs Claude Code on plan (subscription) usage, not API billing: create the
+# secret with a token from `claude setup-token` ->
+#   gh secret set CLAUDE_CODE_OAUTH_TOKEN
+# Posts are never merged automatically; a human reviews every PR.
+on:
+  schedule:
+    - cron: "23 6 * * *" # daily 06:23 UTC; offset to dodge on-the-hour load
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: blog-post
+  cancel-in-progress: false
+
+jobs:
+  write-post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write the next post
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Read .claude/skills/blog-post/SKILL.md and follow it end to end:
+            pick the topmost unchecked topic in docs/blog-todo.md, verify the
+            facts against docs/ (and the live APIs where needed), write the
+            post, sync the blog index, landing page, feed, sitemap, and to-do
+            list, verify the links, then create branch blog/<slug>, commit as
+            "Blog: <title>", push, and open a pull request.
+
+            If an open PR whose branch starts with blog/ already exists, stop
+            without writing anything and say so - one pending post at a time.
+          claude_args: |
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch"
+            --max-turns 60

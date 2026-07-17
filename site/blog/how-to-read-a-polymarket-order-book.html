@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How to read a Polymarket order book — polymarket-tui blog</title>
+<meta name="description" content="Bids, asks, spread, depth, and ticks on Polymarket, explained. What a YES price of 33c actually means, how the YES and NO books mirror each other, and how to read one live." />
+<link rel="canonical" href="https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html" />
+<meta property="og:title" content="How to read a Polymarket order book" />
+<meta property="og:description" content="Bids, asks, spread, depth, and ticks on Polymarket, explained. What a YES price of 33c actually means, how the YES and NO books mirror each other, and how to read one live." />
+<meta property="og:image" content="https://byronxlg.github.io/polymarket-tui/assets/og.png" />
+<meta property="article:published_time" content="2026-07-17" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "How to read a Polymarket order book",
+  "description": "Bids, asks, spread, depth, and ticks on Polymarket, explained. What a YES price of 33c actually means, how the YES and NO books mirror each other, and how to read one live.",
+  "datePublished": "2026-07-17",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html",
+  "image": "https://byronxlg.github.io/polymarket-tui/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>order-books</p>
+<h1>How to read a Polymarket order book</h1>
+<p class="post-meta"><span>2026-07-17</span><span class="d">/</span><span>7 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">Every price on Polymarket comes out of an order book: a live
+list of what people are willing to pay and accept for a share of an outcome.
+Read the book and you know more than the headline price tells you. This post
+covers what the numbers mean, using nothing but a terminal-sized example.</p>
+
+<span class="sec-label"><i>01</i>Prices are probabilities</span>
+<h2>A share pays $1 if you are right</h2>
+
+<p>Every Polymarket market settles in shares that redeem for <b>$1 if the
+outcome happens and $0 if it does not</b>. Prices are quoted in cents, so a
+YES share trading at 33c implies the market puts roughly a <b>33% probability</b>
+on the outcome. Buy at 33c and you are risking 33c to win $1; the trade is
+profitable in expectation only if you think the real probability is higher
+than 33%.</p>
+
+<p>That is the whole trick of reading any prediction market price: <em>the
+price is the crowd's probability estimate</em>. Everything else in this post
+is about how firm that estimate is.</p>
+
+<span class="sec-label"><i>02</i>Two books, one market</span>
+<h2>YES and NO are mirror images</h2>
+
+<p>A binary market has two outcome tokens, YES and NO, and each has its own
+order book. But they are the same market seen from opposite sides: a share of
+NO pays $1 exactly when YES pays $0, so <b>NO's price is 100c minus YES's
+price</b>. An order to buy YES at 32c is economically the same as an offer to
+sell NO at 68c, and the exchange treats them that way.</p>
+
+<p>In practice this means you only ever need to read one book, then flip the
+sign. If YES's best bid is 32c, NO's best ask is 68c. Traders often work the
+NO side simply because the number they care about is easier to think in.</p>
+
+<span class="sec-label"><i>03</i>Bids, asks, and the spread</span>
+<h2>The two prices that matter</h2>
+
+<p>Here is a small YES book, laid out the way most terminals (and
+polymarket-tui) draw it:</p>
+
+<pre><code><span class="c">        BID (buyers)              ASK (sellers)</span>
+<span class="c">        size      price           price     size</span>
+        1,200     <span class="g">32c</span>             <span class="r">34c</span>       850
+        3,400     <span class="g">31c</span>             <span class="r">35c</span>       2,100
+        5,000     <span class="g">30c</span>             <span class="r">36c</span>       4,700
+</code></pre>
+
+<ul>
+  <li><b>Best bid, 32c</b>: the most anyone is currently willing to pay for a
+    YES share. Sell instantly and this is your price.</li>
+  <li><b>Best ask, 34c</b>: the least anyone will currently sell for. Buy
+    instantly and this is your price.</li>
+  <li><b>Spread, 2c</b>: the gap between them, and the cost of impatience. A
+    round trip at market prices loses the spread before the outcome moves at
+    all.</li>
+  <li><b>Mid, 33c</b>: halfway between bid and ask. When someone quotes "the
+    price" of a market, they usually mean the last trade or the mid.</li>
+</ul>
+
+<p>A tight spread (1c on a liquid market) means the probability estimate is
+contested and sharp; both sides are willing to trade close to it. A wide
+spread (5c or more) means nobody is confident enough to quote tightly, and
+the headline price deserves less trust.</p>
+
+<span class="sec-label"><i>04</i>Depth</span>
+<h2>How much conviction sits behind a price</h2>
+
+<p>Size matters as much as price. The book above shows 1,200 shares bid at
+32c and 5,000 more at 30c: buyers get more eager as the price falls. Depth
+tells you two things:</p>
+
+<ul>
+  <li><b>Slippage</b>: buy 3,000 shares "at market" and only 850 fill at 34c;
+    the rest walk up the book to 35c and beyond. Your average price is worse
+    than the quote you saw. On thin markets this effect dominates.</li>
+  <li><b>Confidence</b>: a market can print 33c on ten shares. A price backed
+    by tens of thousands of dollars within a cent of the mid is a far stronger
+    probability estimate than the same price on a nearly-empty book.</li>
+</ul>
+
+<p>This is why watching the book beats watching the price. Two markets can
+both say 33%; one of them barely means it.</p>
+
+<span class="sec-label"><i>05</i>Ticks and minimums</span>
+<h2>The grid prices move on</h2>
+
+<p>Orders must land on the market's <b>tick size</b>, normally 1c. When a
+market's price approaches 0 or 100, the exchange re-grids it to 0.1c ticks so
+longshots can still be priced (0.4c instead of a forced choice between 0c and
+1c). Orders also have a <b>minimum size</b>, typically 5 shares.</p>
+
+<p>One quirk worth knowing: Polymarket has no native market order. A "market"
+order is a limit order priced across the spread so it fills immediately
+against resting orders. That is also the honest way to think about it: you
+are always trading against the book you can see.</p>
+
+<span class="sec-label"><i>06</i>In the terminal</span>
+<h2>Reading a live book with polymarket-tui</h2>
+
+<p><a href="https://github.com/byronxlg/polymarket-tui">polymarket-tui</a>
+streams this whole picture into your terminal: YES and NO books tick live
+from the exchange with depth bars per level, the trade tape prints alongside,
+and the current tick size comes from the live book itself. Cursor onto any
+level and press <kbd>b</kbd> or <kbd>s</kbd> to start an order prefilled at
+that price; <kbd>space</kbd> flips to the NO book. New setups start in
+dry-run, where orders are built and signed but never posted, so you can
+practice reading and acting on a book with nothing at stake.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">No account is needed to browse markets, books, and charts.
+The <a href="../#install">install page</a> has Homebrew and one-liner options.</p>
+
+</article>
+
+<p class="post-foot">More posts on the <a href="./">blog index</a>, or subscribe
+via <a href="feed.xml">RSS</a>. Not affiliated with Polymarket; nothing here is
+financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
