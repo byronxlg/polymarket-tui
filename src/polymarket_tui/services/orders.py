@@ -471,6 +471,30 @@ class OrderService:
         order_type = OrderType.FAK if draft.is_market_order else getattr(OrderType, draft.tif.value)
         live = self._settings.mode is Mode.TRADER_LIVE
 
+        # The CLOB client caches its own tick per token for the whole session and
+        # never refreshes it, and its price_valid only bounds-checks - so a market
+        # that re-grids 0.01 -> 0.001 mid-session would make create_order silently
+        # round the confirmed price DOWN to the coarser grid (98.1c -> 98.0c) with
+        # no error. Refresh the client's tick to the exchange's current value; if
+        # it is still coarser than the live book we drafted and validated against,
+        # signing would alter the price the user just confirmed - so refuse, and
+        # post nothing. (draft.tick is the live book's tick; None only before the
+        # first book, where there is no authority to reconcile against.)
+        if draft.tick is not None:
+            client_tick = await self._authed.resolved_tick(draft.token_id)
+            if client_tick is not None and client_tick > draft.tick:
+                result = PlaceResult(
+                    ok=False,
+                    dry_run=not live,
+                    error=(
+                        f"Order API tick is {client_tick} but the live book is {draft.tick};"
+                        f" {draft.price_label()} would be rounded to the coarser grid. Not"
+                        " placed - the market looks mid re-grid, try again in a moment."
+                    ),
+                )
+                self._audit(draft, result)
+                return result
+
         if not live:
             # Dry run: sign (proves the whole signing path) but never post. Nothing
             # is placed, so do not seed the duplicate-order fingerprint.

@@ -286,6 +286,147 @@ class TimeoutPoster:
         raise TimeoutError("read timed out")
 
 
+class TickAwareAuthed:
+    """A signer that also reports the tick the CLOB client would sign at, so the
+    place() tick reconciliation can be exercised without a real client."""
+
+    def __init__(self, client_tick: str | None) -> None:
+        self._client_tick = client_tick
+        self.signed = False
+        self.posted = False
+
+    async def resolved_tick(self, token_id: str, *, refresh: bool = True) -> Decimal | None:
+        return Decimal(self._client_tick) if self._client_tick is not None else None
+
+    async def sign_order(self, order_args) -> object:
+        self.signed = True
+        return object()
+
+    async def create_and_post_order(self, order_args, order_type) -> dict:
+        self.posted = True
+        return {"success": True, "status": "matched", "orderID": "0x1"}
+
+
+def _live_settings() -> Settings:
+    return Settings(
+        polymarket_execution_live=True,
+        polymarket_funder="0xf",
+        polymarket_private_key="deadbeef" * 8,
+    )
+
+
+class TestTickReconciliation:
+    """The bug: the user sets 98.1c but a 98.0c order is placed. The CLOB client
+    caches a token's tick for the whole session and its price_valid only bounds-
+    checks, so a stale coarse 0.01 tick silently rounds 0.981 -> 0.98 at signing.
+    place() must refuse to sign a price the client would alter, and never post."""
+
+    @pytest.mark.asyncio
+    async def test_live_order_refused_when_client_would_round_to_coarser_tick(self):
+        authed = TickAwareAuthed(client_tick="0.01")  # stale-coarse vs the book's 0.001
+        service = OrderService(_live_settings(), authed)
+        draft = make_draft(price=Decimal("0.981"), tick=Decimal("0.001"))
+        result = await service.place(draft)
+        assert not result.ok and not result.dry_run
+        assert not result.status_unknown  # nothing was sent - not a timeout
+        assert authed.posted is False and authed.signed is False
+        assert "98.1c" in result.error and "rounded" in result.error.lower()
+        # Refused before the duplicate fingerprint is seeded (nothing was placed).
+        assert service._recent == []
+
+    @pytest.mark.asyncio
+    async def test_live_order_posts_when_client_tick_matches_the_book(self):
+        authed = TickAwareAuthed(client_tick="0.001")
+        service = OrderService(_live_settings(), authed)
+        draft = make_draft(price=Decimal("0.981"), tick=Decimal("0.001"))
+        result = await service.place(draft)
+        assert result.ok and not result.dry_run
+        assert authed.posted is True
+
+    @pytest.mark.asyncio
+    async def test_client_tick_finer_than_the_book_still_posts(self):
+        # A finer client tick (0.0001) can represent 0.981 exactly - not a block.
+        authed = TickAwareAuthed(client_tick="0.0001")
+        service = OrderService(_live_settings(), authed)
+        draft = make_draft(price=Decimal("0.981"), tick=Decimal("0.001"))
+        result = await service.place(draft)
+        assert result.ok and authed.posted is True
+
+    @pytest.mark.asyncio
+    async def test_unreadable_client_tick_does_not_block(self):
+        # If the tick cannot be read, proceed as before (no regression) - the
+        # cache was still dropped, so the next resolve is fresh.
+        authed = TickAwareAuthed(client_tick=None)
+        service = OrderService(_live_settings(), authed)
+        draft = make_draft(price=Decimal("0.981"), tick=Decimal("0.001"))
+        result = await service.place(draft)
+        assert result.ok and authed.posted is True
+
+    @pytest.mark.asyncio
+    async def test_dry_run_also_refuses_a_coarsening_tick(self):
+        authed = TickAwareAuthed(client_tick="0.01")
+        service = OrderService(
+            Settings(polymarket_private_key="k", polymarket_funder="0xf"), authed
+        )
+        draft = make_draft(price=Decimal("0.981"), tick=Decimal("0.001"))
+        result = await service.place(draft)
+        assert not result.ok and result.dry_run
+        assert authed.signed is False
+
+
+class FakeClobForTick:
+    """Stands in for py-clob-client-v2's ClobClient: a per-session tick cache
+    under the same name-mangled attribute, and a get_tick_size that re-reads a
+    'server' value only on a cache miss."""
+
+    def __init__(self, server_tick: str, cached: str | None = None) -> None:
+        self.server_tick = server_tick
+        setattr(
+            self,
+            f"_{type(self).__name__}__tick_sizes",
+            {} if cached is None else {"111": cached},
+        )
+        self.fetches = 0
+
+    def get_tick_size(self, token_id: str) -> str:
+        cache = getattr(self, f"_{type(self).__name__}__tick_sizes")
+        if token_id in cache:
+            return cache[token_id]
+        self.fetches += 1
+        cache[token_id] = self.server_tick
+        return self.server_tick
+
+
+class TestResolvedTick:
+    def _authed(self, client):
+        from polymarket_tui.api.clob_auth import AuthedClobClient
+
+        authed = AuthedClobClient(Settings())
+        authed._client = client  # skip the real bootstrap
+        return authed
+
+    @pytest.mark.asyncio
+    async def test_refresh_drops_a_stale_cache_and_rereads_the_exchange(self):
+        client = FakeClobForTick(server_tick="0.001", cached="0.01")  # session re-gridded
+        tick = await self._authed(client).resolved_tick("111", refresh=True)
+        assert tick == Decimal("0.001")  # fresh value, not the stale 0.01
+        assert client.fetches == 1
+
+    @pytest.mark.asyncio
+    async def test_without_refresh_the_cached_value_is_used(self):
+        client = FakeClobForTick(server_tick="0.001", cached="0.01")
+        tick = await self._authed(client).resolved_tick("111", refresh=False)
+        assert tick == Decimal("0.01") and client.fetches == 0
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_the_tick_cannot_be_read(self):
+        class Boom:
+            def get_tick_size(self, token_id):
+                raise RuntimeError("clob unreachable")
+
+        assert await self._authed(Boom()).resolved_tick("111") is None
+
+
 class TestPlace:
     @pytest.mark.asyncio
     async def test_live_post_timeout_is_status_unknown_and_audited(self):
