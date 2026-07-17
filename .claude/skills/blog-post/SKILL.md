@@ -39,8 +39,9 @@ Scan from both directions and pick the strongest story:
     more on a liquid market means news landed.
   - Then WebSearch the story behind the numbers.
 - **News first** - what are the headlines, and do markets have a view?
-  - WebSearch the day's top stories in the domains Polymarket trades:
-    politics, geopolitics, sports, crypto, business, entertainment.
+  - WebSearch per domain Polymarket trades - politics, geopolitics, sports,
+    crypto, business, entertainment (e.g. "politics news July 17 2026").
+    A generic "top news today" query returns homepages, not stories.
   - Map a story to its markets:
     `curl 'https://gamma-api.polymarket.com/public-search?q=<terms>&limit_per_type=5'`.
   - The strong news-first angles: a big story the markets are actively
@@ -87,7 +88,15 @@ traffic and trust. Every claim about how Polymarket works must be verifiable:
   and describe what you observed.
 - Every market number in a current-events post (price, move, volume) must be
   fetched at write time, never recalled or estimated - quote what the API
-  returned, timestamped.
+  returned, timestamped. Fetch the numbers you will quote in one tight batch
+  and stamp the post with that batch's time: one "as of" moment, not one per
+  call.
+- API footguns learned from real runs: trust `volume24hr` and `liquidity`;
+  treat an event's lifetime `volume` as suspect (it has printed billions).
+  `public-search` returns `events` (markets nested inside) plus `profiles` -
+  the events are what you want. `clob.polymarket.com/prices-history` takes
+  `startTs`/`endTs` (epoch seconds) and `fidelity` (minutes): drill from 6h
+  candles down to 10-minute prints to pin an intraday move.
 - App behaviour (keys, dry-run, screens) comes from the README and
   `docs/user-journeys.md`, not from guessing.
 
@@ -124,7 +133,13 @@ Content rules:
 - The title is what people search for; write it as the question or task the
   reader has, not a clever headline.
 - Voice: plain, precise, user-facing. No emojis, no em dashes (use hyphens or
-  restructure). Prices in cents ("33c"). Explain jargon on first use.
+  restructure) - the `<title>` suffix's em dash is the one sanctioned
+  exception, a site-wide brand convention. Prices in cents ("33c"). Explain
+  jargon on first use.
+- `post-meta` conventions: read time is the body word count divided by 200,
+  rounded ("5 min read"); the tag is "market report" for current-events
+  posts, "markets 101" for evergreen ones; the last crumb is a short kebab
+  tag for the topic ("world-cup-final").
 - One `<pre>` example rendering something terminal-shaped is on-brand and
   breaks up the text; use the `.g`/`.r`/`.c` spans for green/red/faint.
 - polymarket-tui appears where it is genuinely the answer (usually the final
@@ -132,26 +147,30 @@ Content rules:
 - End the disclaimer line in `post-foot`: not affiliated with Polymarket, not
   financial advice.
 
-## 4. Sync the five files
+## 4. Sync the five companion files
 
 - `site/blog/index.html`: new `post-row` at the **top** of `.post-list`
   (date, dots, title).
 - `site/index.html`: same row shape at the top of the `#blog` section's
   `.posts`; delete the oldest row if there are now more than 3.
 - `site/blog/feed.xml`: new `<item>` first, `pubDate` in RFC 822 format
-  (`Fri, 17 Jul 2026 09:00:00 +0000`), `guid` = the canonical URL.
+  (`Fri, 17 Jul 2026 09:00:00 +0000`), `guid` = the canonical URL. Use the
+  actual publish time in UTC; if an existing item shares the date, the new
+  pubDate must be strictly later, so newest-first stays true for readers.
 - `site/sitemap.xml`: new `<url>` with `<loc>` and `<lastmod>` (YYYY-MM-DD).
 - `docs/blog-todo.md`: add a Shipped line with the date and file path. For a
-  fallback post, also check the topic off the Queue; a current-events post
-  just gets the new Shipped line (this is what the two-week repeat check
-  reads).
+  fallback post, also check the topic off the Queue. A current-events post's
+  Shipped line must name the event, not just the title, so the repeat check
+  can match it: `- [x] <title> (event: <event>, <event-date>) - <pub-date>,
+  <path>`.
 
 ## 5. Verify before shipping
 
 - Serve the site and click through: `python3 -m http.server -d site 8000`,
   then check `/blog/`, the new post, and the landing `#blog` section render
-  and cross-link correctly. In a headless run, at minimum fetch each page
-  with curl and confirm 200s and that the new links appear where expected.
+  and cross-link correctly. In a headless run, fetch each page with curl and
+  grep the served output for the new slug - a 200 alone proves the file
+  exists, not that the links are right. Kill the server when done.
 - Grep the new slug across `site/` - it must appear in the post file name,
   blog index, landing page, feed, and sitemap. Same spelling everywhere.
 - Confirm the date is today's real date in all five places (page, feed,
