@@ -96,7 +96,9 @@ traffic and trust. Every claim about how Polymarket works must be verifiable:
   `public-search` returns `events` (markets nested inside) plus `profiles` -
   the events are what you want. `clob.polymarket.com/prices-history` takes
   `startTs`/`endTs` (epoch seconds) and `fidelity` (minutes): drill from 6h
-  candles down to 10-minute prints to pin an intraday move.
+  candles down to 10-minute prints to pin an intraday move - and it appends
+  a synthetic current-price point after the requested window; drop the last
+  point when it falls outside your `endTs`.
 - App behaviour (keys, dry-run, screens) comes from the README and
   `docs/user-journeys.md`, not from guessing.
 
@@ -142,6 +144,39 @@ Content rules:
   tag for the topic ("world-cup-final").
 - One `<pre>` example rendering something terminal-shaped is on-brand and
   breaks up the text; use the `.g`/`.r`/`.c` spans for green/red/faint.
+
+### Charts
+
+A current-events post should carry at least one figure when a price series
+exists - the repricing usually IS the story, and a chart shows it faster
+than prose. Generate SVG with the bundled script (stdlib only, runs the
+same in CI):
+
+```sh
+python3 .claude/skills/blog-post/scripts/pricechart.py < spec.json
+```
+
+Spec: `{"alt": "...", "series": [{"name": "Spain", "color": "accent",
+"points": [[epoch_seconds, cents], ...]}], "annotations": [{"t": epoch,
+"label": "ESP 2-0 FRA"}]}`. Points come straight from `prices-history`
+(`t`, `p*100`) - never hand-draw SVG geometry or invent points.
+
+- Embed the SVG inline in `<figure class="fig">` with a
+  `<figcaption class="fig-caption">` naming the source and fetch time
+  ("CLOB price history, fetched 2026-07-17 08:09 UTC").
+- Colors are named tokens: a lone series is `accent`; a second series is
+  `amber` (a colorblind-validated pair). `green`/`red` only when the series
+  IS a Yes/No outcome, matching the site's outcome semantics. Color follows
+  the entity - the same entity keeps its color in every figure of the post.
+- The `alt` field is required: what the chart shows plus the headline
+  numbers, for readers who never see it.
+- Keep the `<pre>` table when exact numbers matter: the chart shows shape,
+  the table is the accessible record.
+- Annotation labels: short and uppercase-terse ("ARG 2-1 ENG"), at most 3-4
+  per chart. After embedding, screenshot the page and look at the figure -
+  the script cannot see label collisions; you can.
+- Evergreen posts chart only when a real series serves the topic; a
+  decorative chart is worse than none.
 - polymarket-tui appears where it is genuinely the answer (usually the final
   numbered section plus the install CTA), never as the opening pitch.
 - End the disclaimer line in `post-foot`: not affiliated with Polymarket, not
