@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>polymarket-tui blog</title>
+  <link>https://byronxlg.github.io/polymarket-tui/blog/</link>
+  <description>Notes on prediction markets and trading them from the terminal.</description>
+  <language>en</language>
+  <atom:link href="https://byronxlg.github.io/polymarket-tui/blog/feed.xml" rel="self" type="application/rss+xml" />
+
+  <!-- ITEMS: newest first. -->
+  <item>
+    <title>How to read a Polymarket order book</title>
+    <link>https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html</link>
+    <guid>https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html</guid>
+    <pubDate>Fri, 17 Jul 2026 09:00:00 +0000</pubDate>
+    <description>Bids, asks, spread, depth, and ticks on Polymarket, explained. What a YES price of 33c actually means, how the YES and NO books mirror each other, and how to read one live.</description>
+  </item>
+
+</channel>
+</rss>
