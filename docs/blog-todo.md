@@ -13,8 +13,6 @@ Rules for the queue:
 
 ## Queue
 
-- [ ] Prices are probabilities: what a 33c share really tells you - intent:
-  "how do polymarket odds work", "polymarket price meaning"
 - [ ] Limit vs market orders on Polymarket (and why market orders are really
   marketable limits) - intent: "polymarket limit order", "polymarket market order"
 - [ ] Reading the trade tape: what prints tell you that the book does not -
@@ -38,3 +36,5 @@ Rules for the queue:
 
 - [x] How to read a Polymarket order book - 2026-07-17,
   `site/blog/how-to-read-a-polymarket-order-book.html`
+- [x] Prices are probabilities: what a 33c share really tells you - 2026-07-17,
+  `site/blog/what-a-polymarket-price-means.html`
