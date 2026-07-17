@@ -45,7 +45,7 @@ dependencies = [
 polymarket-tui = "polymarket_tui.__main__:main"
 
 [project.urls]
-Homepage = "https://byronxlg.github.io/polymarket-tui/"
+Homepage = "https://polymarket-tui.botsmith.dev/"
 Repository = "https://github.com/byronxlg/polymarket-tui"
 Issues = "https://github.com/byronxlg/polymarket-tui/issues"
 Changelog = "https://github.com/byronxlg/polymarket-tui/releases"

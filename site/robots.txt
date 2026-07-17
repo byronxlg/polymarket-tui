@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://byronxlg.github.io/polymarket-tui/sitemap.xml
+Sitemap: https://polymarket-tui.botsmith.dev/sitemap.xml

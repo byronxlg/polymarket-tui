@@ -9,9 +9,9 @@ terminal.
 [![Python](https://img.shields.io/pypi/pyversions/polymarket-tui?color=4d8bf5)](https://pypi.org/project/polymarket-tui/)
 [![License: MIT](https://img.shields.io/pypi/l/polymarket-tui?color=4d8bf5)](LICENSE)
 
-[![polymarket-tui - a live order book, trades, and price chart in the terminal](https://byronxlg.github.io/polymarket-tui/assets/demo.gif)](https://byronxlg.github.io/polymarket-tui/)
+[![polymarket-tui - a live order book, trades, and price chart in the terminal](https://polymarket-tui.botsmith.dev/assets/demo.gif)](https://polymarket-tui.botsmith.dev/)
 
-<sub>▶ [Watch the interactive demo](https://byronxlg.github.io/polymarket-tui/) - browse markets, open a live book, chart, search.</sub>
+<sub>▶ [Watch the interactive demo](https://polymarket-tui.botsmith.dev/) - browse markets, open a live book, chart, search.</sub>
 
 Built with Python 3.12 and [Textual](https://textual.textualize.io/).
 
@@ -55,7 +55,7 @@ and any trader's public positions all work read-only.
 ## Landing page
 
 A static landing page lives in [`site/`](site/) and deploys to GitHub Pages
-(https://byronxlg.github.io/polymarket-tui/). Its hero plays a recorded
+(https://polymarket-tui.botsmith.dev/). Its hero plays a recorded
 asciinema demo of the TUI - straight into the top market, cursor the live
 book, a dry-run buy, the NO flip, chart, trade tape, search. Preview it
 locally with `python3 -m http.server -d site 8000`,
