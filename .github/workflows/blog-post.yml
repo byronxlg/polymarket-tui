@@ -39,10 +39,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Read .claude/skills/blog-post/SKILL.md and follow it end to end:
-            find today's story - a big move or heavily traded Polymarket
-            market tied to current events - and write how the event and the
-            market relate; on a quiet day fall back to the topmost unchecked
-            topic in docs/blog-todo.md. Verify every fact and price against
+            find today's story by scanning both the news (headlines with a
+            matching Polymarket market) and the markets (big moves, heavy
+            volume), and write how the event and the market relate; on a
+            quiet day fall back to the topmost unchecked topic in
+            docs/blog-todo.md. Verify every fact and price against
             the live APIs at write time, write the post, sync the blog
             index, landing page, feed, sitemap, and to-do list, verify the
             links, then create branch blog/<slug>, commit as

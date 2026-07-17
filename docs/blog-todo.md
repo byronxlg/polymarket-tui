@@ -2,9 +2,10 @@
 
 Topic pipeline for the blog at `site/blog/`. The daily workflow
 (`.github/workflows/blog-post.yml`) is **current-events-first**: it scans
-Polymarket for the day's story (trending 24h volume, sharp price moves, an
-imminent decision the news is covering) and writes about how the event and
-the market relate - signals and rules in `.claude/skills/blog-post/SKILL.md`.
+both the news (headlines with matching markets) and Polymarket itself
+(trending 24h volume, sharp price moves, imminent decision dates) for the
+day's story, and writes about how the event and the market relate - signals
+and rules in `.claude/skills/blog-post/SKILL.md`.
 
 The queue below is the **fallback for quiet days** with no big trend. Rules:
 
