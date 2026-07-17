@@ -273,6 +273,22 @@
     border-bottom: 1px solid var(--line);
   }
 
+  /* ---- digest signup ---- */
+  .digest-form { display: flex; gap: 10px; align-items: stretch; max-width: 560px; margin: 0 0 12px; }
+  .digest-form .p { color: var(--accent); align-self: center; user-select: none; }
+  .digest-form input[type="email"] {
+    flex: 1; min-width: 0; background: var(--bg-2); border: 1px solid var(--line-2);
+    color: var(--ink); font-family: var(--mono); font-size: 13px; padding: 10px 12px;
+    border-radius: 3px;
+  }
+  .digest-form input[type="email"]::placeholder { color: var(--faint); }
+  .digest-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .digest-status { margin: 0 0 48px; font-size: 12.5px; color: var(--dim); min-height: 20px; }
+  .digest-status.ok { color: var(--green); }
+  .digest-status.err { color: var(--red); }
+  .digest-note { margin: 0 0 56px; color: var(--faint); font-size: 12px; }
+
   /* restrained load-in for the hero only */
   .hero > * { animation: rise .45s ease-out backwards; }
   .hero > *:nth-child(2) { animation-delay: .05s; }
@@ -309,6 +325,7 @@
       <a href="#access"><i>03</i> Access</a>
       <a href="#install"><i>04</i> Install</a>
       <a href="#blog"><i>05</i> Blog</a>
+      <a href="#digest"><i>06</i> Digest</a>
       <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
     </div>
   </div>
@@ -454,6 +471,25 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
   <p class="blog-more"><a href="blog/">All posts</a> &middot; <a href="blog/feed.xml">RSS</a></p>
 </section>
 
+<section id="digest">
+  <div class="sec-head">
+    <span class="sec-label"><i>06</i>Digest</span>
+    <h2>The day's markets, in your inbox</h2>
+    <p class="lead">One email each morning: the biggest 24-hour movers, where the volume
+      is, markets about to resolve, and new markets already attracting money.</p>
+  </div>
+  <form id="digest-form" class="digest-form" novalidate>
+    <span class="p">@</span>
+    <input id="digest-email" type="email" required placeholder="you@example.com" autocomplete="email" aria-label="Email address" />
+    <input class="digest-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+    <button class="btn btn-primary" type="submit">Subscribe</button>
+  </form>
+  <p id="digest-status" class="digest-status" role="status"></p>
+  <p class="digest-note">Double opt-in: nothing is sent until you click the confirmation
+    link. Every email carries an unsubscribe link. Your address is used for the digest
+    and nothing else.</p>
+</section>
+
 <section class="disc">
   <p><span class="lbl">Disclaimer</span> Unofficial client, not affiliated with Polymarket.
     It can place real orders with real money when LIVE mode is explicitly enabled; you are
@@ -511,6 +547,42 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
   } else {
     startPlayer(!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }
+
+  // Digest signup -> newsletter API (infra/newsletter).
+  var digestForm = document.getElementById("digest-form");
+  digestForm.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var status = document.getElementById("digest-status");
+    var btn = digestForm.querySelector("button");
+    var email = document.getElementById("digest-email").value.trim();
+    status.className = "digest-status";
+    if (email.indexOf("@") < 1) {
+      status.textContent = "enter an email address";
+      status.classList.add("err");
+      return;
+    }
+    btn.disabled = true;
+    status.textContent = "subscribing…";
+    fetch("https://api.polymarket-tui.botsmith.dev/subscribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: email, website: digestForm.website.value }),
+    }).then(function (r) {
+      if (r.ok) {
+        status.textContent = "check your inbox for a confirmation link";
+        status.classList.add("ok");
+        digestForm.reset();
+      } else if (r.status === 400) {
+        status.textContent = "that doesn't look like an email address";
+        status.classList.add("err");
+      } else {
+        throw new Error("status " + r.status);
+      }
+    }).catch(function () {
+      status.textContent = "couldn't reach the signup service - try again shortly";
+      status.classList.add("err");
+    }).finally(function () { btn.disabled = false; });
+  });
 
   // Copy buttons on the install commands.
   document.querySelectorAll(".copy").forEach(function (b) {
