@@ -39,11 +39,19 @@ comment threads and Moltbook. Every message sent is recorded in
 - Where: comment sections of high-volume markets we have real material for -
   the blog's current-events posts are written about exactly these events.
 - What: short market-structure observations (the champion-vs-90-minute gap,
-  a notable repricing, book depth) with a link to the matching blog post or
-  the tool when it genuinely extends the comment.
-- Auth: comments post from Byron's own Polymarket account via his browser
-  session. No automation of volume - each comment is individually written
-  and reviewed.
+  a notable repricing, book depth). **No project name, no links** - see the
+  filter finding below; the comment must stand purely as analysis.
+- Recipe (established by the 2026-07-17 comment-filter experiment, logged in
+  marketing-log.md): Polymarket's comment API returns 403 "Comment not
+  allowed" for any comment containing the string `polymarket-tui` or a URL.
+  Pure market-observation comments pass fine, whether posted by hand or
+  through the browser automation - the automation itself is not blocked.
+  So this channel is **reputation, not referral**: genuine analysis under
+  Byron's account builds profile credibility; the only surface that can
+  carry a link is the profile bio (edit that with Byron's ok, not the
+  comment body).
+- Auth: posts from Byron's own account. Each comment individually written
+  and genuinely useful; hard cap 1-2/day; never a project mention.
 
 ### Moltbook (m/...)
 
