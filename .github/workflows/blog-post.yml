@@ -39,10 +39,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Read .claude/skills/blog-post/SKILL.md and follow it end to end:
-            pick the topmost unchecked topic in docs/blog-todo.md, verify the
-            facts against docs/ (and the live APIs where needed), write the
-            post, sync the blog index, landing page, feed, sitemap, and to-do
-            list, verify the links, then create branch blog/<slug>, commit as
+            find today's story - a big move or heavily traded Polymarket
+            market tied to current events - and write how the event and the
+            market relate; on a quiet day fall back to the topmost unchecked
+            topic in docs/blog-todo.md. Verify every fact and price against
+            the live APIs at write time, write the post, sync the blog
+            index, landing page, feed, sitemap, and to-do list, verify the
+            links, then create branch blog/<slug>, commit as
             "Blog: <title>", push, and open a pull request.
 
             Then, if and only if the PR's diff is the post plus its sync files
@@ -56,5 +59,5 @@ jobs:
             If an open PR whose branch starts with blog/ already exists, stop
             without writing anything and say so - one pending post at a time.
           claude_args: |
-            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch"
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
             --max-turns 60
