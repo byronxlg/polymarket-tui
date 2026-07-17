@@ -6,6 +6,26 @@ full text as sent, notes.
 
 <!-- entries below, newest first -->
 
+## 2026-07-17 22:13 UTC - Polymarket - World Cup final thread - SENT (by Byron, manually)
+
+Comment id 3164282, account `wettor-bettor-b`:
+https://polymarket.com/event/fifwc-esp-arg-2026-07-19?tid=3164282
+
+Text as posted (Byron trimmed the project mention from the prepared
+version and posted by hand after the automated attempts hit 403):
+
+> the interesting number here is the draw at 32c. spain is 59 to lift the
+> trophy but only 43 to win in 90 mins, and that 16c gap is basically the
+> extra time scenario - market says once this goes past 90 its a coin flip
+> that leans spain
+
+Learning for this channel: the same text failed automated with the
+"polymarket-tui blog" mention and passed manual without it - so either
+Polymarket filters promotional mentions or distrusts the automated
+session. Until known, Polymarket comments carry no project mention at
+all (pure market observations from Byron's account; the profile is the
+only trail) and get posted via Byron.
+
 ## 2026-07-17 22:3x UTC - Polymarket - World Cup final thread - ATTEMPTED, blocked (403)
 
 Two attempts in the comment box of the Spain vs Argentina event page, from
