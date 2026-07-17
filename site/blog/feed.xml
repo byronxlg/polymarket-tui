@@ -9,6 +9,14 @@
 
   <!-- ITEMS: newest first. -->
   <item>
+    <title>What a Polymarket price means</title>
+    <link>https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html</link>
+    <guid>https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html</guid>
+    <pubDate>Fri, 17 Jul 2026 10:00:00 +0000</pubDate>
+    <description>Polymarket prices are quoted in cents but they are probabilities. What a 33c share implies, why YES and NO always sum to 100c, and how prices move as odds change.</description>
+  </item>
+
+  <item>
     <title>How to read a Polymarket order book</title>
     <link>https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html</link>
     <guid>https://byronxlg.github.io/polymarket-tui/blog/how-to-read-a-polymarket-order-book.html</guid>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What a Polymarket price means — polymarket-tui blog</title>
+<meta name="description" content="Polymarket prices are quoted in cents but they are probabilities. What a 33c share implies, why YES and NO always sum to 100c, and how prices move as odds change." />
+<link rel="canonical" href="https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html" />
+<meta property="og:title" content="What a Polymarket price means" />
+<meta property="og:description" content="Polymarket prices are quoted in cents but they are probabilities. What a 33c share implies, why YES and NO always sum to 100c, and how prices move as odds change." />
+<meta property="og:image" content="https://byronxlg.github.io/polymarket-tui/assets/og.png" />
+<meta property="article:published_time" content="2026-07-17" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "What a Polymarket price means",
+  "description": "Polymarket prices are quoted in cents but they are probabilities. What a 33c share implies, why YES and NO always sum to 100c, and how prices move as odds change.",
+  "datePublished": "2026-07-17",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://byronxlg.github.io/polymarket-tui/blog/what-a-polymarket-price-means.html",
+  "image": "https://byronxlg.github.io/polymarket-tui/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>prices</p>
+<h1>What a Polymarket price means</h1>
+<p class="post-meta"><span>2026-07-17</span><span class="d">/</span><span>6 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">Polymarket quotes everything in cents, which makes it easy to
+read a price like a stock quote and miss what it actually is: a probability.
+A share trading at 33c is not "cheap" or "expensive" in the usual sense - it
+is the market's current estimate that an event happens about a third of the
+time. This post covers what that number implies, why it moves, and where it
+can mislead you.</p>
+
+<span class="sec-label"><i>01</i>A share is a bet on $1</span>
+<h2>Price in cents, payout in dollars</h2>
+
+<p>Every Polymarket market settles its shares for <b>$1 if the outcome
+happens and $0 if it does not</b>. Nothing in between. So a price is really
+answering one question: how much should you pay today for something that
+will be worth either $1 or nothing? If a YES share costs 33c, the market is
+pricing it as though it has roughly a <b>33% chance</b> of paying out.</p>
+
+<p>That framing makes the trade math simple. Buy at 33c and you are risking
+33c to win $1 (a profit of 67c) if you are right, and losing the full 33c if
+you are wrong. The trade only has positive expected value if you believe the
+true probability is <em>higher</em> than the price - the same logic as a
+bookmaker's line, except here the "bookmaker" is just whoever is willing to
+sell you the other side.</p>
+
+<pre><code><span class="c">        PRICE   IMPLIED PROBABILITY   BREAKEVEN</span>
+        10c     <span class="g">10%</span>                    right about 1 time in 10
+        33c     <span class="g">33%</span>                    right about 1 time in 3
+        67c     <span class="r">67%</span>                    right about 2 times in 3
+        90c     <span class="r">90%</span>                    right about 9 times in 10
+</code></pre>
+
+<span class="sec-label"><i>02</i>YES and NO always sum to 100c</span>
+<h2>The two sides of the same bet</h2>
+
+<p>Every binary market has a YES token and a NO token, and their prices are
+locked to each other: a NO share pays $1 exactly when a YES share pays $0, so
+<b>NO's price is always 100c minus YES's price</b>. Checking three live
+markets on 2026-07-17 confirms it holds to the cent:</p>
+
+<pre><code><span class="c">        MARKET                              YES      NO</span>
+        Will Abiy Ahmed be Ethiopia's PM?   <span class="g">95.1c</span>    <span class="r">4.9c</span>
+        Spain 0-0 Argentina (exact score)   <span class="g">10.5c</span>    <span class="r">89.5c</span>
+        Will Spain win the World Cup?       <span class="g">58.55c</span>  <span class="r">41.45c</span>
+</code></pre>
+
+<p>This is not a coincidence, it is arbitrage. If YES and NO ever priced
+below 100c combined - say 45c and 50c - anyone could buy one of each for 95c
+and be guaranteed $1 back no matter which side wins, a riskless 5c profit.
+Traders close that gap in seconds on any liquid market, which is why you
+only ever need to think about one side of a book: the other is just 100
+minus what you see.</p>
+
+<span class="sec-label"><i>03</i>The price is not fixed - it is a running vote</span>
+<h2>Watching a probability change in real time</h2>
+
+<p>Because the price is a live estimate, it moves every time someone trades
+on new information: a poll, a score, a headline. Gamma's market data
+includes <code>oneDayPriceChange</code> for exactly this reason - a 33c
+market that was 28c yesterday is telling you something moved, not just that
+a trade happened. Reading a chart of a market's price over time is reading
+the market's changing mind about the odds, tick by tick.</p>
+
+<p>This is also why a market's price can look "obviously wrong" in
+hindsight and be perfectly reasonable at the time: it is the honest average
+of what everyone trading right now is willing to risk, given what they knew
+then, not a prediction that gets graded on vibes after the fact.</p>
+
+<span class="sec-label"><i>04</i>A price is an estimate, not a guarantee</span>
+<h2>Where the probability reading can mislead you</h2>
+
+<p>Two caveats matter before you treat a price as gospel. First, a price is
+only as trustworthy as the money behind it - a 33c print on a handful of
+shares on a thin book means less than the same 33c backed by real depth on
+both sides (see <a href="how-to-read-a-polymarket-order-book.html">how to
+read a Polymarket order book</a> for how to check that). Second, "33% chance"
+is a statement about now: it changes the moment new information arrives, and
+unlike a fixed-odds bet placed once, you can trade in or out of a Polymarket
+position at any point before resolution, so the number you see is never a
+final verdict, only the current one.</p>
+
+<span class="sec-label"><i>05</i>Reading it in the terminal</span>
+<h2>Prices as probabilities in polymarket-tui</h2>
+
+<p><a href="https://github.com/byronxlg/polymarket-tui">polymarket-tui</a>
+shows both sides of every market side by side, so the YES/NO complementary
+pricing from section 02 is always visible without doing the subtraction
+yourself. <kbd>space</kbd> flips the outcome you are viewing, the price
+chart shows how the estimate moved over the market's history, and the order
+panel prices a draft order in cents and shows the payout in dollars before
+you confirm - so the probability-to-dollars conversion above is never
+something you have to do by hand.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">No account is needed to browse markets, books, and charts.
+The <a href="../#install">install page</a> has Homebrew and one-liner options.</p>
+
+</article>
+
+<p class="post-foot">More posts on the <a href="./">blog index</a>, or subscribe
+via <a href="feed.xml">RSS</a>. Not affiliated with Polymarket; nothing here is
+financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
