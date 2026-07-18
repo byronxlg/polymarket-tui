@@ -20,6 +20,7 @@ from polymarket_tui.core import fmt
 from polymarket_tui.core.links import market_url
 from polymarket_tui.models.portfolio import ActivityItem, ClosedPosition, Position
 from polymarket_tui.ui.liveness import alive
+from polymarket_tui.ui.staleness import RefreshOnReturn
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.closed_table import ClosedTable
 from polymarket_tui.ui.widgets.pnl_strip import PnlStrip
@@ -47,7 +48,7 @@ PANES: tuple[tuple[str, str], ...] = (
 )
 
 
-class UserPane(TierAware, Vertical):
+class UserPane(RefreshOnReturn, TierAware, Vertical):
     """Public trader profile - a drill pane."""
 
     header_title = "trader"

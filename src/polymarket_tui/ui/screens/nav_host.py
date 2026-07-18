@@ -270,6 +270,17 @@ class NavHost(Screen):
         focus_inner = getattr(pane, "focus_inner", None)
         if focus_inner is not None:
             focus_inner()
+        self._refresh_focused_if_stale()
+
+    def on_screen_resume(self) -> None:
+        """Back from an overlay (search, reader, related, a modal): the
+        focused pane may have gone stale while it was covered."""
+        self._refresh_focused_if_stale()
+
+    def _refresh_focused_if_stale(self) -> None:
+        refresh_if_stale = getattr(self._panes[self._focus], "refresh_if_stale", None)
+        if refresh_if_stale is not None:
+            refresh_if_stale()
 
     def _update_crumbs(self) -> None:
         crumbs = self.query_one("#nav-crumbs", Static)
