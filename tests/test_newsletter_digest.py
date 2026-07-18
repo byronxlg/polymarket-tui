@@ -31,6 +31,7 @@ from digest_render import (  # noqa: E402
     render_subject,
     render_text,
 )
+from news import build_news_query, parse_news_rss  # noqa: E402
 from nl_common import new_token, normalize_email  # noqa: E402
 
 NOW = datetime(2026, 7, 18, 7, 0, tzinfo=UTC)
@@ -370,7 +371,7 @@ class TestBlurb:
 
     def test_prompt_carries_the_data_and_the_rules(self):
         prompt = build_headlines_prompt(self.digest())
-        assert "MOVER: Will it happen?" in prompt
+        assert "MOVER 1: Will it happen?" in prompt
         assert "MOST TRADED: The event" in prompt
         assert "no markdown" in prompt
         assert "Never invent facts" in prompt
@@ -394,6 +395,53 @@ class TestBlurb:
         html_body = render_html(digest, "https://example.test")
         assert "Spain <b>leads</b> the final." in text
         assert "Spain &lt;b&gt;leads&lt;/b&gt; the final." in html_body
+
+
+class TestNews:
+    RSS = b"""<rss><channel>
+      <item><title>Trump endorses Nordone - Reuters</title>
+        <pubDate>Fri, 17 Jul 2026 20:00:00 GMT</pubDate></item>
+      <item><title>Old story - AP</title>
+        <pubDate>Mon, 01 Jun 2026 10:00:00 GMT</pubDate></item>
+      <item><title>Newer story - BBC</title>
+        <pubDate>Sat, 18 Jul 2026 01:00:00 GMT</pubDate></item>
+      <item><title>No date</title></item>
+    </channel></rss>"""
+
+    def test_query_drops_question_scaffolding(self):
+        q = build_news_query(
+            "Will Darline Graham Nordone be the new republican nominee for Senate?"
+        )
+        assert q == "Darline Graham Nordone republican nominee Senate"
+
+    def test_rss_parse_keeps_fresh_newest_first(self):
+        lines = parse_news_rss(self.RSS, NOW)
+        assert lines == [
+            "Newer story - BBC (Sat 18 Jul)",
+            "Trump endorses Nordone - Reuters (Fri 17 Jul)",
+        ]
+
+
+class TestMoverNotes:
+    def test_prompt_numbers_movers_and_carries_news(self):
+        digest = TestRender.digest(TestRender())
+        news = {digest["movers"][0]["url"]: ["Trump endorses Nordone - Reuters (Fri 17 Jul)"]}
+        prompt = build_headlines_prompt(digest, news)
+        assert "- MOVER 1:" in prompt
+        assert "    NEWS: Trump endorses Nordone" in prompt
+        assert '"mover_notes"' in prompt
+
+    def test_extract_cleans_notes(self):
+        raw = '{"subject": "s", "mover_notes": ["  a  cause ", 42, "' + "x" * 200 + '"]}'
+        assert extract_headlines(raw)["mover_notes"] == ["a cause", "", ""]
+
+    def test_note_renders_in_both_formats(self):
+        digest = TestRender.digest(TestRender())
+        digest["movers"][0]["note"] = "Trump endorsed Nordone on Friday"
+        text = render_text(digest)
+        html_body = render_html(digest, "https://example.test")
+        assert "why: Trump endorsed Nordone on Friday" in text
+        assert "why: Trump endorsed Nordone on Friday" in html_body
 
 
 class TestFormatting:

@@ -17,17 +17,22 @@ logger = logging.getLogger()
 MAX_BLURB_CHARS = 700
 MAX_SUBJECT_CHARS = 60  # " - Polymarket daily" rides behind; mobile clips ~60
 MAX_PREHEADER_CHARS = 110
+MAX_NOTE_CHARS = 160
 
 
-def _fact_lines(digest: dict) -> list[str]:
+def _fact_lines(digest: dict, news: dict | None = None) -> list[str]:
     now = digest["generated_at"]
+    news = news or {}
     lines = []
-    for item in digest.get("movers", []):
+    for index, item in enumerate(digest.get("movers", []), start=1):
         prior = min(max(item["yes"] - item["change"], 0.0), 1.0)
         lines.append(
-            f"- MOVER: {item['title']} moved {fmt_cents(prior)} -> {fmt_cents(item['yes'])} YES "
+            f"- MOVER {index}: {item['title']} moved {fmt_cents(prior)} -> "
+            f"{fmt_cents(item['yes'])} YES "
             f"({fmt_change(item['change'])} in 24h, {fmt_usd(item['volume24h'])} volume)"
         )
+        for headline in news.get(item["url"], []):
+            lines.append(f"    NEWS: {headline}")
     for item in digest.get("top_events", []):
         leader = item.get("leader") or {}
         lead = ""
@@ -48,15 +53,23 @@ def _fact_lines(digest: dict) -> list[str]:
     return lines
 
 
-def build_headlines_prompt(digest: dict) -> str:
-    facts = "\n".join(_fact_lines(digest))
+def build_headlines_prompt(digest: dict, news: dict | None = None) -> str:
+    facts = "\n".join(_fact_lines(digest, news))
     return (
         "You write the envelope copy for a daily Polymarket digest email read by "
         "prediction-market traders. Below is today's data; the reader sees it in "
         "full inside the email.\n\n"
         f"{facts}\n\n"
         "Produce exactly this JSON (no other text):\n"
-        '{"subject": ..., "preheader": ..., "blurb": ...}\n\n'
+        '{"subject": ..., "preheader": ..., "blurb": ..., "mover_notes": [...]}\n\n'
+        "mover_notes: one string per MOVER line, in order. Each is the "
+        "one-line WHY behind that move, under 160 characters, grounded ONLY "
+        "in that mover's NEWS lines - name what happened and when (e.g. "
+        "\"Trump endorsed Nordone for the seat on Friday\"). The note states "
+        "a cause of the price move, nothing else - never describe the news "
+        "coverage itself (\"headlines confirm...\" is banned). If the NEWS "
+        "lines don't show a cause, or there are none, use \"\" - never guess "
+        "and never pad.\n"
         "subject: under 55 characters. It MUST be about the first MOVER line "
         "(the day's lead story), stated with its numbers (e.g. \"Nordone 11c "
         "-> 69c for SC Senate\"). No date, no 'Polymarket daily' prefix - "
@@ -64,8 +77,9 @@ def build_headlines_prompt(digest: dict) -> str:
         "preheader: under 100 characters. A story from a DIFFERENT line than "
         "the subject. Shown next to the subject in the inbox preview.\n"
         "blurb: at most 2 sentences, the email's opening. Sentence one goes "
-        "deeper on the lead story (prior price, how thin or deep the volume "
-        "is). Sentence two must draw from a different section (what resolves "
+        "deeper on the lead story - state the cause when its NEWS lines show "
+        "one, plus the prior price or how thin or deep the volume is. "
+        "Sentence two must draw from a different section (what resolves "
         "when, where the volume is). Do not restate every row - the reader "
         "sees them all next.\n\n"
         "Rules for all three: plain text, no markdown or emoji. Prices in "
@@ -107,10 +121,14 @@ def extract_headlines(raw: object) -> dict:
         "preheader": _clean(data.get("preheader"), MAX_PREHEADER_CHARS),
         "blurb": _clean(data.get("blurb"), MAX_BLURB_CHARS),
     }
-    return {k: v for k, v in out.items() if v is not None}
+    result = {k: v for k, v in out.items() if v is not None}
+    notes = data.get("mover_notes")
+    if isinstance(notes, list):
+        result["mover_notes"] = [_clean(n, MAX_NOTE_CHARS) or "" for n in notes]
+    return result
 
 
-def generate_headlines(digest: dict, model_id: str) -> dict:
+def generate_headlines(digest: dict, model_id: str, news: dict | None = None) -> dict:
     """One Bedrock converse call; any failure logs and returns {}."""
     try:
         import boto3
@@ -123,7 +141,7 @@ def generate_headlines(digest: dict, model_id: str) -> dict:
         response = client.converse(
             modelId=model_id,
             messages=[
-                {"role": "user", "content": [{"text": build_headlines_prompt(digest)}]}
+                {"role": "user", "content": [{"text": build_headlines_prompt(digest, news)}]}
             ],
             inferenceConfig={"maxTokens": 400},
         )
