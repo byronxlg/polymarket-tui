@@ -24,6 +24,7 @@ from digest_render import (
     render_subject,
     render_text,
 )
+from news import fetch_mover_context
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -75,9 +76,20 @@ def lambda_handler(_event: dict, _context: object) -> dict:
         logger.error("every digest section came back empty; not sending")
         return {"sent": 0, "failed": 0, "subscribers": len(subscribers), "aborted": True}
 
-    headlines = generate_headlines(digest, BLURB_MODEL_ID) if BLURB_MODEL_ID else {}
+    if BLURB_MODEL_ID:
+        try:
+            news = fetch_mover_context(digest["movers"], digest["generated_at"])
+        except Exception:  # noqa: BLE001 - missing context must not block the digest
+            logger.exception("news context fetch failed; continuing without it")
+            news = {}
+        headlines = generate_headlines(digest, BLURB_MODEL_ID, news)
+    else:
+        headlines = {}
     digest["blurb"] = headlines.get("blurb")
     digest["preheader"] = headlines.get("preheader")
+    for item, note in zip(digest["movers"], headlines.get("mover_notes") or [], strict=False):
+        if note:
+            item["note"] = note
 
     subject = render_subject(digest["generated_at"], headlines.get("subject"))
     text_tpl = render_text(digest)
