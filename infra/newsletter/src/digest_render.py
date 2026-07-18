@@ -107,7 +107,11 @@ def _text_market_line(item: dict, with_change: bool) -> list[str]:
     if move:
         bits.append(move)
     bits.append(f"{fmt_usd(item['volume24h'])} 24h vol")
-    return [f"* {item['title']} ({', '.join(bits)})", f"  {item['url']}"]
+    lines = [f"* {item['title']} ({', '.join(bits)})"]
+    if item.get("note"):
+        lines.append(f"  why: {item['note']}")
+    lines.append(f"  {item['url']}")
+    return lines
 
 
 def _text_event_line(item: dict, now: datetime, with_end: bool) -> list[str]:
@@ -204,6 +208,11 @@ def _html_market_row(item: dict, with_change: bool) -> str:
         f' style="color:{ACCENT};text-decoration:none;">{title}</a>'
         f'<br><span style="color:{DIM};font-size:11px;">{sub}</span>'
     )
+    if item.get("note"):
+        left += (
+            f'<br><span style="color:{INK};font-size:12px;">'
+            f'why: {html.escape(item["note"])}</span>'
+        )
     right = f'<span style="color:{INK};font-weight:bold;">{fmt_cents(item["yes"])}</span>'
     move = fmt_move(item) if with_change else None
     if move:
