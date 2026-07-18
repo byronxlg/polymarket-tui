@@ -241,6 +241,15 @@ class TestSelectNewMarkets:
         )
         assert select_new_markets([finished], NOW) == []
 
+    def test_effectively_decided_prices_dropped_but_longshots_kept(self):
+        created = (NOW - timedelta(hours=6)).isoformat()
+        markets = [
+            market(question="Decided mid-match", yes=0.001, created=created),
+            market(question="Real longshot", yes=0.02, created=created, event_slug="longshot"),
+        ]
+        picked = select_new_markets(markets, NOW)
+        assert [m["title"] for m in picked] == ["Real longshot"]
+
 
 class TestBuildDigest:
     def test_sections_survive_a_failing_fetch(self):
