@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from urllib.parse import urlencode
 
 import boto3
-from blurb import generate_blurb
+from blurb import generate_headlines
 from boto3.dynamodb.conditions import Attr
 from digest_data import build_digest, digest_is_empty
 from digest_render import (
@@ -75,10 +75,11 @@ def lambda_handler(_event: dict, _context: object) -> dict:
         logger.error("every digest section came back empty; not sending")
         return {"sent": 0, "failed": 0, "subscribers": len(subscribers), "aborted": True}
 
-    if BLURB_MODEL_ID:
-        digest["blurb"] = generate_blurb(digest, BLURB_MODEL_ID)
+    headlines = generate_headlines(digest, BLURB_MODEL_ID) if BLURB_MODEL_ID else {}
+    digest["blurb"] = headlines.get("blurb")
+    digest["preheader"] = headlines.get("preheader")
 
-    subject = render_subject(digest["generated_at"])
+    subject = render_subject(digest["generated_at"], headlines.get("subject"))
     text_tpl = render_text(digest)
     html_tpl = render_html(digest, SITE_URL)
 

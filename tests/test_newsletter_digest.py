@@ -12,7 +12,7 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[1] / "infra" / "newsletter" / "src"
 sys.path.insert(0, str(SRC))
 
-from blurb import build_blurb_prompt, extract_blurb  # noqa: E402
+from blurb import build_headlines_prompt, extract_headlines  # noqa: E402
 from digest_data import (  # noqa: E402
     build_digest,
     digest_is_empty,
@@ -24,7 +24,9 @@ from digest_data import (  # noqa: E402
 from digest_render import (  # noqa: E402
     UNSUB_PLACEHOLDER,
     fmt_cents,
+    fmt_journey,
     fmt_usd,
+    fmt_when_nz,
     render_html,
     render_subject,
     render_text,
@@ -42,10 +44,12 @@ def market(
     event_slug="the-event",
     created=None,
     end="2026-07-20T00:00:00Z",
+    outcomes=None,
 ):
     return {
         "question": question,
         "slug": question.lower().replace(" ", "-").strip("?"),
+        "outcomes": json.dumps(outcomes or ["Yes", "No"]),
         "outcomePrices": json.dumps([str(yes), str(1 - yes)]),
         "oneDayPriceChange": change,
         "volume24hr": volume,
@@ -142,6 +146,38 @@ class TestSelectTopEvents:
         leader = select_top_events([single])[0]["leader"]
         assert leader["name"] == ""
         assert leader["yes"] == 0.57
+
+    def test_match_leader_is_the_main_markets_leading_team(self):
+        match = event(
+            title="HLE vs T1",
+            slug="lol-hle-t1",
+            markets=[
+                {**market(question="Any Player Penta Kill?", yes=0.50), "slug": "penta"},
+                {
+                    **market(question="Match Winner", yes=0.14, outcomes=["HLE", "T1"]),
+                    "slug": "lol-hle-t1",
+                },
+            ],
+        )
+        leader = select_top_events([match])[0]["leader"]
+        assert leader["name"] == "T1"
+        assert abs(leader["yes"] - 0.86) < 1e-9
+
+    def test_decided_match_still_names_the_winner_over_props(self):
+        match = event(
+            title="HLE vs T1",
+            slug="lol-hle-t1",
+            markets=[
+                {**market(question="Any Player Penta Kill?", yes=0.50), "slug": "penta"},
+                {
+                    **market(question="Match Winner", yes=0.0, outcomes=["HLE", "T1"]),
+                    "slug": "lol-hle-t1",
+                },
+            ],
+        )
+        leader = select_top_events([match])[0]["leader"]
+        assert leader["name"] == "T1"
+        assert leader["yes"] == 1.0
 
     def test_leader_skips_resolved_outcomes(self):
         events = [
@@ -263,7 +299,8 @@ class TestBuildDigest:
         assert digest["top_events"] == []
         assert digest["ending_soon"] == []
         assert len(digest["movers"]) == 1
-        assert len(digest["new_markets"]) == 1
+        # same event family as the mover, so cross-section dedupe drops it
+        assert digest["new_markets"] == []
         assert not digest_is_empty(digest)
 
     def test_empty_when_everything_fails(self):
@@ -275,12 +312,24 @@ class TestBuildDigest:
 
 class TestRender:
     def digest(self):
-        return build_digest(
-            NOW,
-            fetch=lambda path, params: [market(created=(NOW - timedelta(hours=1)).isoformat())]
-            if path == "/markets"
-            else [event(end=(NOW + timedelta(hours=6)).isoformat())],
-        )
+        def fetch(path, params):
+            if path == "/markets":
+                if params.get("order") == "volume24hr":
+                    return [
+                        market(
+                            question="Fresh market",
+                            created=(NOW - timedelta(hours=1)).isoformat(),
+                            event_slug="fresh-event",
+                        )
+                    ]
+                return [market()]
+            if params.get("order") == "endDate":
+                return [
+                    event(title="Ender", slug="ender", end=(NOW + timedelta(hours=6)).isoformat())
+                ]
+            return [event()]
+
+        return build_digest(NOW, fetch=fetch)
 
     def test_text_has_sections_and_unsub_placeholder(self):
         text = render_text(self.digest())
@@ -300,37 +349,51 @@ class TestRender:
     def test_subject_carries_the_date(self):
         assert render_subject(NOW) == "Polymarket daily - Sat 18 Jul"
 
+    def test_subject_front_loads_the_story(self):
+        subject = render_subject(NOW, "Nordone 11c -> 69c for SC Senate")
+        assert subject == "Nordone 11c -> 69c for SC Senate - Polymarket daily"
+
+    def test_preheader_hidden_div_present_only_when_set(self):
+        digest = build_digest(NOW, fetch=lambda p, q: [])
+        digest["movers"] = [
+            {"title": "T", "outcome": "", "url": "u", "yes": 0.5, "change": 0.1,
+             "volume24h": 1.0, "end": None}
+        ]
+        assert "display:none" not in render_html(digest, "https://example.test")
+        digest["preheader"] = "Second story of the day"
+        assert "Second story of the day" in render_html(digest, "https://example.test")
+
 
 class TestBlurb:
     def digest(self):
-        return build_digest(
-            NOW,
-            fetch=lambda path, params: [market(created=(NOW - timedelta(hours=1)).isoformat())]
-            if path == "/markets"
-            else [event(end=(NOW + timedelta(hours=6)).isoformat())],
-        )
+        return TestRender.digest(self)
 
     def test_prompt_carries_the_data_and_the_rules(self):
-        prompt = build_blurb_prompt(self.digest())
+        prompt = build_headlines_prompt(self.digest())
         assert "MOVER: Will it happen?" in prompt
         assert "MOST TRADED: The event" in prompt
         assert "no markdown" in prompt
-        assert "do not invent facts" in prompt
+        assert "Never invent facts" in prompt
+        assert '"subject"' in prompt
 
-    def test_extract_normalizes_and_rejects_garbage(self):
-        assert extract_blurb("  A quiet day.\n\nSpain  leads. ") == "A quiet day. Spain leads."
-        for bad in (None, 42, "", "   ", "x" * 800):
-            assert extract_blurb(bad) is None
+    def test_extract_parses_json_and_drops_invalid_fields(self):
+        raw = (
+            'noise {"subject": "Nordone 11c -> 69c", "preheader": "",'
+            ' "blurb": "  Two  lines. "} tail'
+        )
+        parsed = extract_headlines(raw)
+        assert parsed == {"subject": "Nordone 11c -> 69c", "blurb": "Two lines."}
+        assert extract_headlines("not json at all") == {}
+        assert extract_headlines(None) == {}
+        assert "subject" not in extract_headlines('{"subject": "' + "x" * 100 + '"}')
 
     def test_renderers_include_blurb_only_when_present(self):
         digest = self.digest()
-        assert "written by Claude" not in render_html(digest, "https://example.test")
         digest["blurb"] = "Spain <b>leads</b> the final."
         text = render_text(digest)
         html_body = render_html(digest, "https://example.test")
         assert "Spain <b>leads</b> the final." in text
         assert "Spain &lt;b&gt;leads&lt;/b&gt; the final." in html_body
-        assert "written by Claude" in html_body
 
 
 class TestFormatting:
@@ -344,3 +407,21 @@ class TestFormatting:
         assert fmt_usd(4_900_000) == "$4.9m"
         assert fmt_usd(770_000) == "$770k"
         assert fmt_usd(320) == "$320"
+
+    def test_outcome_label_names_the_yes_side_only_for_team_markets(self):
+        from digest_data import _outcome_label
+
+        assert _outcome_label(market(outcomes=["France", "England"])) == "France"
+        assert _outcome_label(market(outcomes=["Yes", "No"])) == ""
+        assert _outcome_label({"outcomes": "not json"}) == ""
+
+    def test_journey_shows_prior_to_current(self):
+        assert fmt_journey({"yes": 0.69, "change": 0.57}) == "12c -> 69c"
+        assert fmt_journey({"yes": 0.5, "change": 0.004}) is None
+
+    def test_nz_deadlines_read_like_a_clock(self):
+        # NOW is Sat 18 Jul 07:00 UTC = Sat 19:00 NZT
+        same_day = datetime(2026, 7, 18, 9, 30, tzinfo=UTC)  # 21:30 NZT Sat
+        next_day = datetime(2026, 7, 18, 22, 0, tzinfo=UTC)  # 10am NZT Sun
+        assert fmt_when_nz(same_day, NOW) == "today 9:30pm NZT"
+        assert fmt_when_nz(next_day, NOW) == "tomorrow 10am NZT"
