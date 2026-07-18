@@ -73,6 +73,9 @@ def _text_event_line(item: dict, with_end: bool) -> list[str]:
     leader = item.get("leader")
     if leader and leader.get("name"):
         bits.append(f"leader: {leader['name']} {fmt_cents(leader['yes'])}")
+    elif leader and leader.get("yes") is not None:
+        # Single-market event: the leader is the event itself, no name repeat.
+        bits.append(f"YES {fmt_cents(leader['yes'])}")
     if with_end and item.get("end"):
         bits.append(f"ends {fmt_when(item['end'])}")
     return [f"* {item['title']} ({', '.join(bits)})", f"  {item['url']}"]

@@ -128,6 +128,20 @@ class TestSelectTopEvents:
     def test_zero_volume_dropped(self):
         assert select_top_events([event(volume=0.0)]) == []
 
+    def test_leader_name_blanked_when_it_repeats_the_title(self):
+        single = event(
+            title="Utah Jazz vs. Portland Trail Blazers",
+            markets=[
+                {
+                    **market(question="Utah Jazz vs. Portland Trail Blazers", yes=0.57),
+                    "groupItemTitle": "Utah Jazz vs. Portland Trail Blazers",
+                }
+            ],
+        )
+        leader = select_top_events([single])[0]["leader"]
+        assert leader["name"] == ""
+        assert leader["yes"] == 0.57
+
     def test_leader_skips_resolved_outcomes(self):
         events = [
             event(
@@ -143,13 +157,38 @@ class TestSelectTopEvents:
 class TestSelectEndingSoon:
     def test_window_and_volume_filter_soonest_first(self):
         events = [
-            event(title="Later", end=(NOW + timedelta(hours=40)).isoformat()),
-            event(title="Sooner", end=(NOW + timedelta(hours=4)).isoformat()),
-            event(title="Too far", end=(NOW + timedelta(hours=80)).isoformat()),
-            event(title="Micro", end=(NOW + timedelta(hours=2)).isoformat(), volume=100.0),
+            event(title="Later", slug="later", end=(NOW + timedelta(hours=40)).isoformat()),
+            event(title="Sooner", slug="sooner", end=(NOW + timedelta(hours=4)).isoformat()),
+            event(title="Too far", slug="far", end=(NOW + timedelta(hours=80)).isoformat()),
+            event(
+                title="Micro",
+                slug="micro",
+                end=(NOW + timedelta(hours=2)).isoformat(),
+                volume=100.0,
+            ),
         ]
         picked = select_ending_soon(events, NOW)
         assert [e["title"] for e in picked] == ["Sooner", "Later"]
+
+    def test_sibling_events_collapse_to_highest_volume(self):
+        end = (NOW + timedelta(hours=3)).isoformat()
+        events = [
+            event(title="Game", slug="mls-lag-laf-2026-07-17", end=end, volume=164_000.0),
+            event(
+                title="Game - Exact Score",
+                slug="mls-lag-laf-2026-07-17-exact-score",
+                end=end,
+                volume=43_000.0,
+            ),
+            event(
+                title="Game - More Markets",
+                slug="mls-lag-laf-2026-07-17-more-markets",
+                end=end,
+                volume=90_000.0,
+            ),
+        ]
+        picked = select_ending_soon(events, NOW)
+        assert [e["title"] for e in picked] == ["Game"]
 
 
 class TestSelectNewMarkets:
@@ -168,6 +207,39 @@ class TestSelectNewMarkets:
         ]
         picked = select_new_markets(markets, NOW)
         assert [m["title"] for m in picked] == ["Fresh and busy"]
+
+    def test_sibling_events_deduped_keeping_busiest(self):
+        created = (NOW - timedelta(hours=3)).isoformat()
+        markets = [
+            market(
+                question="Team to Win",
+                created=created,
+                volume=1_200_000.0,
+                event_slug="fifwc-fra-eng-2026-07-18-more-markets",
+            ),
+            market(
+                question="Exact Score 3-1",
+                created=created,
+                volume=509_000.0,
+                event_slug="fifwc-fra-eng-2026-07-18-exact-score",
+            ),
+            market(
+                question="Will France win?",
+                created=created,
+                volume=1_100_000.0,
+                event_slug="fifwc-fra-eng-2026-07-18",
+            ),
+        ]
+        picked = select_new_markets(markets, NOW)
+        assert [m["title"] for m in picked] == ["Team to Win"]
+
+    def test_already_ended_markets_dropped(self):
+        finished = market(
+            question="Finished game O/U",
+            created=(NOW - timedelta(hours=6)).isoformat(),
+            end=(NOW - timedelta(hours=1)).isoformat(),
+        )
+        assert select_new_markets([finished], NOW) == []
 
 
 class TestBuildDigest:

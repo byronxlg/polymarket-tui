@@ -63,6 +63,20 @@ def _market_url(market: dict) -> str:
     return f"https://polymarket.com/market/{market.get('slug', '')}"
 
 
+# Polymarket splits one real-world happening across sibling events
+# ("mls-lag-laf-2026-07-17", "...-exact-score", "...-more-markets"). Without
+# grouping, one football match floods a whole section (seen in the first real
+# send: the same game three times in Ending-within-48h).
+_SIBLING_SUFFIXES = ("-exact-score", "-more-markets")
+
+
+def _family(url: str) -> str:
+    for suffix in _SIBLING_SUFFIXES:
+        if url.endswith(suffix):
+            return url[: -len(suffix)]
+    return url
+
+
 def _market_item(market: dict) -> dict | None:
     yes = _yes_price(market)
     if yes is None:
@@ -92,7 +106,7 @@ def select_movers(markets: list[dict], limit: int = 6) -> list[dict]:
             break  # sorted by |change|; nothing further qualifies
         if item["volume24h"] < MOVER_MIN_VOLUME or not lo <= item["yes"] <= hi:
             continue
-        event_key = item["url"]
+        event_key = _family(item["url"])
         if event_key in seen_events:
             continue
         seen_events.add(event_key)
@@ -120,12 +134,18 @@ def _leading_market(event: dict) -> dict | None:
 
 
 def _event_item(event: dict) -> dict:
+    title = (event.get("title") or "").strip()
+    leader = _leading_market(event)
+    # A single-market event's leader is the event itself; repeating the title
+    # as the leader name is noise (keep its price).
+    if leader and leader.get("name", "").strip() == title:
+        leader = {**leader, "name": ""}
     return {
-        "title": (event.get("title") or "").strip(),
+        "title": title,
         "url": f"https://polymarket.com/event/{event.get('slug', '')}",
         "volume24h": _f(event.get("volume24hr")) or 0.0,
         "end": _when(event.get("endDate")),
-        "leader": _leading_market(event),
+        "leader": leader,
     }
 
 
@@ -146,15 +166,17 @@ def select_ending_soon(
     floor keeps only events people actually trade.
     """
     horizon = now + timedelta(hours=horizon_hours)
-    items = []
+    by_family: dict[str, dict] = {}
     for event in events:
         item = _event_item(event)
         if item["end"] is None or not now <= item["end"] <= horizon:
             continue
         if item["volume24h"] < ENDING_MIN_VOLUME:
             continue
-        items.append(item)
-    items.sort(key=lambda i: i["end"])
+        fam = _family(item["url"])
+        if fam not in by_family or item["volume24h"] > by_family[fam]["volume24h"]:
+            by_family[fam] = item
+    items = sorted(by_family.values(), key=lambda i: i["end"])
     return items[:limit]
 
 
@@ -172,9 +194,14 @@ def select_new_markets(
         item = _market_item(market)
         if item is None or item["volume24h"] < NEW_MIN_VOLUME:
             continue
-        if item["url"] in seen_events:
+        # A "new" market past its endDate is a finished game, not news
+        # (seen live: a same-day MLB over/under at 0.1c after the game).
+        if item["end"] is not None and item["end"] < now:
             continue
-        seen_events.add(item["url"])
+        fam = _family(item["url"])
+        if fam in seen_events:
+            continue
+        seen_events.add(fam)
         picked.append(item)
         if len(picked) >= limit:
             break
