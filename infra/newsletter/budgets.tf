@@ -23,4 +23,9 @@ resource "aws_budgets_budget" "monthly" {
     notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.test_recipient]
   }
+
+  # The budgets:* grant ships in the same apply that first creates these;
+  # order behind the grant plus its propagation delay (this exact race
+  # failed the first apply).
+  depends_on = [time_sleep.iam_propagation]
 }
