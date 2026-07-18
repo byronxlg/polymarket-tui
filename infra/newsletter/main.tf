@@ -125,6 +125,12 @@ data "aws_iam_policy_document" "ci" {
   }
 
   statement {
+    sid       = "ManageBudgets"
+    actions   = ["budgets:*"]
+    resources = ["arn:aws:budgets::${local.account_id}:budget/polymarket-tui-*"]
+  }
+
+  statement {
     sid     = "ManageOwnIamSurface"
     actions = ["iam:*"]
     resources = [

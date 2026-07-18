@@ -27,6 +27,16 @@ scale; both functions carry reserved-concurrency caps.
 - SES identity `polymarket-tui.botsmith.dev`, sender
   `digest@polymarket-tui.botsmith.dev`, DKIM + custom MAIL FROM
   (`bounce.`) + DMARC records in Cloudflare.
+- Intro blurb: one Bedrock converse call per digest (`var.blurb_model_id`,
+  currently `au.anthropic.claude-sonnet-4-6` - Sonnet 5 is gated for this
+  account on Bedrock; swap the variable when access arrives, or set it empty
+  to disable). Any blurb failure sends the digest without one. Cost is well
+  under $1/month at one call a day.
+- Budget alerts (user request 2026-07-18): `budgets.tf` emails
+  byron.lg.smith@gmail.com at $3 and $5 of ACTUAL monthly spend.
+  Account-wide on purpose - non-newsletter baseline was ~$0.12/month and no
+  cost-allocation tags are active (activating one only tags future usage
+  and lags ~24h).
 
 Lambda code lives in `src/` and ships as an `archive_file` zip inside this
 config - app-code pushes redeploy through the same plan/apply pipeline, no

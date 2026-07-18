@@ -12,6 +12,7 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[1] / "infra" / "newsletter" / "src"
 sys.path.insert(0, str(SRC))
 
+from blurb import build_blurb_prompt, extract_blurb  # noqa: E402
 from digest_data import (  # noqa: E402
     build_digest,
     digest_is_empty,
@@ -298,6 +299,38 @@ class TestRender:
 
     def test_subject_carries_the_date(self):
         assert render_subject(NOW) == "Polymarket daily - Sat 18 Jul"
+
+
+class TestBlurb:
+    def digest(self):
+        return build_digest(
+            NOW,
+            fetch=lambda path, params: [market(created=(NOW - timedelta(hours=1)).isoformat())]
+            if path == "/markets"
+            else [event(end=(NOW + timedelta(hours=6)).isoformat())],
+        )
+
+    def test_prompt_carries_the_data_and_the_rules(self):
+        prompt = build_blurb_prompt(self.digest())
+        assert "MOVER: Will it happen?" in prompt
+        assert "MOST TRADED: The event" in prompt
+        assert "no markdown" in prompt
+        assert "do not invent facts" in prompt
+
+    def test_extract_normalizes_and_rejects_garbage(self):
+        assert extract_blurb("  A quiet day.\n\nSpain  leads. ") == "A quiet day. Spain leads."
+        for bad in (None, 42, "", "   ", "x" * 800):
+            assert extract_blurb(bad) is None
+
+    def test_renderers_include_blurb_only_when_present(self):
+        digest = self.digest()
+        assert "written by Claude" not in render_html(digest, "https://example.test")
+        digest["blurb"] = "Spain <b>leads</b> the final."
+        text = render_text(digest)
+        html_body = render_html(digest, "https://example.test")
+        assert "Spain <b>leads</b> the final." in text
+        assert "Spain &lt;b&gt;leads&lt;/b&gt; the final." in html_body
+        assert "written by Claude" in html_body
 
 
 class TestFormatting:

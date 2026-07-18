@@ -14,6 +14,7 @@ from email.mime.text import MIMEText
 from urllib.parse import urlencode
 
 import boto3
+from blurb import generate_blurb
 from boto3.dynamodb.conditions import Attr
 from digest_data import build_digest, digest_is_empty
 from digest_render import (
@@ -31,6 +32,7 @@ TABLE_NAME = os.environ["TABLE_NAME"]
 SENDER_EMAIL = os.environ["SENDER_EMAIL"]
 API_BASE_URL = os.environ["API_BASE_URL"]
 SITE_URL = os.environ["SITE_URL"]
+BLURB_MODEL_ID = os.environ.get("BLURB_MODEL_ID", "")  # empty disables the blurb
 
 SEND_GAP_S = 0.15  # stay far under SES rate limits without dragging the run out
 
@@ -72,6 +74,9 @@ def lambda_handler(_event: dict, _context: object) -> dict:
     if digest_is_empty(digest):
         logger.error("every digest section came back empty; not sending")
         return {"sent": 0, "failed": 0, "subscribers": len(subscribers), "aborted": True}
+
+    if BLURB_MODEL_ID:
+        digest["blurb"] = generate_blurb(digest, BLURB_MODEL_ID)
 
     subject = render_subject(digest["generated_at"])
     text_tpl = render_text(digest)

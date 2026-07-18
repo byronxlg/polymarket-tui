@@ -87,6 +87,8 @@ def render_text(digest: dict) -> str:
         digest["generated_at"].astimezone(DISPLAY_TZ).strftime("%A %-d %B %Y"),
         "",
     ]
+    if digest.get("blurb"):
+        lines += [digest["blurb"], ""]
     sections = [
         ("TOP MOVERS (24H)", digest["movers"], lambda i: _text_market_line(i, True)),
         ("MOST TRADED (24H)", digest["top_events"], lambda i: _text_event_line(i, False)),
@@ -186,6 +188,14 @@ def render_html(digest: dict, site_url: str) -> str:
         )
     )
     date_line = digest["generated_at"].astimezone(DISPLAY_TZ).strftime("%A %-d %B %Y")
+    blurb_row = ""
+    if digest.get("blurb"):
+        blurb_row = (
+            f'<tr><td colspan="2" style="padding:20px 0 2px;font-size:13px;'
+            f'line-height:1.7;color:{INK};border-bottom:1px solid {LINE};">'
+            f'{html.escape(digest["blurb"])}<span style="color:{DIM};"><br>'
+            f"- written by Claude from today's data</span></td></tr>"
+        )
     return f"""<!doctype html>
 <html><body style="margin:0;padding:0;background:#f4f6f8;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;">
@@ -203,6 +213,7 @@ def render_html(digest: dict, site_url: str) -> str:
 </td></tr>
 <tr><td style="padding:0 28px 24px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    {blurb_row}
     {body_sections}
   </table>
 </td></tr>
