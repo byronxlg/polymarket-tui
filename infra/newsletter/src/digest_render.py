@@ -53,22 +53,64 @@ def fmt_when(end: datetime | None) -> str:
     return end.strftime("%a %b %-d, %H:%M UTC")
 
 
-def render_subject(now: datetime) -> str:
+def render_subject(now: datetime, story: str | None = None) -> str:
+    """Front-load the day's story when the LLM produced one; brand rides behind."""
+    if story:
+        return f"{story} - Polymarket daily"
     return f"Polymarket daily - {now.astimezone(DISPLAY_TZ).strftime('%a %-d %b')}"
+
+
+def _prior(item: dict) -> float:
+    return min(max(item["yes"] - (item.get("change") or 0.0), 0.0), 1.0)
+
+
+def fmt_journey(item: dict) -> str | None:
+    """"11c -> 69c" - the move's journey, or None when there is no real move."""
+    if abs(item.get("change") or 0.0) < 0.01:
+        return None
+    return f"{fmt_cents(_prior(item))} -> {fmt_cents(item['yes'])}"
+
+
+def fmt_move(item: dict) -> str | None:
+    """"+65c from 26c" - delta computed from the rendered cents so the line
+    always agrees with the bold price above it (round-2 editorial feedback)."""
+    if abs(item.get("change") or 0.0) < 0.01:
+        return None
+    prior = _prior(item)
+    delta = round(item["yes"] * 100) - round(prior * 100)
+    return f"{delta:+d}c from {fmt_cents(prior)}"
+
+
+def fmt_when_nz(end: datetime | None, now: datetime) -> str:
+    """Deadlines in the reader's clock: "today 4pm NZT", not UTC arithmetic."""
+    if end is None:
+        return ""
+    local, ref = end.astimezone(DISPLAY_TZ), now.astimezone(DISPLAY_TZ)
+    clock = local.strftime("%-I:%M%p").lower().replace(":00", "")
+    days = (local.date() - ref.date()).days
+    if days == 0:
+        day = "today"
+    elif days == 1:
+        day = "tomorrow"
+    else:
+        day = local.strftime("%a")
+    return f"{day} {clock} NZT"
 
 
 # --- plain text ---
 
 
 def _text_market_line(item: dict, with_change: bool) -> list[str]:
-    bits = [f"YES {fmt_cents(item['yes'])}"]
-    if with_change:
-        bits.append(fmt_change(item["change"]))
+    label = f"{item['outcome']} " if item.get("outcome") else "YES "
+    bits = [f"{label}{fmt_cents(item['yes'])}"]
+    move = fmt_move(item) if with_change else None
+    if move:
+        bits.append(move)
     bits.append(f"{fmt_usd(item['volume24h'])} 24h vol")
     return [f"* {item['title']} ({', '.join(bits)})", f"  {item['url']}"]
 
 
-def _text_event_line(item: dict, with_end: bool) -> list[str]:
+def _text_event_line(item: dict, now: datetime, with_end: bool) -> list[str]:
     bits = [f"{fmt_usd(item['volume24h'])} 24h vol"]
     leader = item.get("leader")
     if leader and leader.get("name"):
@@ -77,7 +119,7 @@ def _text_event_line(item: dict, with_end: bool) -> list[str]:
         # Single-market event: the leader is the event itself, no name repeat.
         bits.append(f"YES {fmt_cents(leader['yes'])}")
     if with_end and item.get("end"):
-        bits.append(f"ends {fmt_when(item['end'])}")
+        bits.append(f"ends {fmt_when_nz(item['end'], now)}")
     return [f"* {item['title']} ({', '.join(bits)})", f"  {item['url']}"]
 
 
@@ -89,11 +131,12 @@ def render_text(digest: dict) -> str:
     ]
     if digest.get("blurb"):
         lines += [digest["blurb"], ""]
+    now = digest["generated_at"]
     sections = [
         ("TOP MOVERS (24H)", digest["movers"], lambda i: _text_market_line(i, True)),
-        ("MOST TRADED (24H)", digest["top_events"], lambda i: _text_event_line(i, False)),
-        ("ENDING WITHIN 48H", digest["ending_soon"], lambda i: _text_event_line(i, True)),
-        ("NEW AND ALREADY BUSY", digest["new_markets"], lambda i: _text_market_line(i, False)),
+        ("MOST TRADED (24H)", digest["top_events"], lambda i: _text_event_line(i, now, False)),
+        ("ENDING WITHIN 48H", digest["ending_soon"], lambda i: _text_event_line(i, now, True)),
+        ("NEW AND ALREADY BUSY", digest["new_markets"], lambda i: _text_market_line(i, True)),
     ]
     for title, items, line_fn in sections:
         if not items:
@@ -102,6 +145,9 @@ def render_text(digest: dict) -> str:
         for item in items:
             lines.extend(line_fn(item))
         lines.append("")
+    closer = _closer_line(digest)
+    if closer:
+        lines += ["BY THE NUMBERS", closer, "Next edition tomorrow, 7am NZT.", ""]
     lines += [
         "--",
         f"Sent by {SITE_NAME}, an unofficial Polymarket terminal client.",
@@ -109,6 +155,26 @@ def render_text(digest: dict) -> str:
         f"Unsubscribe: {UNSUB_PLACEHOLDER}",
     ]
     return "\n".join(lines)
+
+
+def _closer_line(digest: dict) -> str | None:
+    stats = digest.get("stats") or {}
+    bits = []
+    mover = stats.get("biggest_mover")
+    if mover:
+        title = mover.get("outcome") or mover["title"]
+        if len(title) > 40:
+            # Word-boundary truncation - a mid-word ellipsis in the closing
+            # strip reads as a bug (round-3 editorial feedback).
+            title = title[:40].rsplit(" ", 1)[0].rstrip(",;:") + "\u2026"
+        bits.append(f"Biggest move: {title}, {fmt_journey(mover)}")
+    if stats.get("top_events_volume"):
+        count = stats.get("top_events_count") or 0
+        bits.append(f"{fmt_usd(stats['top_events_volume'])} traded across the top {count} events")
+    if stats.get("ending_count"):
+        plural = "s" if stats["ending_count"] != 1 else ""
+        bits.append(f"{stats['ending_count']} rendered market{plural} resolve within 48h")
+    return " / ".join(bits) if bits else None
 
 
 # --- HTML ---
@@ -130,35 +196,45 @@ def _row(left: str, right: str) -> str:
 
 def _html_market_row(item: dict, with_change: bool) -> str:
     title = html.escape(item["title"])
+    sub = f"{fmt_usd(item['volume24h'])} 24h vol"
+    if item.get("outcome"):
+        sub = f"{html.escape(item['outcome'])} &middot; {sub}"
     left = (
         f'<a href="{html.escape(item["url"])}"'
-        f' style="color:{INK};text-decoration:none;">{title}</a>'
-        f'<br><span style="color:{DIM};font-size:11px;">{fmt_usd(item["volume24h"])} 24h vol</span>'
+        f' style="color:{ACCENT};text-decoration:none;">{title}</a>'
+        f'<br><span style="color:{DIM};font-size:11px;">{sub}</span>'
     )
     right = f'<span style="color:{INK};font-weight:bold;">{fmt_cents(item["yes"])}</span>'
-    if with_change:
+    move = fmt_move(item) if with_change else None
+    if move:
         color = GREEN if item["change"] >= 0 else RED
-        change = fmt_change(item["change"])
-        right += f'<br><span style="color:{color};font-size:12px;">{change}</span>'
+        right += f'<br><span style="color:{color};font-size:12px;">{move}</span>'
     return _row(left, right)
 
 
-def _html_event_row(item: dict, with_end: bool) -> str:
+def _html_event_row(item: dict, now: datetime, with_end: bool) -> str:
     title = html.escape(item["title"])
     sub = f"{fmt_usd(item['volume24h'])} 24h vol"
     leader = item.get("leader")
     if leader and leader.get("name"):
-        sub += f" &middot; {html.escape(leader['name'])} {fmt_cents(leader['yes'])}"
-    if with_end and item.get("end"):
-        sub += f" &middot; ends {fmt_when(item['end'])}"
+        sub += f" &middot; leader: {html.escape(leader['name'])}"
+    has_price = bool(leader and leader.get("yes") is not None)
+    deadline = fmt_when_nz(item["end"], now) if (with_end and item.get("end")) else ""
+    if deadline and has_price:
+        sub += f" &middot; ends {deadline}"
     left = (
         f'<a href="{html.escape(item["url"])}"'
-        f' style="color:{INK};text-decoration:none;">{title}</a>'
+        f' style="color:{ACCENT};text-decoration:none;">{title}</a>'
         f'<br><span style="color:{DIM};font-size:11px;">{sub}</span>'
     )
-    right = ""
-    if leader and leader.get("yes") is not None:
+    if has_price:
         right = f'<span style="color:{INK};font-weight:bold;">{fmt_cents(leader["yes"])}</span>'
+    elif deadline:
+        # No leader price: an empty bold column reads as a bug - put the
+        # deadline there instead (round-2 editorial feedback).
+        right = f'<span style="color:{INK};font-weight:bold;">{html.escape(deadline)}</span>'
+    else:
+        right = ""
     return _row(left, right)
 
 
@@ -172,32 +248,49 @@ def _html_section(title: str, rows: list[str]) -> str:
 
 
 def render_html(digest: dict, site_url: str) -> str:
+    now = digest["generated_at"]
     body_sections = (
         _html_section(
             "TOP MOVERS (24H)", [_html_market_row(i, True) for i in digest["movers"]]
         )
         + _html_section(
-            "MOST TRADED (24H)", [_html_event_row(i, False) for i in digest["top_events"]]
+            "MOST TRADED (24H)", [_html_event_row(i, now, False) for i in digest["top_events"]]
         )
         + _html_section(
-            "ENDING WITHIN 48H", [_html_event_row(i, True) for i in digest["ending_soon"]]
+            "ENDING WITHIN 48H", [_html_event_row(i, now, True) for i in digest["ending_soon"]]
         )
         + _html_section(
             "NEW AND ALREADY BUSY",
-            [_html_market_row(i, False) for i in digest["new_markets"]],
+            [_html_market_row(i, True) for i in digest["new_markets"]],
         )
     )
+    closer = _closer_line(digest)
+    if closer:
+        body_sections += (
+            f'<tr><td colspan="2" style="padding:26px 0 4px;font-size:11px;'
+            f'letter-spacing:2px;color:{DIM};">BY THE NUMBERS</td></tr>'
+            f'<tr><td colspan="2" style="padding:8px 0;font-size:12px;color:{INK};">'
+            f"{html.escape(closer)}<br>"
+            f'<span style="color:{DIM};">Next edition tomorrow, 7am NZT.</span></td></tr>'
+        )
+    preheader = ""
+    if digest.get("preheader"):
+        pad = "&nbsp;&zwnj;" * 40  # stop inbox previews bleeding into body text
+        preheader = (
+            '<div style="display:none;font-size:1px;line-height:1px;max-height:0;'
+            f'overflow:hidden;mso-hide:all;">{html.escape(digest["preheader"])}{pad}</div>'
+        )
     date_line = digest["generated_at"].astimezone(DISPLAY_TZ).strftime("%A %-d %B %Y")
     blurb_row = ""
     if digest.get("blurb"):
         blurb_row = (
             f'<tr><td colspan="2" style="padding:20px 0 2px;font-size:13px;'
             f'line-height:1.7;color:{INK};border-bottom:1px solid {LINE};">'
-            f'{html.escape(digest["blurb"])}<span style="color:{DIM};"><br>'
-            f"- written by Claude from today's data</span></td></tr>"
+            f"{html.escape(digest['blurb'])}</td></tr>"
         )
     return f"""<!doctype html>
 <html><body style="margin:0;padding:0;background:#f4f6f8;">
+{preheader}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;">
 <tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0"
