@@ -115,6 +115,16 @@ resource "aws_iam_role_policy" "digest" {
         Action   = ["ses:SendEmail", "ses:SendRawEmail"]
         Resource = "arn:aws:ses:${var.region}:${local.account_id}:identity/*"
       },
+      # Blurb generation. Invoking a cross-region inference profile needs the
+      # profile ARN plus the foundation model in every destination region.
+      {
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel"]
+        Resource = [
+          "arn:aws:bedrock:${var.region}:${local.account_id}:inference-profile/${var.blurb_model_id}",
+          "arn:aws:bedrock:*::foundation-model/anthropic.*",
+        ]
+      },
     ]
   })
 }
@@ -139,10 +149,11 @@ resource "aws_lambda_function" "digest" {
 
   environment {
     variables = {
-      TABLE_NAME   = aws_dynamodb_table.subscribers.name
-      SENDER_EMAIL = local.sender_email
-      API_BASE_URL = local.api_base_url
-      SITE_URL     = var.site_url
+      TABLE_NAME     = aws_dynamodb_table.subscribers.name
+      SENDER_EMAIL   = local.sender_email
+      API_BASE_URL   = local.api_base_url
+      SITE_URL       = var.site_url
+      BLURB_MODEL_ID = var.blurb_model_id
     }
   }
 

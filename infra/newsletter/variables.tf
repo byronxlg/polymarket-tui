@@ -28,7 +28,13 @@ variable "sender_domain" {
 }
 
 variable "test_recipient" {
-  description = "Verified recipient for testing while SES is in sandbox mode"
+  description = "Verified recipient for testing while SES is in sandbox mode; also receives budget alerts"
   type        = string
   default     = "byron.lg.smith@gmail.com"
+}
+
+variable "blurb_model_id" {
+  description = "Bedrock model/inference-profile id for the digest intro blurb; empty disables it. claude-sonnet-5 is gated for this account on Bedrock (checked 2026-07-18: 'not available for this account'), so this is the newest invocable Sonnet - swap when access arrives."
+  type        = string
+  default     = "au.anthropic.claude-sonnet-4-6"
 }
