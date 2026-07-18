@@ -18,6 +18,7 @@ from textual.widgets import Static, Tab, Tabs
 from polymarket_tui.api.gamma import SORT_ORDERS
 from polymarket_tui.state import cache
 from polymarket_tui.ui.liveness import alive
+from polymarket_tui.ui.staleness import RefreshOnReturn
 from polymarket_tui.ui.theme import AMBER
 from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.event_table import EventsTable
@@ -46,7 +47,7 @@ SORT_LABELS = {
 }
 
 
-class HomePane(TierAware, Vertical):
+class HomePane(RefreshOnReturn, TierAware, Vertical):
     """Trending events browser - the root pane of the drill navigation."""
 
     header_title = "polymarket-tui"
@@ -276,6 +277,12 @@ class HomePane(TierAware, Vertical):
 
     def action_refresh(self) -> None:
         self.load_events()
+
+    def refresh_on_return_ok(self) -> bool:
+        # A reload restarts pagination at the first page: a deep-scrolled
+        # session would lose its rows (and the cursor with them), so it
+        # keeps the list and refreshes on R instead.
+        return self._offset <= PAGE_SIZE
 
     def _move_tag(self, delta: int) -> None:
         tabs = self.query_one(Tabs)

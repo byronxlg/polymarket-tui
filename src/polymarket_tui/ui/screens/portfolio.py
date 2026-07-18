@@ -23,6 +23,7 @@ from polymarket_tui.core import fmt
 from polymarket_tui.core.links import market_url, open_and_copy
 from polymarket_tui.models.portfolio import ClosedPosition, OpenOrder, Position
 from polymarket_tui.ui.liveness import alive
+from polymarket_tui.ui.staleness import RefreshOnReturn
 from polymarket_tui.ui.theme import AMBER, DOWN, UP
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.closed_table import ClosedTable
@@ -166,7 +167,7 @@ class PositionsTable(VimDataTable):
             pane.action_sell_position()
 
 
-class PortfolioPane(TierAware, Vertical):
+class PortfolioPane(RefreshOnReturn, TierAware, Vertical):
     header_title = "portfolio"
 
     BINDINGS = [
@@ -349,6 +350,15 @@ class PortfolioPane(TierAware, Vertical):
 
     def action_refresh(self) -> None:
         self.app.portfolio.invalidate()
+        self.load_all()
+
+    def refresh_on_return_ok(self) -> bool:
+        # Never rebuild the orders table under an armed cancel strip.
+        return self._pending_cancel is None
+
+    def refresh_stale(self) -> None:
+        # Unlike R, no cache invalidate: the service TTLs decide what
+        # actually refetches.
         self.load_all()
 
     def load_all(self) -> None:
