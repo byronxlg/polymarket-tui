@@ -22,6 +22,9 @@ MOVER_PRICE_BAND = (0.05, 0.95)
 MOVER_MIN_CHANGE = 0.03
 ENDING_MIN_VOLUME = 25_000
 NEW_MIN_VOLUME = 5_000
+# Wider than the movers band: a 2c longshot is a legitimate new market, but a
+# 0.1c one is effectively decided (seen live: an in-progress tennis match).
+NEW_PRICE_BAND = (0.005, 0.995)
 
 
 def fetch_json(path: str, params: dict) -> list:
@@ -197,6 +200,8 @@ def select_new_markets(
         # A "new" market past its endDate is a finished game, not news
         # (seen live: a same-day MLB over/under at 0.1c after the game).
         if item["end"] is not None and item["end"] < now:
+            continue
+        if not NEW_PRICE_BAND[0] <= item["yes"] <= NEW_PRICE_BAND[1]:
             continue
         fam = _family(item["url"])
         if fam in seen_events:
