@@ -40,6 +40,9 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Why Spain vs Argentina 2026 resolved Draw on Polymarket
+  (current events: World Cup final resolution, match played July 19) -
+  2026-07-20, `site/blog/why-spain-vs-argentina-2026-resolved-draw.html`
 - [x] Spain vs Argentina: 2026 World Cup final odds on Polymarket
   (current events: World Cup final, July 19) - 2026-07-17,
   `site/blog/spain-vs-argentina-2026-world-cup-final-odds.html`
