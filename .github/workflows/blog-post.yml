@@ -61,4 +61,4 @@ jobs:
             without writing anything and say so - one pending post at a time.
           claude_args: |
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
-            --max-turns 60
+            --max-turns 150
