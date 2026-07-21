@@ -40,6 +40,9 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Ballon d'Or 2026 Odds: Kane Leads Yamal
+  (event: 2026 Ballon d'Or market repricing after the World Cup final,
+  July 19-21) - 2026-07-21, `site/blog/ballon-dor-2026-odds-kane-vs-yamal.html`
 - [x] Why Spain vs Argentina 2026 resolved Draw on Polymarket
   (current events: World Cup final resolution, match played July 19) -
   2026-07-20, `site/blog/why-spain-vs-argentina-2026-resolved-draw.html`
