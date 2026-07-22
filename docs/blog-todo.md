@@ -40,6 +40,10 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed Rate Decision Odds on Polymarket: July 2026
+  (event: Fed Decision in July market repricing toward a hike ahead of the
+  July 28-29 FOMC meeting) - 2026-07-22,
+  `site/blog/fed-rate-decision-july-2026-odds.html`
 - [x] Ballon d'Or 2026 Odds: Kane Leads Yamal
   (event: 2026 Ballon d'Or market repricing after the World Cup final,
   July 19-21) - 2026-07-21, `site/blog/ballon-dor-2026-odds-kane-vs-yamal.html`
