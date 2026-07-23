@@ -40,6 +40,11 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] LeBron to Miami Heat Odds: What the Leaked Video Moved
+  (event: Miami Heat social media accidentally published a "LeBron James
+  Introductory Press Conference" video, July 21-22; Polymarket's Heat market
+  spiked then partly faded) - 2026-07-23,
+  `site/blog/lebron-to-miami-heat-odds-leaked-video.html`
 - [x] Fed Rate Decision Odds on Polymarket: July 2026
   (event: Fed Decision in July market repricing toward a hike ahead of the
   July 28-29 FOMC meeting) - 2026-07-22,
