@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BetMoar vs polymarket-tui: choosing a Polymarket terminal — polymarket-tui blog</title>
+<meta name="description" content="BetMoar is a web page styled like a terminal; polymarket-tui runs in your actual terminal. What that difference means for trust, keys, and workflow." />
+<link rel="canonical" href="https://polymarket-tui.botsmith.dev/blog/betmoar-vs-polymarket-tui.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://polymarket-tui.botsmith.dev/blog/betmoar-vs-polymarket-tui.html" />
+<meta property="og:title" content="BetMoar vs polymarket-tui: choosing a Polymarket terminal" />
+<meta property="og:description" content="BetMoar is a web page styled like a terminal; polymarket-tui runs in your actual terminal. What that difference means for trust, keys, and workflow." />
+<meta property="og:image" content="https://polymarket-tui.botsmith.dev/assets/og.png" />
+<meta property="article:published_time" content="2026-07-24" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "BetMoar vs polymarket-tui: choosing a Polymarket terminal",
+  "description": "BetMoar is a web page styled like a terminal; polymarket-tui runs in your actual terminal. What that difference means for trust, keys, and workflow.",
+  "datePublished": "2026-07-24",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://polymarket-tui.botsmith.dev/blog/betmoar-vs-polymarket-tui.html",
+  "image": "https://polymarket-tui.botsmith.dev/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>terminals</p>
+<h1>BetMoar vs polymarket-tui: choosing a Polymarket terminal</h1>
+<p class="post-meta"><span>2026-07-24</span><span class="d">/</span><span>5 min read</span><span class="d">/</span><span>comparison</span></p>
+
+<article>
+
+<p class="lead">Search for a Polymarket terminal and two very different tools
+come back wearing the same word. BetMoar is a web application with a terminal
+aesthetic; polymarket-tui is a program that runs in your actual terminal.
+Both are free, both talk to the same exchange, and the differences between
+them are real enough that one of us writing the comparison should not stop
+you from reading it critically. Everything below about BetMoar comes from its
+own site and public listings, fetched 2026-07-24; everything about
+polymarket-tui is checkable in the source.</p>
+
+<span class="sec-label"><i>01</i>What each tool is</span>
+<h2>A web platform and a TUI</h2>
+
+<p><a href="https://www.betmoar.fun" rel="nofollow">BetMoar</a> is a web-based
+trading terminal and Discord bot for Polymarket. Its site advertises
+zero fees, real-time whale tracking, a UMA dispute dashboard with oracle
+vote tallies, and a news feed that aggregates X and Truth Social with
+text-to-speech alerts. It reports more than $196M in traded volume and a
+community of 50,000+ members across 100+ Discord servers - its numbers, but
+serious ones. You connect a wallet in the browser and trade from the page or
+from Discord.</p>
+
+<p><a href="https://github.com/byronxlg/polymarket-tui">polymarket-tui</a> is
+an open-source terminal client: a Python program you install and run in any
+terminal emulator. Live order books stream beside price charts, a trades
+tape, portfolio and P&amp;L, watchlists, trader following, and order entry
+that starts in dry-run until you explicitly arm live mode. It talks directly
+to Polymarket's public APIs; there is no server of ours in the middle.</p>
+
+<p>If you want whale feeds piped into a Discord server you already live in,
+BetMoar built that and we did not. The rest of this post is about the two
+differences that are not a feature checklist: what "terminal" means, and
+what you can verify.</p>
+
+<span class="sec-label"><i>02</i>The word "terminal"</span>
+<h2>A browser tab styled like a terminal is still a browser tab</h2>
+
+<p>BetMoar's terminal is a page. It runs where pages run: in a browser, on a
+machine with a desktop, alive exactly as long as the tab is. polymarket-tui
+is a process. It runs where processes run: over SSH on the VPS where your
+bots already live, inside tmux next to your editor and your logs, on a
+headless box in another timezone, detached, scripted, restarted by systemd
+if you like.</p>
+
+<pre><code><span class="c">$</span> ssh trading-box
+<span class="c">$</span> tmux attach -t markets
+<span class="g">polymarket-tui</span>   <span class="c">already running, book open, where you left it</span>
+</code></pre>
+
+<p>This is not aesthetics. A trading view that lives in a terminal
+multiplexer survives your laptop lid closing. It sits in the same pane grid
+as the strategy code it informs. It never asks you to alt-tab into the one
+application - the browser - where every phishing link, wallet-connect popup,
+and malicious extension in your life also lives. If your workflow is
+keyboard-first, the difference between "terminal-styled" and "terminal" is
+the difference between a picture of a tool and the tool.</p>
+
+<span class="sec-label"><i>03</i>Trust: claims you accept vs code you can read</span>
+<h2>Both say non-custodial. One is checkable.</h2>
+
+<p>BetMoar's site says it is "a non-custodial interface" and that your funds
+remain on Polygon/Polymarket smart contracts. That is probably true. But its
+source code is not published, so it is a claim you accept, not one you can
+check. Its site also does not say how a zero-fee product sustains itself -
+which does not mean anything sinister, only that you cannot look.</p>
+
+<p>polymarket-tui is MIT-licensed and every line is public. The trust model
+is short enough to state completely: your credentials live in a local file
+with owner-only permissions, orders are signed on your machine, and the only
+network calls are to Polymarket's own endpoints - which you can confirm by
+reading the API layer, or by watching the process's traffic yourself. New
+setups start in dry-run, where orders are built and signed but never posted;
+going live is a separate, confirmed step, and every order and cancel is
+appended to a local audit log.</p>
+
+<p>For browsing, the asymmetry is simpler: polymarket-tui needs no account,
+no wallet connection, and no Discord to watch books, charts, and portfolios
+of public wallets. You connect credentials only when you want to trade.</p>
+
+<span class="sec-label"><i>04</i>Side by side</span>
+<h2>The honest checklist</h2>
+
+<pre><code><span class="c">                          BETMOAR         POLYMARKET-TUI</span>
+Runs in                   browser/Discord any terminal, SSH
+Source code               not published   <span class="g">MIT, public</span>
+Fees                      zero (claimed)  zero
+Whale tracking            <span class="g">yes</span>             no
+UMA dispute dashboard     <span class="g">yes</span>             no
+News feed w/ TTS          <span class="g">yes</span>             no
+Live order book + depth   yes             <span class="g">yes</span>
+Price charts              yes             <span class="g">yes, in-terminal</span>
+Dry-run default           not advertised  <span class="g">yes</span>
+Local order audit log     not advertised  <span class="g">yes, JSONL</span>
+Browse without wallet     not stated      <span class="g">yes</span>
+Scriptable / headless     no              <span class="g">yes</span>
+</code></pre>
+
+<p>Feature rows marked from each side's public materials as of 2026-07-24;
+"not advertised" means the site does not mention it, not that it is absent.</p>
+
+<span class="sec-label"><i>05</i>Which one</span>
+<h2>Pick by where you actually work</h2>
+
+<p>If your trading life is in Discord and you want whale alerts and dispute
+intelligence pushed to you, BetMoar is built for exactly that, and its
+traction is real. If your trading life is in a terminal - if the machine
+that watches markets is the machine that runs your code, if you want the
+software that touches your keys to be software you can read - then a web
+page with a terminal skin was never going to be the tool. That is the half
+of the market we build for.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">Homebrew and one-liner installs on the
+<a href="../#install">install page</a>. No account needed to browse.</p>
+
+</article>
+
+<p class="post-foot">BetMoar details are from its public site and listings,
+fetched 2026-07-24, and may change. More posts on the
+<a href="./">blog index</a>, or subscribe via <a href="feed.xml">RSS</a>.
+Not affiliated with Polymarket or BetMoar; nothing here is financial
+advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
