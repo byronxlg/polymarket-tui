@@ -40,6 +40,10 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Israel-Iran Ceasefire Odds on Polymarket: July 2026
+  (event: Iran rejected a new US-drafted truce proposal passed via Iraq as
+  US strikes on Iran reached a 13th consecutive night, July 23) - 2026-07-24,
+  `site/blog/israel-iran-ceasefire-odds-july-2026.html`
 - [x] LeBron to Miami Heat Odds: What the Leaked Video Moved
   (event: Miami Heat social media accidentally published a "LeBron James
   Introductory Press Conference" video, July 21-22; Polymarket's Heat market
