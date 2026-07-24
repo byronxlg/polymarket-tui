@@ -6,6 +6,22 @@ full text as sent, notes.
 
 <!-- entries below, newest first -->
 
+## 2026-07-24 ~21:35 UTC - competitive: BetMoar comparison post shipped
+
+Byron's directive: go on the offensive against BetMoar (web-based
+terminal, not a TUI). Shipped the comparison post as the first asset -
+PR #176, merged and deployed:
+https://polymarket-tui.botsmith.dev/blog/betmoar-vs-polymarket-tui.html
+
+Honest checklist format: their whale tracking, UMA dashboard, news
+feed, and Discord distribution acknowledged; our case made on the two
+verifiable axes (actual terminal vs browser tab; MIT source vs
+unpublished). All BetMoar claims attributed to its site, fetched
+2026-07-24. Strategy and rules recorded in marketing.md under
+"Competitive positioning". No comment-thread or Moltbook activity for
+this - today's channel budgets were already spent; the Moltbook
+"what counts as a terminal" post is queued for the next cycle.
+
 ## 2026-07-24 ~21:20-21:30 UTC - distribution cycle: Moltbook + Polymarket
 
 Context: the max-turns fix (#168) merged and the daily blog pipeline has
