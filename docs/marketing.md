@@ -72,6 +72,32 @@ channel, account milestones, anything needing his action - e.g. the
 Moltbook claim link), each with links to the messages sent since the last
 update. Not on a fixed timer; on progress.
 
+## Competitive positioning (directive from Byron, 2026-07-24)
+
+Primary competitor: **BetMoar** (betmoar.fun) - a web-based Polymarket
+"terminal" plus Discord bot, with real traction (its site claims $196M+
+volume, 50k+ community members). We position against it on architecture
+and verifiability, the two axes where a web page styled like a terminal
+cannot follow: polymarket-tui runs in an actual terminal (SSH, tmux,
+headless, scriptable) and is MIT-licensed open source (the code that
+touches your keys is readable; theirs is not published).
+
+Rules for the offensive - the principles above apply unchanged:
+
+- Comparisons are honest: acknowledge their strengths (whale tracking,
+  UMA dashboard, news feed, Discord distribution), attribute every claim
+  about them to their public materials with a fetch date, and never
+  assert what we cannot verify (say "not published"/"not stated", not
+  "insecure").
+- The Polymarket comment account stays pure market observation - it
+  never mentions competitors, ours or theirs. No astroturfing, no fake
+  reviews, no vote manipulation, anywhere, ever.
+- Assets: comparison post `site/blog/betmoar-vs-polymarket-tui.html`
+  (shipped 2026-07-24, targets "betmoar" search intent). Candidates
+  next: a Moltbook post on what "terminal" means (within cadence), a
+  landing-page positioning line (needs Byron's copy review), further
+  comparison pages if other competitors earn one.
+
 ## Out of scope for now
 
 Reddit/HN/X posting (accounts and separate norms), paid anything,
