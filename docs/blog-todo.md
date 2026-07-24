@@ -40,6 +40,10 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] BetMoar vs polymarket-tui: choosing a Polymarket terminal
+  (competitive comparison, targets "betmoar" / "polymarket terminal"
+  searches; directive from Byron 2026-07-24) - 2026-07-24,
+  `site/blog/betmoar-vs-polymarket-tui.html`
 - [x] Israel-Iran Ceasefire Odds on Polymarket: July 2026
   (event: Iran rejected a new US-drafted truce proposal passed via Iraq as
   US strikes on Iran reached a 13th consecutive night, July 23) - 2026-07-24,
