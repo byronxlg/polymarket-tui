@@ -40,6 +40,12 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] LeBron to Philadelphia 76ers: What the Signing Moved
+  (event: LeBron James posted on X that he signed a two-year, $8M deal with
+  the Philadelphia 76ers, July 24; the next-team market's 76ers Yes price
+  jumped from 8c to 99c in five minutes, reversing the July 21-22 Miami Heat
+  leak story) - 2026-07-25,
+  `site/blog/lebron-to-philadelphia-76ers-signing-odds.html`
 - [x] BetMoar vs polymarket-tui: choosing a Polymarket terminal
   (competitive comparison, targets "betmoar" / "polymarket terminal"
   searches; directive from Byron 2026-07-24) - 2026-07-24,
