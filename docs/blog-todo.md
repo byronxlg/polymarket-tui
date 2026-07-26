@@ -40,6 +40,12 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Hungarian Grand Prix 2026 Odds: What Qualifying Moved
+  (event: 2026 F1 Hungarian Grand Prix qualifying, July 25 - Norris took
+  pole by 0.012s over Hamilton, then Hamilton and Antonelli were handed
+  three-place grid penalties, reshuffling the Polymarket race-winner market
+  ahead of the July 26 race) - 2026-07-26,
+  `site/blog/hungarian-grand-prix-2026-odds-qualifying.html`
 - [x] LeBron to Philadelphia 76ers: What the Signing Moved
   (event: LeBron James posted on X that he signed a two-year, $8M deal with
   the Philadelphia 76ers, July 24; the next-team market's 76ers Yes price
