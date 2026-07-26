@@ -297,10 +297,19 @@ def main() -> int:
             steps.append(f"[{last}][{len(caps) + 2}:v]overlay=0:{BRAND_Y - 8}[vt]")
             last = "vt"
 
+        # Mux a silent AAC track. These shorts have no sound by design, but a
+        # file with no audio stream at all is rejected outright by Instagram
+        # Reels and trips some TikTok upload paths - platforms assume every
+        # video has one.
+        audio_idx = len(caps) + 3 if timer_on else len(caps) + 2
+        inputs += ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"]
+
         cmd = ["ffmpeg", "-y", *inputs,
-               "-filter_complex", ";".join(steps), "-map", f"[{last}]",
+               "-filter_complex", ";".join(steps),
+               "-map", f"[{last}]", "-map", f"{audio_idx}:a",
                "-t", f"{duration:.2f}",
                "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+               "-c:a", "aac", "-b:a", "96k", "-ac", "2",
                "-pix_fmt", "yuv420p", "-r", str(FPS), "-movflags", "+faststart",
                str(out)]
         proc = subprocess.run(cmd, capture_output=True, text=True)
