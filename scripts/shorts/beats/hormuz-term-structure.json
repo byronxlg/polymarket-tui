@@ -1,0 +1,15 @@
+{
+  "slug": "2026-07-26-hormuz-term-structure",
+  "headline": "When does the Strait of Hormuz reopen?",
+  "tag": "uv tool install polymarket-tui",
+  "note": "Sample beat sheet; the daily pipeline generates one per run from the story picker. Two rules the generator must keep: captions never hardcode a price (the market moves between writing and recording), and the run ends on the book or the chart rather than the expanded trade tape - the tape's cursor rail pulls up a named trader's wallet and open positions, which is public data but a different thing to foreground in promotional content.",
+  "beats": [
+    { "caption": "Polymarket, in your terminal", "wait": 2.2 },
+    { "caption": "Search any market", "keys": ["/"], "wait": 1.2 },
+    { "caption": "One question, priced at six different dates", "type": "strait of hormuz", "wait": 3.4 },
+    { "caption": "August is the cheap one", "keys": ["Down", "Enter"], "wait": 4.2 },
+    { "caption": "Every trade as it prints", "keys": ["a"], "wait": 3.2 },
+    { "caption": "Real depth on both sides of the mid", "keys": ["a"], "wait": 3.6 },
+    { "caption": "The order book streams live", "keys": ["Down", "Down", "Down"], "wait": 3.4 }
+  ]
+}

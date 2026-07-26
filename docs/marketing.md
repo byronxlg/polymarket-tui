@@ -65,6 +65,29 @@ comment threads and Moltbook. Every message sent is recorded in
   not a daily drumbeat, plus genuine engagement (comments/upvotes) on
   others' posts.
 
+### Short-form video (pipeline built, nothing published)
+
+- What: a ~30s vertical video of the real TUI answering one market's question,
+  built by `scripts/shorts/` (see its README). Same material as the blog, same
+  disclosed identity - it is the tool doing the thing, not a talking head.
+- Status as of 2026-07-26: the pipeline produces an mp4 end to end. Nothing is
+  posted, and posting is not automated.
+- Why not automated: autonomous posting needs a separate manual review per
+  platform, each 2-4 weeks and each wanting a demo of a working product.
+  YouTube forces uploads from unaudited API projects to private, and revokes
+  OAuth refresh tokens every 7 days while the app sits in Testing - which
+  alone breaks an unattended daily job. TikTok forces direct posts to
+  `SELF_ONLY` until its Content Posting audit passes; its `video.upload` scope
+  needs no audit but drops the video in the account inbox for a manual tap.
+  Instagram Reels needs `instagram_business_content_publish` through Meta app
+  review, a Business account, and a connected Facebook Page.
+- Watch for: prediction-market content sits near the gambling and financial
+  promotion policy lines on TikTok and Meta. Expect reach effects before
+  approval effects, and treat suppression as a stop-on-signal event like any
+  other channel.
+- Order to earn access: post by hand first and see whether the format lands at
+  all, then YouTube Shorts (one audit, no manual tap), then TikTok by inbox.
+
 ## Reporting
 
 Telegram updates to Byron at meaningful checkpoints (first posts on a
