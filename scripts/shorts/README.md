@@ -63,6 +63,31 @@ sent first) and `keys` (tmux key names), then `wait` seconds:
 Captions must never hardcode a price - the market moves between writing the
 sheet and recording it.
 
+Sheet-level flags:
+
+| flag | default | effect |
+| --- | --- | --- |
+| `clamp_lag` | `true` | cut idle stretches down to `MAX_GAP` (0.85s) |
+| `timer` | `false` | burn in an elapsed-seconds counter, top right |
+| `trim_boot` | `true` | start at the settled home screen rather than at launch |
+| `boot_caption` | - | caption for the pre-ready stretch when `trim_boot` is off |
+
+Clamping remaps every caption through the same time map that produced the
+footage, so cutting lag can never slide a caption off the frame it labels.
+
+`timer` forces `clamp_lag` off. A clamped video no longer runs at wall-clock
+speed, so a counter over it would either overstate elapsed time or visibly
+jump wherever lag was cut. The counter states true elapsed time since the
+process launched - which is also why the speed sheet keeps the real boot. It
+still includes whatever reading pauses the sheet asks for, so it is honest
+about that journey, not a benchmark of the tool.
+
+## The three sheets
+
+- `cold-start-speed` - launch to a streaming order book, counter running
+- `dry-trade` - the money path: cursor the book, `b`, size, review, place in DRY
+- `hormuz-term-structure` - one question priced at six dates, and the slide
+
 ## Publishing
 
 Not automated, and not close to it. Autonomous posting is gated on a separate

@@ -17,14 +17,15 @@ drawtext: Homebrew's ffmpeg ships without libfreetype, so drawtext does not
 exist on this machine. Pillow also measures strings properly, so wrapping is
 exact rather than an assumed character advance.
 
-Captions are burned in rather than uploaded as a subtitle track: every target
-platform renders its own captions differently (or not at all on a repost), and
-a caption describing what the cursor is doing is part of the footage, not an
-accessibility layer on top of it.
+Beat-sheet flags:
+  clamp_lag  (default true)  cut idle gaps down to MAX_GAP
+  timer      (default false) burn in an elapsed-seconds counter
+  trim_boot  (default true)  start at the settled home screen, not at launch
 """
 
 from __future__ import annotations
 
+import bisect
 import json
 import re
 import shutil
@@ -38,6 +39,8 @@ from PIL import Image, ImageDraw, ImageFont
 W, H = 1080, 1920
 FPS = 30
 MARGIN = 64
+MAX_GAP = 0.85  # longest idle stretch kept when clamp_lag is on
+TIMER_FPS = 10
 
 BG = (10, 14, 22)  # theme.py background #0a0e16
 FG = (201, 212, 227)  # theme.py foreground
@@ -52,11 +55,10 @@ BRAND_Y, BRAND_SIZE = 196, 36
 HEAD_SIZE, HEAD_LH = 54, 68
 CAP_SIZE, CAP_LH, CAP_H = 44, 58, 200
 TAG_SIZE, TAG_Y = 36, 1660
+TIMER_SIZE, TIMER_H = 52, 70
 
-# First frame that draws market rows (a volume cell). Everything before it is
-# python boot and an empty shell; the recorder's beat clock starts here too, so
-# cutting at this frame is what keeps captions aligned to the frames they
-# describe.
+# First frame that draws market rows (a volume cell) - a floor for the trim,
+# never the anchor: it lands mid-boot, before the category tabs paint.
 CONTENT = re.compile(r"\$\d")
 
 FONT_DIR = Path.home() / "Library/Fonts"
@@ -78,16 +80,18 @@ def regular(size: int) -> ImageFont.FreeTypeFont:
     return font(size, "JetBrainsMonoNerdFont-Regular.ttf", "JetBrainsMonoNerdFont-Medium.ttf")
 
 
-def trim_head(src: Path, dst: Path, head_offset: float) -> float:
-    """Copy src to dst from the recorder's ready instant on, rebased to t=0.
+def retime(src: Path, dst: Path, start: float, max_gap: float | None):
+    """Rewrite the cast from `start`, optionally clamping idle gaps.
 
-    head_offset comes from record.sh and is the same origin the beat clock uses,
-    which is the only reason captions line up with the frames they describe.
-    The first-price frame is a floor, not the anchor: it lands mid-boot, before
-    the category tabs paint.
+    Returns (duration, to_video) where to_video maps a time on the original
+    cast clock to its time in the rendered video. Captions are placed through
+    that map, so cutting lag can never slide a caption off the frame it
+    describes.
 
-    Returns the trimmed duration. Idle gaps are left alone - the beat waits are
-    already tight and scripted, and clamping them would desync the captions.
+    Events before `start` are kept at zero duration rather than dropped: a cast
+    is a stream of incremental terminal writes, so the boot events ARE the
+    paint. Delete them and the video opens on an empty terminal that only fills
+    in as later writes arrive.
     """
     with open(src) as fh:
         header = json.loads(fh.readline())
@@ -95,18 +99,39 @@ def trim_head(src: Path, dst: Path, head_offset: float) -> float:
     if not events:
         raise SystemExit("no events in cast")
 
-    first_price = next((e[0] for e in events if CONTENT.search(e[2])), events[0][0])
-    start = max(first_price, head_offset)
-    # Keep the head events at zero duration rather than dropping them. A cast is
-    # a stream of incremental terminal writes, so the boot events ARE the paint:
-    # delete them and the video opens on an empty terminal that only fills in as
-    # later writes arrive. Zeroing replays the paint instantly instead.
-    kept = [[0.0 if e[0] < start else round(e[0] - start, 6), e[1], e[2]] for e in events]
+    out: list[list] = []
+    marks: list[tuple[float, float]] = []
+    shift = 0.0
+    prev: float | None = None
+    for stamp, kind, data in events:
+        if stamp < start:
+            out.append([0.0, kind, data])
+            continue
+        if prev is not None and max_gap and (stamp - prev) > max_gap:
+            shift += (stamp - prev) - max_gap
+        prev = stamp
+        video_t = round(stamp - start - shift, 6)
+        out.append([video_t, kind, data])
+        marks.append((stamp, video_t))
+
     with open(dst, "w") as fh:
         fh.write(json.dumps(header) + "\n")
-        for event in kept:
+        for event in out:
             fh.write(json.dumps(event) + "\n")
-    return kept[-1][0]
+
+    cast_marks = [m[0] for m in marks]
+
+    def to_video(cast_t: float) -> float:
+        i = bisect.bisect_right(cast_marks, cast_t) - 1
+        if i < 0:
+            return 0.0
+        cast_at, video_at = marks[i]
+        nxt = marks[i + 1][1] if i + 1 < len(marks) else video_at + (cast_t - cast_at)
+        # Inside a clamped gap the offset would overshoot; stop at the next
+        # real frame so a caption never lands past the action it labels.
+        return min(video_at + (cast_t - cast_at), nxt)
+
+    return (out[-1][0] if out else 0.0), to_video
 
 
 def wrap(text: str, fnt: ImageFont.FreeTypeFont, width: int, limit: int = 3) -> list[str]:
@@ -120,15 +145,9 @@ def wrap(text: str, fnt: ImageFont.FreeTypeFont, width: int, limit: int = 3) -> 
             cur = candidate
     if cur:
         lines.append(cur)
-    while len(lines) > limit:
+    if len(lines) > limit:
         lines = lines[: limit - 1] + [lines[limit - 1].rstrip(".,") + "..."]
-        break
     return lines
-
-
-def centred(draw: ImageDraw.ImageDraw, lines: list[str], fnt, colour, top: int, lh: int) -> None:
-    for i, line in enumerate(lines):
-        draw.text(((W - fnt.getlength(line)) / 2, top + i * lh), line, font=fnt, fill=colour)
 
 
 def build_plate(spec: dict, term_y: int, tmp: Path) -> Path:
@@ -143,7 +162,9 @@ def build_plate(spec: dict, term_y: int, tmp: Path) -> Path:
     head_font = bold(HEAD_SIZE)
     lines = wrap(spec["headline"], head_font, W - 2 * MARGIN)
     top = term_y - 56 - HEAD_LH * len(lines)
-    centred(draw, lines, head_font, FG, top, HEAD_LH)
+    for i, line in enumerate(lines):
+        draw.text(((W - head_font.getlength(line)) / 2, top + i * HEAD_LH),
+                  line, font=head_font, fill=FG)
     # A short accent rule ties the question to the terminal below it.
     draw.rectangle([(W // 2 - 60, term_y - 34), (W // 2 + 60, term_y - 31)], fill=BLUE)
 
@@ -161,8 +182,7 @@ def build_caption(text: str, idx: int, tmp: Path) -> Path:
     img = Image.new("RGBA", (W, CAP_H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     fnt = regular(CAP_SIZE)
-    lines = wrap(text, fnt, W - 2 * MARGIN)
-    for i, line in enumerate(lines):
+    for i, line in enumerate(wrap(text, fnt, W - 2 * MARGIN)):
         # Lead line in accent blue, continuations in body grey, so a wrapped
         # caption still reads as one unit at a glance.
         colour = BLUE if i == 0 else FG
@@ -172,15 +192,41 @@ def build_caption(text: str, idx: int, tmp: Path) -> Path:
     return path
 
 
+def build_timer(duration: float, offset: float, tmp: Path) -> Path:
+    """A PNG per tick of an elapsed-seconds counter.
+
+    `offset` is how much real time already ran before video t=0, so the counter
+    states true elapsed time since the app launched rather than time since the
+    cut. Rendered as a numbered sequence and fed to ffmpeg as one input - a
+    per-frame overlay filter would be hundreds of filters in the graph.
+    """
+    seq = tmp / "timer"
+    seq.mkdir()
+    fnt = bold(TIMER_SIZE)
+    for i in range(int(duration * TIMER_FPS) + 2):
+        img = Image.new("RGBA", (W, TIMER_H), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        label = f"{offset + i / TIMER_FPS:.1f}s"
+        draw.text((W - MARGIN - fnt.getlength(label), 0), label, font=fnt, fill=BLUE)
+        img.save(seq / f"{i:05d}.png")
+    return seq
+
+
 def main() -> int:
     beats_path, outdir = Path(sys.argv[1]), Path(sys.argv[2])
     spec = json.loads(beats_path.read_text())
     slug = spec["slug"]
     cast = outdir / f"{slug}.cast"
     recorded = json.loads((outdir / f"{slug}.timings.json").read_text())
-    timings = recorded["beats"]
-    head_offset = recorded["head_offset"]
+    timings, head_offset = recorded["beats"], recorded["head_offset"]
     out = outdir / f"{slug}.mp4"
+
+    timer_on = spec.get("timer", False)
+    trim_boot = spec.get("trim_boot", True)
+    # A clamped video no longer runs at wall-clock speed, so a counter over it
+    # would either lie about elapsed time or jump wherever lag was cut. When
+    # the short is about speed, keep the real timeline and show the real boot.
+    clamp = spec.get("clamp_lag", True) and not timer_on
 
     for tool in ("agg", "ffmpeg", "ffprobe"):
         if not shutil.which(tool):
@@ -189,11 +235,18 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         trimmed = tmp / "trimmed.cast"
-        # a beat to read the last caption
-        duration = trim_head(cast, trimmed, head_offset) + 1.4
+
+        with open(cast) as fh:
+            fh.readline()
+            events = [json.loads(line) for line in fh if line.strip()]
+        first_price = next((e[0] for e in events if CONTENT.search(e[2])), 0.0)
+        start = max(first_price, head_offset) if trim_boot else 0.0
+
+        span, to_video = retime(cast, trimmed, start, MAX_GAP if clamp else None)
+        duration = span + 1.4  # a beat to read the last caption
+        print(f"retime: start={start:.2f}s clamp={clamp} -> {duration:.1f}s")
 
         gif = tmp / "term.gif"
-        print(f"agg -> {gif} ({duration:.1f}s)")
         subprocess.run(
             ["agg", "--font-size", "24", "--line-height", "1.4", "--fps-cap", str(FPS),
              "--idle-time-limit", "2", "--no-loop", "-q", str(trimmed), str(gif)],
@@ -213,6 +266,11 @@ def main() -> int:
 
         plate = build_plate(spec, term_y, tmp)
         shown = [b for b in timings if b["caption"]]
+        if not trim_boot and spec.get("boot_caption"):
+            # Beats only start once the app is ready, so with the boot left in
+            # the opening seconds would otherwise carry no caption at all.
+            shown = [{"at": -head_offset, "until": 0.0,
+                      "caption": spec["boot_caption"]}] + shown
         caps = [build_caption(b["caption"], i, tmp) for i, b in enumerate(shown)]
 
         inputs = ["-loop", "1", "-framerate", str(FPS), "-i", str(plate),
@@ -223,22 +281,28 @@ def main() -> int:
         steps = [f"[1:v]scale={W}:{term_h}:flags=lanczos[term]",
                  f"[0:v][term]overlay=0:{term_y}[v0]"]
         for i, beat in enumerate(shown):
-            # Hold the last caption to the end so the video never dead-ends on
-            # a bare terminal frame.
-            end = duration if i == len(shown) - 1 else beat["until"]
+            # Beat times are on the recorder's clock; map them through the same
+            # retime that produced the footage.
+            at = to_video(head_offset + beat["at"])
+            end = duration if i == len(shown) - 1 else to_video(head_offset + beat["until"])
             steps.append(
                 f"[v{i}][{i + 2}:v]overlay=0:{cap_y}:"
-                f"enable='between(t,{beat['at']:.2f},{end:.2f})'[v{i + 1}]"
+                f"enable='between(t,{at:.2f},{end:.2f})'[v{i + 1}]"
             )
-        final = f"v{len(shown)}"
+        last = f"v{len(shown)}"
+
+        if timer_on:
+            seq = build_timer(duration, start, tmp)
+            inputs += ["-framerate", str(TIMER_FPS), "-i", str(seq / "%05d.png")]
+            steps.append(f"[{last}][{len(caps) + 2}:v]overlay=0:{BRAND_Y - 8}[vt]")
+            last = "vt"
 
         cmd = ["ffmpeg", "-y", *inputs,
-               "-filter_complex", ";".join(steps), "-map", f"[{final}]",
+               "-filter_complex", ";".join(steps), "-map", f"[{last}]",
                "-t", f"{duration:.2f}",
                "-c:v", "libx264", "-preset", "slow", "-crf", "20",
                "-pix_fmt", "yuv420p", "-r", str(FPS), "-movflags", "+faststart",
                str(out)]
-        print("ffmpeg ...")
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode:
             # Filter-graph errors land in the last stderr lines; the full log is
