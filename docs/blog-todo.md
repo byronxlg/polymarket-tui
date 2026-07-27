@@ -40,6 +40,11 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] US-Iran Strike Pause Odds on Polymarket: July 2026
+  (event: Trump halted the two-week-old US bombing campaign on Iran after
+  July 23, following 13 consecutive nights of strikes; Iran said it would
+  hold its own fire as long as the pause lasts, July 26) - 2026-07-27,
+  `site/blog/us-iran-strike-pause-odds-july-2026.html`
 - [x] Hungarian Grand Prix 2026 Odds: What Qualifying Moved
   (event: 2026 F1 Hungarian Grand Prix qualifying, July 25 - Norris took
   pole by 0.012s over Hamilton, then Hamilton and Antonelli were handed
