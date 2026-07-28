@@ -40,6 +40,12 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Bitcoin Crash Odds on Polymarket: July 28, 2026
+  (event: Bitcoin briefly reclaimed $65,000 on July 27 then reversed
+  overnight to about $63,200 amid tightening liquidity ahead of the July
+  28-29 Fed decision, spot-ETF outflows, and cascading liquidations;
+  Polymarket's above-$64,000 noon-ET market fell from an 86.5c peak to 20c)
+  - 2026-07-28, `site/blog/bitcoin-crash-odds-july-2026.html`
 - [x] US-Iran Strike Pause Odds on Polymarket: July 2026
   (event: Trump halted the two-week-old US bombing campaign on Iran after
   July 23, following 13 consecutive nights of strikes; Iran said it would
