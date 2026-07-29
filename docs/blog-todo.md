@@ -40,6 +40,14 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] US-Iran Ceasefire Collapse Odds on Polymarket: July 29, 2026
+  (event: IRGC launched an "attempted surprise attack" with ballistic
+  missiles at a US base in Jordan on July 28, breaking the strike-pause
+  covered on 2026-07-27; the US and Saudi Arabia struck Iran-backed militia
+  sites in Iraq in response; Polymarket's ceasefire-by-date ladder fell
+  8.5-18.5c, with the by-July-31 contract crashing from a 62.5c peak to
+  34.5c within an hour then partly recovering to 41c) - 2026-07-29,
+  `site/blog/us-iran-ceasefire-collapse-odds-july-2026.html`
 - [x] Bitcoin Crash Odds on Polymarket: July 28, 2026
   (event: Bitcoin briefly reclaimed $65,000 on July 27 then reversed
   overnight to about $63,200 amid tightening liquidity ahead of the July
