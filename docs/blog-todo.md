@@ -40,6 +40,15 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed Holds in July 2026: What September Now Prices
+  (event: the FOMC voted 9-3 to hold rates at 3.50-3.75% on July 29,
+  2026 - the first split decision under Fed Chair Kevin Warsh, with
+  three regional bank presidents dissenting for a hike, citing Middle
+  East uncertainty and energy-driven inflation; Polymarket's July
+  no-change market had drifted from 93c to a 72c low before recovering
+  to resolve at 100c, and its September market now prices a 25bp hike
+  as the favorite at 56.5c) - 2026-07-30,
+  `site/blog/fed-holds-july-2026-september-hike-odds.html`
 - [x] US-Iran Ceasefire Collapse Odds on Polymarket: July 29, 2026
   (event: IRGC launched an "attempted surprise attack" with ballistic
   missiles at a US base in Jordan on July 28, breaking the strike-pause
