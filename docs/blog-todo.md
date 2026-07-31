@@ -40,6 +40,14 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] NVIDIA Overtakes Apple: Polymarket's Largest-Company Odds
+  (event: Apple reported Q3 FY2026 earnings after the July 30 close - revenue
+  and EPS both beat estimates, but Services and Greater China revenue missed
+  and guidance was weak, sending shares down 6.65% after hours from $333.43
+  to $311.25; Polymarket's "Largest Company end of July?" market flipped
+  within 30 minutes, NVIDIA's Yes price rising from 13.2c to 68c and Apple's
+  falling from 86.75c to 31.45c, later settling near 89.4c/10.15c) -
+  2026-07-31, `site/blog/nvidia-overtakes-apple-largest-company-odds.html`
 - [x] Fed Holds in July 2026: What September Now Prices
   (event: the FOMC voted 9-3 to hold rates at 3.50-3.75% on July 29,
   2026 - the first split decision under Fed Chair Kevin Warsh, with
