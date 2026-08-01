@@ -40,6 +40,14 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Hamas Disarmament Deal Odds on Polymarket: August 2026
+  (event: Trump's US-led "Board of Peace" announced Hamas signed a Gaza
+  disarmament framework in El-Alamein, Egypt, July 30, 2026 - Israel's
+  government called the terms unacceptable within a day; Polymarket's
+  "Will Hamas agree to disarm by December 31?" market spiked from 44c to a
+  93.5c peak within the hour, then crashed to a 59.5c low over a 20-minute
+  window on July 31 as the Israeli rejection landed, settling near 61.5c)
+  - 2026-08-01, `site/blog/hamas-disarmament-deal-odds-august-2026.html`
 - [x] NVIDIA Overtakes Apple: Polymarket's Largest-Company Odds
   (event: Apple reported Q3 FY2026 earnings after the July 30 close - revenue
   and EPS both beat estimates, but Services and Greater China revenue missed
