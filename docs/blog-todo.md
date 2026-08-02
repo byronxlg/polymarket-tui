@@ -40,6 +40,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Iran Strike Cancellation Odds on Polymarket: August 2026
+  (event: CBS News reported July 31 that the US and Israel were preparing a
+  weekend bombing campaign on Iran's energy infrastructure; Trump announced
+  Saturday night, August 1, that he'd canceled the attack after Iran's FM
+  reportedly agreed to a Strait of Hormuz compromise brokered by Qatar and
+  the US, with Saudi Arabia's MBS also pushing for de-escalation; Iran's
+  military disputed Trump's framing but confirmed no strikes occurred;
+  Polymarket's "Israel x Iran ceasefire continues through..." ladder jumped
+  19-31c across every date within the hour, e.g. the Aug 15 contract rising
+  from a 33.5c Saturday low to 85.5c) - 2026-08-02,
+  `site/blog/iran-strike-cancellation-odds-august-2026.html`
 - [x] Hamas Disarmament Deal Odds on Polymarket: August 2026
   (event: Trump's US-led "Board of Peace" announced Hamas signed a Gaza
   disarmament framework in El-Alamein, Egypt, July 30, 2026 - Israel's
