@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Limit vs. Market Orders on Polymarket — polymarket-tui blog</title>
+<meta name="description" content="Polymarket has no market-order button - a 'market' order is a limit order priced to cross the spread, killed instead of rested. Here's what that means for fills." />
+<link rel="canonical" href="https://polymarket-tui.botsmith.dev/blog/limit-vs-market-orders-on-polymarket.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://polymarket-tui.botsmith.dev/blog/limit-vs-market-orders-on-polymarket.html" />
+<meta property="og:title" content="Limit vs. Market Orders on Polymarket" />
+<meta property="og:description" content="Polymarket has no market-order button - a 'market' order is a limit order priced to cross the spread, killed instead of rested. Here's what that means for fills." />
+<meta property="og:image" content="https://polymarket-tui.botsmith.dev/assets/og.png" />
+<meta property="article:published_time" content="2026-08-03" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Limit vs. Market Orders on Polymarket",
+  "description": "Polymarket has no market-order button - a 'market' order is a limit order priced to cross the spread, killed instead of rested. Here's what that means for fills.",
+  "datePublished": "2026-08-03",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://polymarket-tui.botsmith.dev/blog/limit-vs-market-orders-on-polymarket.html",
+  "image": "https://polymarket-tui.botsmith.dev/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>order-types</p>
+<h1>Limit vs. Market Orders on Polymarket</h1>
+<p class="post-meta"><span>2026-08-03</span><span class="d">/</span><span>5 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">Polymarket's exchange only ever accepts one kind of order:
+a limit, a price you name yourself. There is no separate "market order"
+button on the order form. What everyone calls a market order is really a
+limit order priced aggressively enough to cross the book immediately, paired
+with an instruction to cancel whatever doesn't fill. Knowing which one you're
+placing changes what you should expect to happen next.</p>
+
+<span class="sec-label"><i>01</i>You always name a price</span>
+<h2>What a limit order actually promises</h2>
+
+<p>A limit order says: fill me at this price or better, and wait as long as
+it takes. Buy YES at 40c and the order either matches instantly against an
+ask at 40c or lower, or it joins the book as a new bid at 40c and sits there
+- visible to everyone, filled only if someone later sells into it. Nothing
+forces a limit order to trade right away. That patience is the whole point:
+you control the price completely, and you accept that the trade might never
+happen if the market never comes to you.</p>
+
+<p>Sell orders work the same way in reverse - a limit sell rests as an ask,
+filled only when a buyer's bid reaches it. Either side, the order you place
+is the price you're willing to live with, published to the book for anyone
+to take.</p>
+
+<span class="sec-label"><i>02</i>No such thing as a market order</span>
+<h2>What "market order" actually means here</h2>
+
+<p>Plenty of trading apps show two separate buttons: "limit" and "market."
+Polymarket's CLOB (central limit order book) has no market-order type to
+send - every order it accepts is a limit, full stop. A "market" order is a
+limit order priced at (or through) the best available price on the other
+side, so it crosses immediately instead of resting. Buying "at market"
+really means placing a limit buy at the current best ask, or a bit above it
+for a large size that needs to walk up several levels; selling at market
+means a limit sell at the best bid, or below it.</p>
+
+<p>That's also why aggressive limits and market orders can look identical
+in effect: a limit buy priced 5c above the best ask behaves exactly like a
+market order for any size the book can absorb within that range. The
+difference is only in how deliberately you chose the price versus letting
+the app pick the touch for you.</p>
+
+<span class="sec-label"><i>03</i>The other half: what happens to the leftover</span>
+<h2>Time-in-force decides the remainder's fate</h2>
+
+<p>Price alone doesn't finish the picture - the exchange also needs to know
+what to do with any part of the order that doesn't fill immediately. That
+instruction is the order's time-in-force:</p>
+
+<ul>
+  <li><b>GTC (good-til-cancelled)</b>: the default. Whatever crosses fills
+    now; anything left over rests on the book until it fills or you cancel
+    it. This is what a limit order means when nobody says otherwise.</li>
+  <li><b>FOK (fill-or-kill)</b>: all of it fills right now, or none of it
+    does. There's no partial outcome and nothing is left resting - if the
+    book can't absorb the whole size at your price, the entire order is
+    cancelled.</li>
+  <li><b>FAK (fill-and-kill)</b>: take whatever fills immediately, and
+    cancel the rest instead of resting it. Order-book veterans elsewhere
+    call the same idea IOC, immediate-or-cancel.</li>
+</ul>
+
+<p>A market order is really shorthand for one specific combination: a limit
+priced at the touch, with FAK time-in-force. That pairing is what makes it
+behave the way people expect a market order to behave - it either fills now
+or gets out of the way, never sitting quietly on the book at a price you
+didn't choose.</p>
+
+<span class="sec-label"><i>04</i>Read the fill before you commit</span>
+<h2>Fills now, rests, or cancelled - never guess which</h2>
+
+<p>Because the same size can split between "fills now" and "leftover," the
+useful question before placing an order isn't just "what price" - it's "how
+much of this actually happens right now." Summing the book depth your limit
+price crosses answers that in advance:</p>
+
+<pre><code><span class="c">BUY 500 YES @ 42c, book currently:</span>
+<span class="c">ASK price   size</span>
+<span class="r">42c</span>         180
+<span class="r">43c</span>         260
+<span class="r">44c</span>         400
+
+<span class="c">-&gt; fills ~440 now, ~60 rests on the book   (GTC)</span>
+<span class="c">-&gt; nothing fills - too little depth, killed (FOK)</span>
+<span class="c">-&gt; fills ~440 now, ~60 cancelled            (FAK / market)</span>
+</code></pre>
+
+<p>Same order, same price, three different outcomes, entirely decided by
+time-in-force. The leftover's fate is never in doubt once you know the TIF:
+GTC quietly rests, FOK refuses to do anything unless the whole size clears,
+and FAK (including every market order) takes the partial fill and throws the
+rest away rather than leaving it exposed on the book.</p>
+
+<span class="sec-label"><i>05</i>Picking one</span>
+<h2>When each makes sense</h2>
+
+<p>Reach for a plain GTC limit when the price matters more than the timing -
+you're willing to wait for the market to come to you, and a partial fill
+today plus more tomorrow is fine. Reach for a market order (a marketable
+limit at the touch, FAK) when getting filled now matters more than the exact
+price, and you'd rather take what's available than leave an order sitting
+at a stale price. FOK is the narrow case: an all-or-nothing size where a
+partial fill would be worse than no trade at all, for example an order sized
+to exactly hedge something else.</p>
+
+<p>In <a href="https://github.com/byronxlg/polymarket-tui">polymarket-tui</a>'s
+order panel, leaving the price field empty places a market order - a
+marketable limit at the touch with FAK - while typing a price places a
+regular limit, defaulting to GTC. <kbd>ctrl+g</kbd> cycles the time-in-force
+through GTC, FOK, and FAK for any priced limit, and the panel's summary line
+always states the fill split before you confirm: "fills all ~440 now,"
+"fills ~440 now, ~60 rests on the book," or "nothing fills now - the order
+is cancelled, not rested." New setups start in dry-run, so the whole
+pipeline - pricing, splitting the fill, signing - runs with nothing at
+stake.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">No account is needed to browse markets, books, and charts.
+The <a href="../#install">install page</a> has Homebrew and one-liner
+options.</p>
+
+</article>
+
+<p class="post-foot">More posts on the <a href="./">blog index</a>, or subscribe
+via <a href="feed.xml">RSS</a>. Not affiliated with Polymarket; nothing here is
+financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>

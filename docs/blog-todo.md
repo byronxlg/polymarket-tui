@@ -19,8 +19,6 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Queue (fallback)
 
-- [ ] Limit vs market orders on Polymarket (and why market orders are really
-  marketable limits) - intent: "polymarket limit order", "polymarket market order"
 - [ ] Reading the trade tape: what prints tell you that the book does not -
   intent: "polymarket trade history", "order flow prediction markets"
 - [ ] Dry-run trading: practice on the real exchange with nothing at stake -
@@ -40,6 +38,9 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Limit vs market orders on Polymarket (and why market orders are really
+  marketable limits) - 2026-08-03,
+  `site/blog/limit-vs-market-orders-on-polymarket.html`
 - [x] Iran Strike Cancellation Odds on Polymarket: August 2026
   (event: CBS News reported July 31 that the US and Israel were preparing a
   weekend bombing campaign on Iran's energy infrastructure; Trump announced
