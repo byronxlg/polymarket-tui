@@ -9,6 +9,14 @@
 
   <!-- ITEMS: newest first. -->
   <item>
+    <title>Limit vs. Market Orders on Polymarket</title>
+    <link>https://polymarket-tui.botsmith.dev/blog/limit-vs-market-orders-on-polymarket.html</link>
+    <guid>https://polymarket-tui.botsmith.dev/blog/limit-vs-market-orders-on-polymarket.html</guid>
+    <pubDate>Mon, 03 Aug 2026 10:15:00 +0000</pubDate>
+    <description>Polymarket has no market-order button - a "market" order is a limit order priced to cross the spread, killed instead of rested. Here's what that means for fills.</description>
+  </item>
+
+  <item>
     <title>Iran Strike Cancellation Odds on Polymarket: August 2026</title>
     <link>https://polymarket-tui.botsmith.dev/blog/iran-strike-cancellation-odds-august-2026.html</link>
     <guid>https://polymarket-tui.botsmith.dev/blog/iran-strike-cancellation-odds-august-2026.html</guid>
