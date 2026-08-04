@@ -38,6 +38,14 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Michigan Democratic Senate Primary Odds on Polymarket: August 2026
+  (event: Michigan's Democratic primary for Gary Peters's open Senate seat,
+  held August 4, 2026, between Rep. Haley Stevens and Abdul El-Sayed;
+  El-Sayed's Polymarket win-probability contract fell from 81.5c to a 63.5c
+  low on July 25 after Gov. Whitmer endorsed Stevens, then climbed to 98.1c
+  by primary day as four polls showed him leading by 10-19 points after the
+  July 27 debate) - 2026-08-04,
+  `site/blog/michigan-democratic-senate-primary-odds-2026.html`
 - [x] Limit vs market orders on Polymarket (and why market orders are really
   marketable limits) - 2026-08-03,
   `site/blog/limit-vs-market-orders-on-polymarket.html`
