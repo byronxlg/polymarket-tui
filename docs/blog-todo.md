@@ -19,8 +19,6 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Queue (fallback)
 
-- [ ] Reading the trade tape: what prints tell you that the book does not -
-  intent: "polymarket trade history", "order flow prediction markets"
 - [ ] Dry-run trading: practice on the real exchange with nothing at stake -
   intent: "paper trading polymarket", "polymarket without money"
 - [ ] Following any trader's portfolio (public wallets, read-only) - intent:
@@ -38,6 +36,10 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Reading the Polymarket Trade Tape (fallback/evergreen: prints vs. the
+  book, aggressor side, size and clustering, worked with a live example from
+  Polymarket's September 2026 Fed "no change" market) - 2026-08-05,
+  `site/blog/reading-the-polymarket-trade-tape.html`
 - [x] Michigan Democratic Senate Primary Odds on Polymarket: August 2026
   (event: Michigan's Democratic primary for Gary Peters's open Senate seat,
   held August 4, 2026, between Rep. Haley Stevens and Abdul El-Sayed;
