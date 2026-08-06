@@ -36,6 +36,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Strait of Hormuz Reopening Odds on Polymarket: August 2026
+  (event: a Houthi ballistic-missile attack on the Saudi tanker Wafa in the
+  Red Sea off Yanbu, August 5, 2026 - the eighth Saudi tanker targeted since
+  the July 22 blockade began - landed the same day Trump told Fox News a
+  deal to reopen the Strait of Hormuz could come "tomorrow or the next day";
+  Polymarket's "Strait of Hormuz traffic returns to normal by August 31?"
+  market had climbed from 6.5c to an 18.5c peak on Bloomberg's August 4
+  "traffic at a trickle" report and progress on an Iran-Oman shipping-route
+  framework, then pulled back to 15.5c after the attack, while the tighter
+  "by August 15?" contract fell from 3.2c to 1.65c over the same 24 hours)
+  - 2026-08-06, `site/blog/strait-of-hormuz-reopening-odds-august-2026.html`
 - [x] Reading the Polymarket Trade Tape (fallback/evergreen: prints vs. the
   book, aggressor side, size and clustering, worked with a live example from
   Polymarket's September 2026 Fed "no change" market) - 2026-08-05,
