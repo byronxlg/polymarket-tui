@@ -36,6 +36,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Clarity Act Odds on Polymarket: August 2026 (event: the Senate left
+  Washington for its August recess on August 7, 2026 without a floor vote on
+  the Digital Asset Market Clarity Act (H.R.3633), after Majority Leader
+  Thune confirmed August 6 there would be no August vote and pointed to
+  September when the chamber returns September 14; Polymarket's "signed
+  into law in 2026?" market fell from a 38.5c high on July 24 to 13c, with a
+  sharp step from 22.5c to 14.5c on August 5 as reporting turned to the
+  Senate running out of floor time, driven by an unresolved ethics dispute
+  over Trump's crypto earnings between Sens. Gallego and Alsobrooks and
+  Senate Republicans) - 2026-08-07,
+  `site/blog/clarity-act-odds-polymarket-august-2026.html`
 - [x] Strait of Hormuz Reopening Odds on Polymarket: August 2026
   (event: a Houthi ballistic-missile attack on the Saudi tanker Wafa in the
   Red Sea off Yanbu, August 5, 2026 - the eighth Saudi tanker targeted since
