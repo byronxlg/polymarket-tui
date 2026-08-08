@@ -36,6 +36,16 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed September 2026 Odds on Polymarket: The Jobs Report Flip
+  (event: the BLS's July 2026 employment report, released 12:30 UTC August
+  7, showed nonfarm payrolls falling 23,000 versus a consensus of +83,000,
+  with unemployment ticking down to 4.1% on a shrinking labor force and
+  wage growth slipping to 3.2% YoY; Polymarket's "Fed Decision in
+  September?" market flipped within the hour - "No change" jumped from
+  48.5c to a 65.5c intraday peak (settling 62-63c), while "Hike 25bps",
+  the favorite since the July 30 FOMC hold at 56.5c and as high as 59.5c
+  on August 1, crashed to a 31.5c low (settling 36-37c)) - 2026-08-08,
+  `site/blog/fed-september-2026-odds-jobs-report-flip.html`
 - [x] Clarity Act Odds on Polymarket: August 2026 (event: the Senate left
   Washington for its August recess on August 7, 2026 without a floor vote on
   the Digital Asset Market Clarity Act (H.R.3633), after Majority Leader
