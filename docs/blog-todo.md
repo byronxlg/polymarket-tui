@@ -36,6 +36,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] US-Iran Blockade End Odds on Polymarket: August 2026 (event: Mohammad
+  Bagher Zolghadr, secretary of Iran's Supreme National Security Council,
+  published Iran's conditions for reopening the Strait of Hormuz on Saturday
+  August 8, 2026 - lift the US naval blockade, withdraw US forces, pay war
+  reparations, lift sanctions, release frozen assets - derailing Iran-Oman
+  shipping-corridor talks that Foreign Minister Araghchi had called "very
+  close" to done a day earlier; Polymarket's "US announces end of Iranian
+  blockade by August 15?" fell from a 64.5c Friday-evening peak to a 26.5c
+  low (settling 28.5c), the by-August-31 contract fell from 79.5c to 58.5c,
+  and the by-August-22 contract saw the ladder's largest 24h move at -35.5c)
+  - 2026-08-09, `site/blog/us-iran-blockade-end-odds-august-2026.html`
 - [x] Fed September 2026 Odds on Polymarket: The Jobs Report Flip
   (event: the BLS's July 2026 employment report, released 12:30 UTC August
   7, showed nonfarm payrolls falling 23,000 versus a consensus of +83,000,
