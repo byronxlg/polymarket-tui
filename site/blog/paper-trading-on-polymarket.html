@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How to Paper-Trade Polymarket Without Risking Money — polymarket-tui blog</title>
+<meta name="description" content="Dry-run mode places real orders against Polymarket's live book - priced, validated, and signed - without ever posting them. How to practice safely before going live." />
+<link rel="canonical" href="https://polymarket-tui.botsmith.dev/blog/paper-trading-on-polymarket.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://polymarket-tui.botsmith.dev/blog/paper-trading-on-polymarket.html" />
+<meta property="og:title" content="How to Paper-Trade Polymarket Without Risking Money" />
+<meta property="og:description" content="Dry-run mode places real orders against Polymarket's live book - priced, validated, and signed - without ever posting them. How to practice safely before going live." />
+<meta property="og:image" content="https://polymarket-tui.botsmith.dev/assets/og.png" />
+<meta property="article:published_time" content="2026-08-10" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "How to Paper-Trade Polymarket Without Risking Money",
+  "description": "Dry-run mode places real orders against Polymarket's live book - priced, validated, and signed - without ever posting them. How to practice safely before going live.",
+  "datePublished": "2026-08-10",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://polymarket-tui.botsmith.dev/blog/paper-trading-on-polymarket.html",
+  "image": "https://polymarket-tui.botsmith.dev/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>paper-trading</p>
+<h1>How to Paper-Trade Polymarket Without Risking Money</h1>
+<p class="post-meta"><span>2026-08-10</span><span class="d">/</span><span>5 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">Most "paper trading" tools hand you a fake account, a
+simulated fill engine, and prices that update on a delay. Polymarket's
+order book is public and free to read, which means a practice mode doesn't
+need any of that: it can use the real book, the real validation rules, and
+the real signature - and simply stop one step short of sending the order to
+the exchange. That is what dry-run mode is.</p>
+
+<span class="sec-label"><i>01</i>What dry-run actually does</span>
+<h2>Not a sandbox - the real pipeline, minus one call</h2>
+
+<p>In polymarket-tui, every order - dry-run or live - goes through the same
+path: it is priced against the live book, validated against the exchange's
+own rules, and signed as a real EIP-712 order object. The only difference
+is the last step. A live order calls <code>post_order</code> and the
+exchange either matches or rests it. A dry-run order stops right before
+that call. Nothing about the pricing, validation, or signing is
+approximated to make this possible - it is the identical code path a live
+order takes, run against the identical live market data, with the network
+call to actually place it skipped.</p>
+
+<p>That matters because it is also why dry-run defaults to on. Going live
+is deliberate: press <code>L</code> to toggle DRY/LIVE for the session (or
+set <code>POLYMARKET_EXECUTION_LIVE=1</code>), confirm it, and the choice
+persists with your saved credentials. A session that starts in LIVE mode
+announces it loudly rather than posting quietly - the app is never
+careless with money it might send.</p>
+
+<span class="sec-label"><i>02</i>Why the real book beats a simulator</span>
+<h2>Fake liquidity teaches you the wrong lessons</h2>
+
+<p>A simulator that fills you instantly at the last traded price hides the
+two things that actually determine whether a real order works: how much
+depth sits at your price, and how wide the spread is between where you can
+buy and where you could immediately sell back. Practicing against
+Polymarket's live book means a thin market shows itself as thin - a
+10,000-share order against 400 shares of resting depth genuinely won't
+fill at one price, and dry-run mode shows you that exact split, drawn from
+the same book a live order would have crossed.</p>
+
+<span class="sec-label"><i>03</i>The checks you'd hit live, you hit here too</span>
+<h2>Every hard block still fires</h2>
+
+<p>polymarket-tui's order panel runs one validation pipeline regardless of
+mode: is the market still open and accepting orders, is the price a
+multiple of the current tick, does the size clear the exchange minimum
+(usually 5 shares), is the price strictly between 0 and 1, and - checked
+against your real balance and real positions - can you actually afford a
+buy or cover a sell. A price sitting more than 10% from the book's
+midpoint, or a notional above your configured limit, surfaces as a yellow
+warning rather than a block, exactly as it would live. Practicing in
+dry-run means the first time you hit "minimum 5 shares for this market" or
+"price must be a multiple of 0.001" costs you nothing - you learn the rule
+instead of losing an order to it.</p>
+
+<span class="sec-label"><i>04</i>A live walkthrough</span>
+<h2>What the confirm card shows</h2>
+
+<p>Here is a real dry-run buy, priced against Polymarket's actual book as
+of 2026-08-10 08:13 UTC: the "no change" outcome on the Fed's September
+2026 rate decision, trading at 63c bid / 64c ask on $1.10M in 24-hour
+volume. Typing a 10-share buy at the ask and pressing enter arms the
+confirm card exactly as it would for a live order:</p>
+
+<pre><code><span class="c">DRY-RUN - signs, never posts</span>
+BUY 10 <span class="g">YES</span>
+@ 64c   limit GTC
+fills all ~10 now
+cost   $6.40
+payout $10.00 if it wins
+enter place   esc edit</code></pre>
+
+<p>The card is not a mockup built for this post - it is what the app
+renders from that exact book, with the exact resting size that made "fills
+all ~10 now" true at that moment. A second enter would place it. In
+dry-run mode, that second enter instead logs the outcome and returns you
+to the panel, having proven the whole pipeline works without moving a
+dollar.</p>
+
+<span class="sec-label"><i>05</i>What dry-run can't show you</span>
+<h2>A signed order is not a matched one</h2>
+
+<p>The fill line is an estimate of what the book could absorb at the
+moment you drafted the order, not a report of what happened - because
+nothing happened. A live order posted a second later might find that depth
+already taken by someone else, or find more behind it. Dry-run proves your
+order is valid and shows you the book's shape; it cannot show you the
+result of a race that never ran. Your balance and positions do not change,
+and there is no fill notification, because the exchange never saw the
+order.</p>
+
+<p>What it does keep is a record: every dry-run placement and cancel is
+appended to the same audit log a live order would use
+(<code>~/.local/share/polymarket-tui/orders.jsonl</code>), tagged
+<code>dry_run: true</code>. Practice sessions leave a trail you can review
+- what you would have bought, at what price, and why - even though nothing
+was ever at stake.</p>
+
+<span class="sec-label"><i>06</i>Going live when ready</span>
+<h2>The switch is one key, used on purpose</h2>
+
+<p><code>L</code> toggles DRY/LIVE for the session and asks for
+confirmation before it takes effect; nothing about the order panel changes
+shape, so everything learned in dry-run - reading the fill line, watching
+for warnings, checking the tick before you type a price - carries straight
+over. That is the point of building practice on the real exchange instead
+of a separate mode: there is nothing new to learn when the orders start
+being real.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui</code></pre>
+
+<p class="quiet">The <a href="../#install">install page</a> has Homebrew and
+one-liner options. Every new session starts in dry-run until you choose
+otherwise.</p>
+
+</article>
+
+<p class="post-foot">Prices and book depth are a snapshot from 2026-08-10
+08:13 UTC and will have moved since. More posts on the <a href="./">blog
+index</a>, or subscribe via <a href="feed.xml">RSS</a>. Not affiliated with
+Polymarket; nothing here is financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
