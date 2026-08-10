@@ -21,6 +21,13 @@ Beat-sheet flags:
   clamp_lag  (default true)  cut idle gaps down to MAX_GAP
   timer      (default false) burn in an elapsed-seconds counter
   trim_boot  (default true)  start at the settled home screen, not at launch
+  pan        (default false) crop the terminal near native resolution and pan
+                             between per-beat focus points ("focus": left|mid|
+                             right on each beat) instead of scaling the whole
+                             frame down. Scaling 120 columns to canvas width
+                             leaves ~9px glyphs - unreadable on the phones all
+                             of this is watched on; the crop keeps glyphs ~50%
+                             larger and the pan adds motion between beats.
 """
 
 from __future__ import annotations
@@ -57,11 +64,21 @@ CAP_SIZE, CAP_LH, CAP_H = 44, 58, 200
 TAG_SIZE, TAG_Y = 36, 1660
 TIMER_SIZE, TIMER_H = 52, 70
 
+PAN_SCALE = 0.95  # terminal display scale in pan mode (1.0 = native pixels)
+PAN_RAMP = 0.6  # seconds an eased pan between focus points takes
+PAN_MIN_BAND = 300  # px reserved above and below the terminal in pan mode
+
 # First frame that draws market rows (a volume cell) - a floor for the trim,
 # never the anchor: it lands mid-boot, before the category tabs paint.
 CONTENT = re.compile(r"\$\d")
 
-FONT_DIR = Path.home() / "Library/Fonts"
+# macOS keeps user fonts in ~/Library/Fonts; the Linux CI runner installs the
+# same Nerd Font files into ~/.local/share/fonts.
+FONT_DIR = next(
+    (d for d in (Path.home() / "Library/Fonts", Path.home() / ".local/share/fonts")
+     if (d / "JetBrainsMonoNerdFont-Regular.ttf").exists()),
+    Path.home() / "Library/Fonts",
+)
 
 
 def font(size: int, *names: str) -> ImageFont.FreeTypeFont:
@@ -150,32 +167,54 @@ def wrap(text: str, fnt: ImageFont.FreeTypeFont, width: int, limit: int = 3) -> 
     return lines
 
 
-def build_plate(spec: dict, term_y: int, tmp: Path) -> Path:
+def build_plate(spec: dict, term_y: int, term_h: int, tmp: Path) -> Path:
     """The static background: brand mark, market question, install line."""
     img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
 
-    brand = regular(BRAND_SIZE)
-    draw.text(((W - brand.getlength("polymarket-tui")) / 2, BRAND_Y),
-              "polymarket-tui", font=brand, fill=BLUE)
-
     head_font = bold(HEAD_SIZE)
     lines = wrap(spec["headline"], head_font, W - 2 * MARGIN)
-    top = term_y - 56 - HEAD_LH * len(lines)
+    top = term_y - 48 - HEAD_LH * len(lines)
+
+    # In pan mode the top band is shallow; tuck the brand mark just under the
+    # band's top edge instead of at the roomy default.
+    brand_y = min(BRAND_Y, max(48, top - BRAND_SIZE - 40))
+    brand = regular(BRAND_SIZE)
+    draw.text(((W - brand.getlength("polymarket-tui")) / 2, brand_y),
+              "polymarket-tui", font=brand, fill=BLUE)
+
     for i, line in enumerate(lines):
         draw.text(((W - head_font.getlength(line)) / 2, top + i * HEAD_LH),
                   line, font=head_font, fill=FG)
     # A short accent rule ties the question to the terminal below it.
-    draw.rectangle([(W // 2 - 60, term_y - 34), (W // 2 + 60, term_y - 31)], fill=BLUE)
+    draw.rectangle([(W // 2 - 60, term_y - 30), (W // 2 + 60, term_y - 27)], fill=BLUE)
 
     tag_font = regular(TAG_SIZE)
     tag = spec.get("tag", "")
     if tag:
-        draw.text(((W - tag_font.getlength(tag)) / 2, TAG_Y), tag, font=tag_font, fill=MUTED)
+        tag_y = min(TAG_Y, H - 100)
+        tag_y = max(tag_y, term_y + term_h + CAP_H + 60)
+        draw.text(((W - tag_font.getlength(tag)) / 2, tag_y), tag, font=tag_font, fill=MUTED)
 
     path = tmp / "plate.png"
     img.save(path)
     return path
+
+
+def pan_x_expr(stops: list[tuple[float, int]]) -> str:
+    """A crop-x expression easing between (video_time, x) focus stops.
+
+    Built innermost-first: each earlier stop wraps the expression for
+    everything after it, and each stop's blend saturates at its own target so
+    the frame holds still between transitions.
+    """
+    expr = None
+    for i in range(len(stops) - 1, -1, -1):
+        t0, x = stops[i]
+        prev_x = stops[i - 1][1] if i else x
+        blend = f"({prev_x}+({x}-{prev_x})*min((t-{t0:.2f})/{PAN_RAMP},1))"
+        expr = blend if expr is None else f"if(gte(t,{t0:.2f}),{blend},{expr})"
+    return expr or "0"
 
 
 def build_caption(text: str, idx: int, tmp: Path) -> Path:
@@ -228,7 +267,7 @@ def main() -> int:
     # the short is about speed, keep the real timeline and show the real boot.
     clamp = spec.get("clamp_lag", True) and not timer_on
 
-    for tool in ("agg", "ffmpeg", "ffprobe"):
+    for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
             raise SystemExit(f"{tool} not found")
 
@@ -246,25 +285,37 @@ def main() -> int:
         duration = span + 1.4  # a beat to read the last caption
         print(f"retime: start={start:.2f}s clamp={clamp} -> {duration:.1f}s")
 
-        gif = tmp / "term.gif"
-        subprocess.run(
-            ["agg", "--font-size", "24", "--line-height", "1.4", "--fps-cap", str(FPS),
-             "--idle-time-limit", "2", "--no-loop", "-q", str(trimmed), str(gif)],
-            check=True,
+        # Rasterize with pyte + Pillow (scripts/shorts/rasterize.py), not agg:
+        # agg's emulation leaves ghost text where this app blanks large
+        # regions. The rasterizer takes the retimed cast's clock as video time.
+        term = tmp / "term.mp4"
+        ras = subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("rasterize.py")),
+             str(trimmed), str(term), "--fps", str(FPS)],
+            capture_output=True, text=True,
         )
+        if ras.returncode:
+            raise SystemExit("rasterize failed:\n" + ras.stderr[-2000:])
+        gw, gh = (int(v) for v in ras.stdout.strip().split("x"))
 
-        probe = subprocess.run(
-            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
-             "stream=width,height", "-of", "csv=p=0", str(gif)],
-            check=True, capture_output=True, text=True,
-        ).stdout.strip().split(",")
-        gw, gh = int(probe[0]), int(probe[1])
-        term_h = round(W * gh / gw / 2) * 2
-        term_y = (H - term_h) // 2
-        cap_y = term_y + term_h + 60
-        print(f"terminal {gw}x{gh} -> {W}x{term_h} at y={term_y}")
+        pan = spec.get("pan", False)
+        if pan:
+            # Show a canvas-width window of the near-native terminal. Cap the
+            # scale so the bands keep room for the headline and captions.
+            scale = min(PAN_SCALE, (H - 2 * PAN_MIN_BAND) / gh)
+            sw, sh = round(gw * scale / 2) * 2, round(gh * scale / 2) * 2
+            if sw <= W:
+                pan = False  # terminal narrower than the window: nothing to pan
+        if pan:
+            term_h, term_y = sh, (H - sh) // 2
+            print(f"pan: terminal {gw}x{gh} scaled {sw}x{sh}, window {W} at y={term_y}")
+        else:
+            term_h = round(W * gh / gw / 2) * 2
+            term_y = (H - term_h) // 2
+            print(f"terminal {gw}x{gh} -> {W}x{term_h} at y={term_y}")
+        cap_y = term_y + term_h + 44
 
-        plate = build_plate(spec, term_y, tmp)
+        plate = build_plate(spec, term_y, term_h, tmp)
         shown = [b for b in timings if b["caption"]]
         if not trim_boot and spec.get("boot_caption"):
             # Beats only start once the app is ready, so with the boot left in
@@ -274,12 +325,26 @@ def main() -> int:
         caps = [build_caption(b["caption"], i, tmp) for i, b in enumerate(shown)]
 
         inputs = ["-loop", "1", "-framerate", str(FPS), "-i", str(plate),
-                  "-ignore_loop", "1", "-i", str(gif)]
+                  "-i", str(term)]
         for cap in caps:
             inputs += ["-loop", "1", "-framerate", str(FPS), "-i", str(cap)]
 
-        steps = [f"[1:v]scale={W}:{term_h}:flags=lanczos[term]",
-                 f"[0:v][term]overlay=0:{term_y}[v0]"]
+        if pan:
+            offsets = {"left": 0, "mid": (sw - W) // 2, "right": sw - W}
+            stops: list[tuple[float, int]] = []
+            # focus lives on the sheet's beats; timings align with them 1:1.
+            for beat, sheet_beat in zip(timings, spec["beats"], strict=True):
+                x = offsets.get(sheet_beat.get("focus", "mid"), offsets["mid"])
+                at = to_video(head_offset + beat["at"])
+                if not stops or stops[-1][1] != x:
+                    stops.append((at, x))
+            x_expr = pan_x_expr(stops)
+            steps = [f"[1:v]scale={sw}:{sh}:flags=lanczos,"
+                     f"crop=w={W}:h={sh}:x='{x_expr}':y=0[term]",
+                     f"[0:v][term]overlay=0:{term_y}[v0]"]
+        else:
+            steps = [f"[1:v]scale={W}:{term_h}:flags=lanczos[term]",
+                     f"[0:v][term]overlay=0:{term_y}[v0]"]
         for i, beat in enumerate(shown):
             # Beat times are on the recorder's clock; map them through the same
             # retime that produced the footage.

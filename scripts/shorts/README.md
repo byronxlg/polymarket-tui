@@ -7,8 +7,14 @@ bash scripts/shorts/record.sh scripts/shorts/beats/<sheet>.json out/
 uv run python scripts/shorts/render.py scripts/shorts/beats/<sheet>.json out/
 ```
 
-Requires `asciinema`, `tmux`, `agg`, `ffmpeg`, `jq`, Pillow (dev group), and
-real credentials. Produces `out/<slug>.mp4`.
+Requires `asciinema`, `tmux`, `ffmpeg`, `jq`, Pillow + pyte (dev group), and
+real credentials (or `SHORTS_MODE=anon` to record signed out - what CI does).
+Produces `out/<slug>.mp4`.
+
+`scripts/shorts/pick_story.py out/` picks the day's story from live Gamma
+data and emits the beat sheet; `.github/workflows/daily-short.yml` runs the
+whole chain daily and delivers the mp4 to Telegram for review. Posting stays
+manual (see Publishing).
 
 ## Why it is built this way
 
@@ -26,6 +32,18 @@ platform renders (or drops) an uploaded subtitle track differently.
 
 **Text is drawn with Pillow, not ffmpeg `drawtext`.** Homebrew's ffmpeg ships
 without libfreetype, so `drawtext` does not exist on this machine.
+
+**The terminal is rasterized by `rasterize.py` (pyte + Pillow), not agg.**
+agg's terminal emulation diverges from a real terminal on this app: screens
+that blank large regions (search results, the event screen's chart plot) keep
+ghost text from the previous screen. tmux and pyte replay the identical byte
+stream cleanly, so agg was replaced. The event screen is still only used as a
+transient hop in beat sheets - see pick_story.py.
+
+**Pan mode** (`"pan": true` plus per-beat `"focus": left|mid|right`) crops the
+near-native-resolution terminal to a canvas-width window and eases between
+focus points per beat. Full-frame scaling leaves ~9px glyphs, unreadable on
+phones; the crop keeps them ~50% larger and the pans add motion.
 
 **One clock.** `record.sh` waits for a fully painted home screen, then records
 `head_offset` - the point the beat clock starts from - into the timings file.

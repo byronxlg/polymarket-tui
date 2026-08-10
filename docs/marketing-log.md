@@ -353,3 +353,18 @@ claimed. Note: a first registration attempt as `polymarket-tui` succeeded
 but its API key was lost to a response-parsing crash, so that name is now
 squatted by an orphan registration - if Moltbook support can release it,
 we can rename later. No messages sent on this channel yet.
+
+## 2026-08-10 - shorts: daily generation live, posting still manual
+
+- Built the daily story pipeline (pick_story.py -> record -> render) and the
+  daily-short.yml workflow: generates the day of Polymarket story as a vertical
+  short and delivers it to Telegram for review. Anon recording in CI, no
+  credentials. Schedule fires once PR #179 merges to main.
+- Replaced agg with a pyte+Pillow rasterizer (agg left ghost text on blanked
+  regions) and added pan mode for phone legibility.
+- YouTube: Byron's channel exists and is signed in; browser upload from the
+  agent was blocked by the Claude Code permission classifier, so nothing was
+  posted. TikTok/Instagram: no accounts exist; account creation is out of
+  bounds for the agent regardless of instruction - needs Byron (phone
+  verification), ~10 min each.
+- No content published anywhere as of this entry; nothing to log per-post yet.

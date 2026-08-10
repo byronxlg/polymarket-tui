@@ -42,13 +42,21 @@ RAW="$(mktemp -t pmtui-short-XXXX).cast"
 CAST="$OUTDIR/$SLUG.cast"
 TIMINGS="$OUTDIR/$SLUG.timings.json"
 
-REC_HOME="$("$ROOT/scripts/journey_env.sh" authed-dry)"
-FUNDER="$(python3 -c "
+# SHORTS_MODE=anon records without credentials (CI has none, and the daily
+# story never places an order); default records authed in DRY. Anon has no
+# identity to leak, so the redaction step only runs in authed mode.
+MODE="${SHORTS_MODE:-authed-dry}"
+REC_HOME="$("$ROOT/scripts/journey_env.sh" "$MODE")"
+FUNDER=""
+NAME=""
+if [ "$MODE" != "anon" ]; then
+    FUNDER="$(python3 -c "
 import tomllib
 print(tomllib.load(open('$REC_HOME/.config/polymarket-tui/credentials.toml','rb'))['funder'])")"
-NAME="$(curl -sf -A Mozilla/5.0 "https://gamma-api.polymarket.com/public-profile?address=$FUNDER" \
-  | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name') or d.get('pseudonym') or '')" \
-  || true)"
+    NAME="$(curl -sf -A Mozilla/5.0 "https://gamma-api.polymarket.com/public-profile?address=$FUNDER" \
+      | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name') or d.get('pseudonym') or '')" \
+      || true)"
+fi
 
 K() { tmux -L "$SOCK" send-keys -t "$SESS" "$@"; }
 cleanup() { tmux -L "$SOCK" kill-server 2>/dev/null || true; }
@@ -136,9 +144,13 @@ K q
 sleep 1.5
 cleanup
 
-echo "Redacting identity -> $CAST"
-python3 "$ROOT/scripts/redact_cast.py" "$RAW" "$CAST" \
-    --funder "$FUNDER" ${NAME:+--name "$NAME"}
-rm -f "$RAW"
+if [ "$MODE" = "anon" ]; then
+    mv "$RAW" "$CAST"
+else
+    echo "Redacting identity -> $CAST"
+    python3 "$ROOT/scripts/redact_cast.py" "$RAW" "$CAST" \
+        --funder "$FUNDER" ${NAME:+--name "$NAME"}
+    rm -f "$RAW"
+fi
 rm -rf "$REC_HOME"
 echo "Done: $CAST ($(wc -c <"$CAST") bytes), $TIMINGS"

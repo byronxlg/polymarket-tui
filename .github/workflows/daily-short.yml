@@ -1,0 +1,80 @@
+name: Daily short
+
+# Generates the day's vertical short from live Polymarket data and delivers it
+# to Byron on Telegram for review and manual posting. No LLM involved: the
+# pipeline (scripts/shorts/) is deterministic - pick the story, drive the real
+# TUI in tmux, rasterize, composite.
+#
+# Recording runs SHORTS_MODE=anon: CI holds no Polymarket credentials and the
+# daily story never places an order. Posting stays manual until the platform
+# API audits documented in docs/marketing.md are passed.
+on:
+  schedule:
+    - cron: "41 21 * * *" # 21:41 UTC daily - morning AEST; offset off the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-short
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install system deps
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tmux jq
+
+      - name: Install JetBrains Mono Nerd Font
+        # rasterize.py and render.py load it from ~/Library/Fonts on macOS or
+        # ~/.local/share/fonts here (FONT_DIR falls back by platform).
+        run: |
+          mkdir -p ~/.local/share/fonts
+          curl -sfL -o /tmp/jbm.tar.xz \
+            https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz
+          tar -xf /tmp/jbm.tar.xz -C ~/.local/share/fonts \
+            JetBrainsMonoNerdFont-Regular.ttf JetBrainsMonoNerdFont-Bold.ttf
+
+      - name: Install app
+        run: uv sync --group dev
+
+      - name: Generate the short
+        run: |
+          mkdir -p out
+          SHEET="$(uv run python scripts/shorts/pick_story.py out)"
+          echo "sheet: $SHEET"
+          SHORTS_MODE=anon bash scripts/shorts/record.sh "$SHEET" out
+          uv run python scripts/shorts/render.py "$SHEET" out
+          MP4="$(ls out/*.mp4)"
+          echo "MP4=$MP4" >> "$GITHUB_ENV"
+          uv run python - "$SHEET" <<'EOF' >> "$GITHUB_ENV"
+          import json, sys
+          spec = json.load(open(sys.argv[1]))
+          story = spec.get("story", {})
+          print(f"CAPTION=Daily short: {spec['headline']} ({story.get('shape','')}, {story.get('event','')})")
+          EOF
+
+      - name: Send to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          curl -sf -F chat_id=8851680837 -F supports_streaming=true \
+            -F caption="$CAPTION" -F video=@"$MP4" \
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendVideo" > /dev/null
+          echo "delivered"
+
+      - name: Report failure to Telegram
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          curl -sf "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            -d chat_id=8851680837 \
+            --data-urlencode "text=Daily short FAILED: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" > /dev/null
