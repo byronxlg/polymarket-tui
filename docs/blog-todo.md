@@ -19,8 +19,6 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Queue (fallback)
 
-- [ ] Dry-run trading: practice on the real exchange with nothing at stake -
-  intent: "paper trading polymarket", "polymarket without money"
 - [ ] Following any trader's portfolio (public wallets, read-only) - intent:
   "polymarket track trader", "polymarket whale watching"
 - [ ] Charting Polymarket price history in the terminal - intent: "polymarket
@@ -36,6 +34,11 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] How to Paper-Trade Polymarket Without Risking Money (fallback/evergreen:
+  dry-run mode as practice against the real live order book - full
+  validation and signing pipeline, no simulated fills - worked with a live
+  example from Polymarket's September 2026 Fed "no change" market) -
+  2026-08-10, `site/blog/paper-trading-on-polymarket.html`
 - [x] US-Iran Blockade End Odds on Polymarket: August 2026 (event: Mohammad
   Bagher Zolghadr, secretary of Iran's Supreme National Security Council,
   published Iran's conditions for reopening the Strait of Hormuz on Saturday

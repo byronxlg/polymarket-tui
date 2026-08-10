@@ -9,6 +9,14 @@
 
   <!-- ITEMS: newest first. -->
   <item>
+    <title>How to Paper-Trade Polymarket Without Risking Money</title>
+    <link>https://polymarket-tui.botsmith.dev/blog/paper-trading-on-polymarket.html</link>
+    <guid>https://polymarket-tui.botsmith.dev/blog/paper-trading-on-polymarket.html</guid>
+    <pubDate>Mon, 10 Aug 2026 08:15:00 +0000</pubDate>
+    <description>Dry-run mode places real orders against Polymarket's live book - priced, validated, and signed - without ever posting them. How to practice safely before going live.</description>
+  </item>
+
+  <item>
     <title>US-Iran Blockade End Odds on Polymarket: August 2026</title>
     <link>https://polymarket-tui.botsmith.dev/blog/us-iran-blockade-end-odds-august-2026.html</link>
     <guid>https://polymarket-tui.botsmith.dev/blog/us-iran-blockade-end-odds-august-2026.html</guid>
