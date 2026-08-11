@@ -34,6 +34,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] WTI Crude Oil Odds on Polymarket: August 2026 (event: oil prices
+  climbed through the weekend into Monday August 10-11, 2026, as the UAE
+  reported an Iranian missile strike on an ADNOC-linked tanker in the
+  Strait of Hormuz (Saturday August 8), Iran named 16-year IRGC commander
+  Mohsen Rezaei as secretary of its Supreme National Security Council
+  (Sunday August 9, replacing Zolghadr), and Trump publicly countered
+  Iran's reparations demand with one of his own (Monday August 10),
+  sending Brent up over 4% to above $87 and WTI near $82; Polymarket's
+  "Will WTI Crude Oil hit (HIGH) $85 in August?" rose from 45.5c to an
+  87.5c high, while "hit (LOW) $75?" fell from a 92.5c peak to 48.5c) -
+  2026-08-11, `site/blog/wti-crude-oil-odds-polymarket-august-2026.html`
 - [x] How to Paper-Trade Polymarket Without Risking Money (fallback/evergreen:
   dry-run mode as practice against the real live order book - full
   validation and signing pipeline, no simulated fills - worked with a live
