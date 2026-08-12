@@ -33,7 +33,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
 
       - name: Install system deps
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tmux jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tmux jq asciinema
 
       - name: Install JetBrains Mono Nerd Font
         # rasterize.py and render.py load it from ~/Library/Fonts on macOS or
