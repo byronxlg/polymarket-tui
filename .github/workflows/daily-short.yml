@@ -61,12 +61,31 @@ jobs:
           print(f"CAPTION=Daily short: {spec['headline']} ({story.get('shape','')}, {story.get('event','')})")
           EOF
 
+      - name: Upload to YouTube
+        # No-op until the YOUTUBE_* secrets exist (minted via
+        # scripts/shorts/mint_youtube_token.py). Uploads stay private until
+        # the compliance audit passes - flip YOUTUBE_PRIVACY to public then.
+        if: ${{ secrets.YOUTUBE_REFRESH_TOKEN != '' }}
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY: private
+        run: |
+          TITLE="${CAPTION#Daily short: }"
+          TITLE="${TITLE%% (*}"
+          printf '%s\n\nGenerated from live Polymarket data by polymarket-tui.\nhttps://polymarket-tui.botsmith.dev\n#Shorts' \
+            "$TITLE" > /tmp/desc.txt
+          VID="$(bash scripts/shorts/upload_youtube.sh "$MP4" "$TITLE #Shorts" /tmp/desc.txt)"
+          echo "uploaded: https://youtube.com/shorts/$VID"
+          echo "YT_URL=https://youtube.com/shorts/$VID" >> "$GITHUB_ENV"
+
       - name: Send to Telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
           curl -sf -F chat_id=8851680837 -F supports_streaming=true \
-            -F caption="$CAPTION" -F video=@"$MP4" \
+            -F caption="$CAPTION ${YT_URL:-}" -F video=@"$MP4" \
             "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendVideo" > /dev/null
           echo "delivered"
 
