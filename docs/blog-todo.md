@@ -34,6 +34,16 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Wisconsin Governor Primary Odds on Polymarket: August 2026 (event: Wisconsin's
+  Democratic gubernatorial primary, held August 11, 2026 - Polymarket had
+  Francesca Hong pricing near 96c to win the nomination through election day
+  over Milwaukee County Executive David Crowley's roughly 4c, then returns
+  after the 8pm CT poll close flipped it: Crowley's contract crossed 50c
+  five times between 01:27 and 03:40 UTC August 12, dipping to a 23.25c low
+  before pulling away for good, reaching 99.65c by 07:15 UTC; the AP called
+  the race for Crowley at 2:34am CT (07:34 UTC), with the final count
+  showing roughly a half-point/1,200-vote margin) - 2026-08-12,
+  `site/blog/wisconsin-governor-primary-odds-polymarket-august-2026.html`
 - [x] WTI Crude Oil Odds on Polymarket: August 2026 (event: oil prices
   climbed through the weekend into Monday August 10-11, 2026, as the UAE
   reported an Iranian missile strike on an ADNOC-linked tanker in the
