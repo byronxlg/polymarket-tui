@@ -368,3 +368,16 @@ we can rename later. No messages sent on this channel yet.
   bounds for the agent regardless of instruction - needs Byron (phone
   verification), ~10 min each.
 - No content published anywhere as of this entry; nothing to log per-post yet.
+
+## 2026-08-12 - YouTube pipeline armed end to end
+
+- GCP project pmtui-shorts, YouTube Data API, External OAuth consent screen
+  (app polymarket-tui, youtube.upload scope only, published to Production),
+  desktop client. Privacy policy live at /privacy.html (PR #198).
+- Refresh token minted by Byron, bound to the new botsmith_dev brand channel;
+  stored in Doppler polymarket-tui/prd and synced to GH secrets.
+- Test upload succeeded: video 5Y-3wu2RPIA, private (API forces private
+  until the compliance audit passes). Daily workflow uploads private until
+  then; nothing public yet.
+- Next: seed the channel description/branding, submit the YouTube API
+  compliance audit, flip YOUTUBE_PRIVACY to public when it clears.
