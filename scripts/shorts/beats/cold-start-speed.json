@@ -1,0 +1,16 @@
+{
+  "slug": "speed-cold-start",
+  "headline": "Cold start to a live order book",
+  "tag": "uv tool install polymarket-tui",
+  "timer": true,
+  "trim_boot": false,
+  "boot_caption": "Launching cold. No cache.",
+  "note": "The timer states true elapsed time from process launch, so this sheet keeps the real boot and does not clamp lag - render.py refuses to clamp when timer is on. Waits are deliberately short: every second of scripted pause is a second on the counter.",
+  "beats": [
+    { "caption": "Trending markets, live prices", "wait": 1.6 },
+    { "caption": "Search", "keys": ["/"], "wait": 0.8 },
+    { "caption": "Type the market", "type": "strait of hormuz", "wait": 1.6 },
+    { "caption": "Open it", "keys": ["Down", "Enter"], "wait": 3.0 },
+    { "caption": "Streaming order book. That's the whole trip.", "wait": 2.6 }
+  ]
+}

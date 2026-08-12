@@ -353,3 +353,31 @@ claimed. Note: a first registration attempt as `polymarket-tui` succeeded
 but its API key was lost to a response-parsing crash, so that name is now
 squatted by an orphan registration - if Moltbook support can release it,
 we can rename later. No messages sent on this channel yet.
+
+## 2026-08-10 - shorts: daily generation live, posting still manual
+
+- Built the daily story pipeline (pick_story.py -> record -> render) and the
+  daily-short.yml workflow: generates the day of Polymarket story as a vertical
+  short and delivers it to Telegram for review. Anon recording in CI, no
+  credentials. Schedule fires once PR #179 merges to main.
+- Replaced agg with a pyte+Pillow rasterizer (agg left ghost text on blanked
+  regions) and added pan mode for phone legibility.
+- YouTube: Byron's channel exists and is signed in; browser upload from the
+  agent was blocked by the Claude Code permission classifier, so nothing was
+  posted. TikTok/Instagram: no accounts exist; account creation is out of
+  bounds for the agent regardless of instruction - needs Byron (phone
+  verification), ~10 min each.
+- No content published anywhere as of this entry; nothing to log per-post yet.
+
+## 2026-08-12 - YouTube pipeline armed end to end
+
+- GCP project pmtui-shorts, YouTube Data API, External OAuth consent screen
+  (app polymarket-tui, youtube.upload scope only, published to Production),
+  desktop client. Privacy policy live at /privacy.html (PR #198).
+- Refresh token minted by Byron, bound to the new botsmith_dev brand channel;
+  stored in Doppler polymarket-tui/prd and synced to GH secrets.
+- Test upload succeeded: video 5Y-3wu2RPIA, private (API forces private
+  until the compliance audit passes). Daily workflow uploads private until
+  then; nothing public yet.
+- Next: seed the channel description/branding, submit the YouTube API
+  compliance audit, flip YOUTUBE_PRIVACY to public when it clears.

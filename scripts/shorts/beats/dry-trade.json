@@ -1,0 +1,62 @@
+{
+  "slug": "story-dry-trade",
+  "headline": "Placing a buy, end to end",
+  "tag": "uv tool install polymarket-tui",
+  "note": "The money path. Runs in DRY, which signs the order and never posts it - that is the point of the last beat, not a disclaimer bolted on. Never record this sheet with execution_live true.",
+  "beats": [
+    {
+      "caption": "Find the market",
+      "keys": [
+        "/"
+      ],
+      "wait": 0.9
+    },
+    {
+      "caption": "Iran, before 2027",
+      "type": "invade iran",
+      "wait": 2.6
+    },
+    {
+      "caption": "The book, streaming",
+      "keys": [
+        "Down",
+        "Enter"
+      ],
+      "wait": 3.4
+    },
+    {
+      "caption": "Cursor the depth you want",
+      "keys": [
+        "Down",
+        "Down"
+      ],
+      "wait": 2.4
+    },
+    {
+      "caption": "b prefills the price from the touch",
+      "keys": [
+        "b"
+      ],
+      "wait": 2.4
+    },
+    {
+      "caption": "Size in shares",
+      "type": "100",
+      "wait": 2.2
+    },
+    {
+      "caption": "Review: cost, payout, what actually fills",
+      "keys": [
+        "Enter"
+      ],
+      "wait": 4.2
+    },
+    {
+      "caption": "Placed. DRY signs it and never posts.",
+      "keys": [
+        "Enter"
+      ],
+      "wait": 3.0
+    }
+  ]
+}
