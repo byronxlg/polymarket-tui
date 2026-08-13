@@ -34,6 +34,19 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Clacton By-Election Odds on Polymarket: August 2026 (event: Nigel
+  Farage resigned his Clacton seat on July 7, 2026 to force a by-election
+  and re-contest it, after reporting surfaced an undeclared 5 million pound
+  personal gift from crypto financier Christopher Harborne plus 25 million
+  pounds Harborne gave directly to Reform UK, and a separate arrangement
+  with George Cottrell; with Labour, the Conservatives, the Lib Dems and
+  the Greens all declining to contest a record 34-candidate ballot,
+  Polymarket's "Will Nigel Farage win the Clacton by-election?" market
+  opened at 87c the day of the resignation and climbed to a 99.3c peak by
+  August 10, while satirist Count Binface - his most recognizable
+  opponent by default - rose to an 8.35c high on July 9 before fading
+  under 1c by polling day, August 13) - 2026-08-13,
+  `site/blog/clacton-by-election-odds-polymarket-august-2026.html`
 - [x] Wisconsin Governor Primary Odds on Polymarket: August 2026 (event: Wisconsin's
   Democratic gubernatorial primary, held August 11, 2026 - Polymarket had
   Francesca Hong pricing near 96c to win the nomination through election day
