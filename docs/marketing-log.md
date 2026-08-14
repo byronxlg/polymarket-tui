@@ -395,3 +395,18 @@ we can rename later. No messages sent on this channel yet.
   clipboard handoff; Byron published.
 - Description copy: leaderboard fact + install commands + site link + AI
   and not-financial-advice disclosure + #Shorts #polymarket #trading.
+
+## 2026-08-14 - replaced first short with the final cut
+
+- Live: https://www.youtube.com/shorts/reGH6xRTPHc on botsmith_dev, same
+  title/description as the first post. CIFGsUk0Nnk deleted by Byron -
+  reGH6xRTPHc is the canonical $23M-trader short.
+- New cut (scripts/shorts/ai/out/the-23m-trader.mp4, 45s): voiceover that
+  names swisstony (the public leaderboard #1 pseudonym), close-up opening
+  shot, added explainer beat "Shares cost cents. Right = $1 each", same
+  polymarket-tui install card ending.
+- Verified on the watch page after publish: public, AI altered-content
+  label showing, description intact. $23M figure re-verified against the
+  all-time-profit leaderboard on 2026-08-14 (swisstony, $23.38M).
+- Flow: assisted UI upload (Claude staged upload/title/clipboard, Byron
+  pasted description, set disclosures, published).
