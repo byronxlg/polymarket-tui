@@ -381,3 +381,17 @@ we can rename later. No messages sent on this channel yet.
   then; nothing public yet.
 - Next: seed the channel description/branding, submit the YouTube API
   compliance audit, flip YOUTUBE_PRIVACY to public when it clears.
+
+## 2026-08-14 - first public post: YouTube short (assisted manual upload)
+
+- Posted https://youtube.com/shorts/CIFGsUk0Nnk on botsmith_dev - "The #1
+  Polymarket trader is up $23,000,000". Byron-supplied AI-generated clip
+  (pmshort-seedance-v3.mp4); $23M figure verified against the live
+  all-time-profit leaderboard (#1 swisstony, $23.38M) before posting.
+  AI altered-content disclosure set (label visible on watch page).
+- Flow: manual UI upload (audit not pursued; API uploads stay locked
+  private; daily-short.yml schedule remains disabled). Claude drove Studio
+  via Chrome - channel switch, file upload, title; description via
+  clipboard handoff; Byron published.
+- Description copy: leaderboard fact + install commands + site link + AI
+  and not-financial-advice disclosure + #Shorts #polymarket #trading.
