@@ -34,6 +34,19 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] US-Iran Ceasefire Extension Odds on Polymarket: August 2026 (event: the
+  60-day negotiation window opened by the June 2026 Islamabad MOU closes
+  around August 17, 2026; Polymarket's "US-Iran 60 day negotiation period
+  extended?" contract fell from a 76.5c high on August 6 after Iranian
+  Foreign Minister Abbas Araghchi said August 9 that Tehran was not in
+  active talks and would not resume until the US ended its July strikes and
+  paid compensation, and Trump added his own compensation demand August 10;
+  an August 12 Anadolu report that the US and Iran had "agreed to extend"
+  the deadline, sourced to an unnamed mediation contact and never publicly
+  confirmed by either government, briefly popped the contract from 29.5c to
+  a 41.5c intraday high before it fell back within 90 minutes and kept
+  fading to a 12.5-13c low by August 15) - 2026-08-15,
+  `site/blog/us-iran-ceasefire-extension-odds-polymarket-august-2026.html`
 - [x] Clacton By-Election Odds on Polymarket: August 2026 (event: Nigel
   Farage resigned his Clacton seat on July 7, 2026 to force a by-election
   and re-contest it, after reporting surfaced an undeclared 5 million pound
