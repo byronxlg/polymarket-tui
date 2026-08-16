@@ -19,12 +19,6 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Queue (fallback)
 
-- [ ] Limit vs market orders on Polymarket (and why market orders are really
-  marketable limits) - intent: "polymarket limit order", "polymarket market order"
-- [ ] Reading the trade tape: what prints tell you that the book does not -
-  intent: "polymarket trade history", "order flow prediction markets"
-- [ ] Dry-run trading: practice on the real exchange with nothing at stake -
-  intent: "paper trading polymarket", "polymarket without money"
 - [ ] Following any trader's portfolio (public wallets, read-only) - intent:
   "polymarket track trader", "polymarket whale watching"
 - [ ] Charting Polymarket price history in the terminal - intent: "polymarket
@@ -40,6 +34,177 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] US-Iran Ceasefire Extension Odds on Polymarket: August 2026 (event: the
+  60-day negotiation window opened by the June 2026 Islamabad MOU closes
+  around August 17, 2026; Polymarket's "US-Iran 60 day negotiation period
+  extended?" contract fell from a 76.5c high on August 6 after Iranian
+  Foreign Minister Abbas Araghchi said August 9 that Tehran was not in
+  active talks and would not resume until the US ended its July strikes and
+  paid compensation, and Trump added his own compensation demand August 10;
+  an August 12 Anadolu report that the US and Iran had "agreed to extend"
+  the deadline, sourced to an unnamed mediation contact and never publicly
+  confirmed by either government, briefly popped the contract from 29.5c to
+  a 41.5c intraday high before it fell back within 90 minutes and kept
+  fading to a 12.5-13c low by August 15) - 2026-08-15,
+  `site/blog/us-iran-ceasefire-extension-odds-polymarket-august-2026.html`
+- [x] Clacton By-Election Odds on Polymarket: August 2026 (event: Nigel
+  Farage resigned his Clacton seat on July 7, 2026 to force a by-election
+  and re-contest it, after reporting surfaced an undeclared 5 million pound
+  personal gift from crypto financier Christopher Harborne plus 25 million
+  pounds Harborne gave directly to Reform UK, and a separate arrangement
+  with George Cottrell; with Labour, the Conservatives, the Lib Dems and
+  the Greens all declining to contest a record 34-candidate ballot,
+  Polymarket's "Will Nigel Farage win the Clacton by-election?" market
+  opened at 87c the day of the resignation and climbed to a 99.3c peak by
+  August 10, while satirist Count Binface - his most recognizable
+  opponent by default - rose to an 8.35c high on July 9 before fading
+  under 1c by polling day, August 13) - 2026-08-13,
+  `site/blog/clacton-by-election-odds-polymarket-august-2026.html`
+- [x] Wisconsin Governor Primary Odds on Polymarket: August 2026 (event: Wisconsin's
+  Democratic gubernatorial primary, held August 11, 2026 - Polymarket had
+  Francesca Hong pricing near 96c to win the nomination through election day
+  over Milwaukee County Executive David Crowley's roughly 4c, then returns
+  after the 8pm CT poll close flipped it: Crowley's contract crossed 50c
+  five times between 01:27 and 03:40 UTC August 12, dipping to a 23.25c low
+  before pulling away for good, reaching 99.65c by 07:15 UTC; the AP called
+  the race for Crowley at 2:34am CT (07:34 UTC), with the final count
+  showing roughly a half-point/1,200-vote margin) - 2026-08-12,
+  `site/blog/wisconsin-governor-primary-odds-polymarket-august-2026.html`
+- [x] WTI Crude Oil Odds on Polymarket: August 2026 (event: oil prices
+  climbed through the weekend into Monday August 10-11, 2026, as the UAE
+  reported an Iranian missile strike on an ADNOC-linked tanker in the
+  Strait of Hormuz (Saturday August 8), Iran named 16-year IRGC commander
+  Mohsen Rezaei as secretary of its Supreme National Security Council
+  (Sunday August 9, replacing Zolghadr), and Trump publicly countered
+  Iran's reparations demand with one of his own (Monday August 10),
+  sending Brent up over 4% to above $87 and WTI near $82; Polymarket's
+  "Will WTI Crude Oil hit (HIGH) $85 in August?" rose from 45.5c to an
+  87.5c high, while "hit (LOW) $75?" fell from a 92.5c peak to 48.5c) -
+  2026-08-11, `site/blog/wti-crude-oil-odds-polymarket-august-2026.html`
+- [x] How to Paper-Trade Polymarket Without Risking Money (fallback/evergreen:
+  dry-run mode as practice against the real live order book - full
+  validation and signing pipeline, no simulated fills - worked with a live
+  example from Polymarket's September 2026 Fed "no change" market) -
+  2026-08-10, `site/blog/paper-trading-on-polymarket.html`
+- [x] US-Iran Blockade End Odds on Polymarket: August 2026 (event: Mohammad
+  Bagher Zolghadr, secretary of Iran's Supreme National Security Council,
+  published Iran's conditions for reopening the Strait of Hormuz on Saturday
+  August 8, 2026 - lift the US naval blockade, withdraw US forces, pay war
+  reparations, lift sanctions, release frozen assets - derailing Iran-Oman
+  shipping-corridor talks that Foreign Minister Araghchi had called "very
+  close" to done a day earlier; Polymarket's "US announces end of Iranian
+  blockade by August 15?" fell from a 64.5c Friday-evening peak to a 26.5c
+  low (settling 28.5c), the by-August-31 contract fell from 79.5c to 58.5c,
+  and the by-August-22 contract saw the ladder's largest 24h move at -35.5c)
+  - 2026-08-09, `site/blog/us-iran-blockade-end-odds-august-2026.html`
+- [x] Fed September 2026 Odds on Polymarket: The Jobs Report Flip
+  (event: the BLS's July 2026 employment report, released 12:30 UTC August
+  7, showed nonfarm payrolls falling 23,000 versus a consensus of +83,000,
+  with unemployment ticking down to 4.1% on a shrinking labor force and
+  wage growth slipping to 3.2% YoY; Polymarket's "Fed Decision in
+  September?" market flipped within the hour - "No change" jumped from
+  48.5c to a 65.5c intraday peak (settling 62-63c), while "Hike 25bps",
+  the favorite since the July 30 FOMC hold at 56.5c and as high as 59.5c
+  on August 1, crashed to a 31.5c low (settling 36-37c)) - 2026-08-08,
+  `site/blog/fed-september-2026-odds-jobs-report-flip.html`
+- [x] Clarity Act Odds on Polymarket: August 2026 (event: the Senate left
+  Washington for its August recess on August 7, 2026 without a floor vote on
+  the Digital Asset Market Clarity Act (H.R.3633), after Majority Leader
+  Thune confirmed August 6 there would be no August vote and pointed to
+  September when the chamber returns September 14; Polymarket's "signed
+  into law in 2026?" market fell from a 38.5c high on July 24 to 13c, with a
+  sharp step from 22.5c to 14.5c on August 5 as reporting turned to the
+  Senate running out of floor time, driven by an unresolved ethics dispute
+  over Trump's crypto earnings between Sens. Gallego and Alsobrooks and
+  Senate Republicans) - 2026-08-07,
+  `site/blog/clarity-act-odds-polymarket-august-2026.html`
+- [x] Strait of Hormuz Reopening Odds on Polymarket: August 2026
+  (event: a Houthi ballistic-missile attack on the Saudi tanker Wafa in the
+  Red Sea off Yanbu, August 5, 2026 - the eighth Saudi tanker targeted since
+  the July 22 blockade began - landed the same day Trump told Fox News a
+  deal to reopen the Strait of Hormuz could come "tomorrow or the next day";
+  Polymarket's "Strait of Hormuz traffic returns to normal by August 31?"
+  market had climbed from 6.5c to an 18.5c peak on Bloomberg's August 4
+  "traffic at a trickle" report and progress on an Iran-Oman shipping-route
+  framework, then pulled back to 15.5c after the attack, while the tighter
+  "by August 15?" contract fell from 3.2c to 1.65c over the same 24 hours)
+  - 2026-08-06, `site/blog/strait-of-hormuz-reopening-odds-august-2026.html`
+- [x] Reading the Polymarket Trade Tape (fallback/evergreen: prints vs. the
+  book, aggressor side, size and clustering, worked with a live example from
+  Polymarket's September 2026 Fed "no change" market) - 2026-08-05,
+  `site/blog/reading-the-polymarket-trade-tape.html`
+- [x] Michigan Democratic Senate Primary Odds on Polymarket: August 2026
+  (event: Michigan's Democratic primary for Gary Peters's open Senate seat,
+  held August 4, 2026, between Rep. Haley Stevens and Abdul El-Sayed;
+  El-Sayed's Polymarket win-probability contract fell from 81.5c to a 63.5c
+  low on July 25 after Gov. Whitmer endorsed Stevens, then climbed to 98.1c
+  by primary day as four polls showed him leading by 10-19 points after the
+  July 27 debate) - 2026-08-04,
+  `site/blog/michigan-democratic-senate-primary-odds-2026.html`
+- [x] Limit vs market orders on Polymarket (and why market orders are really
+  marketable limits) - 2026-08-03,
+  `site/blog/limit-vs-market-orders-on-polymarket.html`
+- [x] Iran Strike Cancellation Odds on Polymarket: August 2026
+  (event: CBS News reported July 31 that the US and Israel were preparing a
+  weekend bombing campaign on Iran's energy infrastructure; Trump announced
+  Saturday night, August 1, that he'd canceled the attack after Iran's FM
+  reportedly agreed to a Strait of Hormuz compromise brokered by Qatar and
+  the US, with Saudi Arabia's MBS also pushing for de-escalation; Iran's
+  military disputed Trump's framing but confirmed no strikes occurred;
+  Polymarket's "Israel x Iran ceasefire continues through..." ladder jumped
+  19-31c across every date within the hour, e.g. the Aug 15 contract rising
+  from a 33.5c Saturday low to 85.5c) - 2026-08-02,
+  `site/blog/iran-strike-cancellation-odds-august-2026.html`
+- [x] Hamas Disarmament Deal Odds on Polymarket: August 2026
+  (event: Trump's US-led "Board of Peace" announced Hamas signed a Gaza
+  disarmament framework in El-Alamein, Egypt, July 30, 2026 - Israel's
+  government called the terms unacceptable within a day; Polymarket's
+  "Will Hamas agree to disarm by December 31?" market spiked from 44c to a
+  93.5c peak within the hour, then crashed to a 59.5c low over a 20-minute
+  window on July 31 as the Israeli rejection landed, settling near 61.5c)
+  - 2026-08-01, `site/blog/hamas-disarmament-deal-odds-august-2026.html`
+- [x] NVIDIA Overtakes Apple: Polymarket's Largest-Company Odds
+  (event: Apple reported Q3 FY2026 earnings after the July 30 close - revenue
+  and EPS both beat estimates, but Services and Greater China revenue missed
+  and guidance was weak, sending shares down 6.65% after hours from $333.43
+  to $311.25; Polymarket's "Largest Company end of July?" market flipped
+  within 30 minutes, NVIDIA's Yes price rising from 13.2c to 68c and Apple's
+  falling from 86.75c to 31.45c, later settling near 89.4c/10.15c) -
+  2026-07-31, `site/blog/nvidia-overtakes-apple-largest-company-odds.html`
+- [x] Fed Holds in July 2026: What September Now Prices
+  (event: the FOMC voted 9-3 to hold rates at 3.50-3.75% on July 29,
+  2026 - the first split decision under Fed Chair Kevin Warsh, with
+  three regional bank presidents dissenting for a hike, citing Middle
+  East uncertainty and energy-driven inflation; Polymarket's July
+  no-change market had drifted from 93c to a 72c low before recovering
+  to resolve at 100c, and its September market now prices a 25bp hike
+  as the favorite at 56.5c) - 2026-07-30,
+  `site/blog/fed-holds-july-2026-september-hike-odds.html`
+- [x] US-Iran Ceasefire Collapse Odds on Polymarket: July 29, 2026
+  (event: IRGC launched an "attempted surprise attack" with ballistic
+  missiles at a US base in Jordan on July 28, breaking the strike-pause
+  covered on 2026-07-27; the US and Saudi Arabia struck Iran-backed militia
+  sites in Iraq in response; Polymarket's ceasefire-by-date ladder fell
+  8.5-18.5c, with the by-July-31 contract crashing from a 62.5c peak to
+  34.5c within an hour then partly recovering to 41c) - 2026-07-29,
+  `site/blog/us-iran-ceasefire-collapse-odds-july-2026.html`
+- [x] Bitcoin Crash Odds on Polymarket: July 28, 2026
+  (event: Bitcoin briefly reclaimed $65,000 on July 27 then reversed
+  overnight to about $63,200 amid tightening liquidity ahead of the July
+  28-29 Fed decision, spot-ETF outflows, and cascading liquidations;
+  Polymarket's above-$64,000 noon-ET market fell from an 86.5c peak to 20c)
+  - 2026-07-28, `site/blog/bitcoin-crash-odds-july-2026.html`
+- [x] US-Iran Strike Pause Odds on Polymarket: July 2026
+  (event: Trump halted the two-week-old US bombing campaign on Iran after
+  July 23, following 13 consecutive nights of strikes; Iran said it would
+  hold its own fire as long as the pause lasts, July 26) - 2026-07-27,
+  `site/blog/us-iran-strike-pause-odds-july-2026.html`
+- [x] Hungarian Grand Prix 2026 Odds: What Qualifying Moved
+  (event: 2026 F1 Hungarian Grand Prix qualifying, July 25 - Norris took
+  pole by 0.012s over Hamilton, then Hamilton and Antonelli were handed
+  three-place grid penalties, reshuffling the Polymarket race-winner market
+  ahead of the July 26 race) - 2026-07-26,
+  `site/blog/hungarian-grand-prix-2026-odds-qualifying.html`
 - [x] LeBron to Philadelphia 76ers: What the Signing Moved
   (event: LeBron James posted on X that he signed a two-year, $8M deal with
   the Philadelphia 76ers, July 24; the next-team market's 76ers Yes price

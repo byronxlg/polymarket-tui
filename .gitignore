@@ -6,3 +6,7 @@ __pycache__/
 .claude/worktrees/
 .terraform/
 infra/newsletter/build/
+# AI-shorts media: reusable b-roll, finished cuts, transient work files
+scripts/shorts/ai/clips/
+scripts/shorts/ai/out/
+scripts/shorts/ai/work/

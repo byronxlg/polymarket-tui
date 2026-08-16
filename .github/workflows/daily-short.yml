@@ -24,13 +24,16 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # secrets.* is not addressable in a step-level `if`; expose presence here.
+      HAS_YOUTUBE: ${{ secrets.YOUTUBE_REFRESH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v6
 
       - name: Install system deps
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tmux jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tmux jq asciinema
 
       - name: Install JetBrains Mono Nerd Font
         # rasterize.py and render.py load it from ~/Library/Fonts on macOS or
@@ -65,7 +68,7 @@ jobs:
         # No-op until the YOUTUBE_* secrets exist (minted via
         # scripts/shorts/mint_youtube_token.py). Uploads stay private until
         # the compliance audit passes - flip YOUTUBE_PRIVACY to public then.
-        if: ${{ secrets.YOUTUBE_REFRESH_TOKEN != '' }}
+        if: ${{ env.HAS_YOUTUBE == 'true' }}
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
