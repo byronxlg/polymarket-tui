@@ -34,6 +34,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Brazil Presidential Election Odds on Polymarket: August 2026 (event: a
+  Quaest/Globo poll fielded August 10-13, 2026 and published August 15 put
+  Lula at 43% versus Flavio Bolsonaro at 40% in a simulated runoff - within
+  the poll's 2-point margin of error and tighter than the 44-39 spread
+  Quaest found August 5; Polymarket's "Brazil Presidential Election" market,
+  which resolves on the actual winner including any second round, barely
+  moved - Lula's contract held a 63.5-66.5c band all month and closed at
+  65.5c, while Flavio Bolsonaro's contract crept from about 25c on August 1
+  to 28.75c now, a slow multi-week grind rather than a poll-driven jump) -
+  2026-08-16,
+  `site/blog/brazil-presidential-election-odds-polymarket-august-2026.html`
 - [x] US-Iran Ceasefire Extension Odds on Polymarket: August 2026 (event: the
   60-day negotiation window opened by the June 2026 Islamabad MOU closes
   around August 17, 2026; Polymarket's "US-Iran 60 day negotiation period
