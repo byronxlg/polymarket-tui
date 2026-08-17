@@ -19,8 +19,6 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Queue (fallback)
 
-- [ ] Following any trader's portfolio (public wallets, read-only) - intent:
-  "polymarket track trader", "polymarket whale watching"
 - [ ] Charting Polymarket price history in the terminal - intent: "polymarket
   price history", "polymarket chart"
 - [ ] What happens when a market resolves (redemption, UMA, disputed
@@ -34,6 +32,14 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] How to Follow a Trader's Portfolio on Polymarket (fallback/evergreen:
+  search a trader (/, tab to TRADERS), preview their top positions, follow
+  with space, and check back from the watchlist's Traders tab - worked with
+  a live example, wallet 0x392a...49262d ("Maru.lucky.nala.lenu"), $10,976
+  in positions and +$1,524.06 all-time profit on $247,562 volume across 220
+  markets, whose largest position is a "No" bet on the US-Iran 60-day
+  extension market this blog covered August 15) - 2026-08-17,
+  `site/blog/how-to-follow-a-traders-portfolio-on-polymarket.html`
 - [x] Brazil Presidential Election Odds on Polymarket: August 2026 (event: a
   Quaest/Globo poll fielded August 10-13, 2026 and published August 15 put
   Lula at 43% versus Flavio Bolsonaro at 40% in a simulated runoff - within
