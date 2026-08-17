@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How to Follow a Trader's Portfolio on Polymarket — polymarket-tui blog</title>
+<meta name="description" content="Polymarket wallets are public. Search a trader in polymarket-tui, follow them with space, and track their positions and P&amp;L from your watchlist - read-only, no copy trading." />
+<link rel="canonical" href="https://polymarket-tui.botsmith.dev/blog/how-to-follow-a-traders-portfolio-on-polymarket.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://polymarket-tui.botsmith.dev/blog/how-to-follow-a-traders-portfolio-on-polymarket.html" />
+<meta property="og:title" content="How to Follow a Trader's Portfolio on Polymarket" />
+<meta property="og:description" content="Polymarket wallets are public. Search a trader in polymarket-tui, follow them with space, and track their positions and P&amp;L from your watchlist - read-only, no copy trading." />
+<meta property="og:image" content="https://polymarket-tui.botsmith.dev/assets/og.png" />
+<meta property="article:published_time" content="2026-08-17" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "How to Follow a Trader's Portfolio on Polymarket",
+  "description": "Polymarket wallets are public. Search a trader in polymarket-tui, follow them with space, and track their positions and P&L from your watchlist - read-only, no copy trading.",
+  "datePublished": "2026-08-17",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://polymarket-tui.botsmith.dev/blog/how-to-follow-a-traders-portfolio-on-polymarket.html",
+  "image": "https://polymarket-tui.botsmith.dev/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>trader-watchlist</p>
+<h1>How to Follow a Trader's Portfolio on Polymarket</h1>
+<p class="post-meta"><span>2026-08-17</span><span class="d">/</span><span>5 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">Every Polymarket position sits on a public wallet address -
+there is no privacy setting for what you hold, only for who you are.
+That means any trader's current positions, closed trades, and realized
+P&amp;L are readable by anyone who has their address or display name, with
+no account and no permission needed. polymarket-tui turns that public
+ledger into something you can search, watch, and check back on from the
+same watchlist that holds your starred markets.</p>
+
+<span class="sec-label"><i>01</i>Watching, not copying</span>
+<h2>Following changes what you see, not what you hold</h2>
+
+<p>"Follow" here means exactly one thing: the trader's address gets saved
+to your watchlist so you can find their profile again without re-searching.
+It does not mirror their trades, does not alert you the moment they open a
+position, and does not touch your balance in any way - polymarket-tui has
+no copy-trading feature. What you get is a standing bookmark to a public
+profile: positions, size, entry price, current price, and P&amp;L, refreshed
+whenever you open it. The judgment about what any of that means stays
+entirely yours.</p>
+
+<p>That is also why "whale watching" on Polymarket looks different from
+the same idea on a centralized exchange or a copy-trading app: there is no
+API key to grant, no subscription to a signal, and nothing that executes
+on your behalf. A large, consistently profitable wallet is public
+information the moment it trades - polymarket-tui just makes that
+information easy to find and keep coming back to.</p>
+
+<span class="sec-label"><i>02</i>Finding a trader</span>
+<h2>The same search box, a second mode</h2>
+
+<p>Press <code>/</code> to open search, then <code>tab</code> to flip its
+results from MARKETS to TRADERS - one input searches both, Gamma's
+public-search endpoint returns whichever matches by name. <code>down</code>
+flows focus from the input into the trader list, which shows name, a
+shortened address, and bio side by side; the panel on the right fills in
+as soon as a row is highlighted, before you have followed anything.</p>
+
+<span class="sec-label"><i>03</i>A preview before you commit</span>
+<h2>The overview panel previews the whole position book</h2>
+
+<p>Highlighting a trader loads their overview: total position value, then
+up to eight of their largest holdings by current value, each with its P&amp;L
+in cents and percent. It is the same widget the market screen's expanded
+trades view uses when you open a name straight from the tape, so a trader
+you notice from an interesting trade and one you find by searching land in
+an identical view. Nothing is followed yet at this point - you can arrow
+through several names and compare before deciding.</p>
+
+<span class="sec-label"><i>04</i>Space follows; the watchlist remembers</span>
+<h2>One key, and it sticks</h2>
+
+<p><code>space</code> on a highlighted trader row toggles follow, marking
+the row with a leading <code>*</code> immediately. Followed traders are
+written to the same watchlist file as starred events
+(<code>~/.local/share/polymarket-tui/watchlist.json</code>), so <code>W</code>
+opens one screen with two tabs - Events and Traders - rather than a
+separate feature to remember. The Traders tab lists every followed
+address with its current positions value, fetched fresh each time you open
+it; <code>enter</code> jumps from that list straight to the full profile.
+There is no push notification when a followed trader opens a new
+position - checking in is a deliberate action, either opening the
+watchlist or pressing <code>R</code> to refresh it, not a background
+service watching wallets for you.</p>
+
+<span class="sec-label"><i>05</i>The full profile</span>
+<h2>Active, Closed, and History</h2>
+
+<p>Opening a trader (from search, the watchlist, or a trade in the tape)
+drills into a profile pane with a header line - positions value, all-time
+profit, all-time volume, markets traded - and three tabs: Active positions
+sorted by current value, Closed positions with realized P&amp;L (most
+recently settled first), and History, the raw activity feed of trades. A
+strip along the bottom charts all-time cumulative profit. <code>tab</code>
+cycles the three panes; <code>enter</code> on any row that references a
+market opens that market directly, so a position that catches your eye is
+one keypress from its own order book.</p>
+
+<span class="sec-label"><i>06</i>A live example</span>
+<h2>What one followed wallet actually shows</h2>
+
+<p>Here is a real profile, searched, followed, and opened in the app - as
+of 2026-08-17 07:31 UTC. Address <code>0x392a...49262d</code>, display
+name Maru.lucky.nala.lenu: $10,976 in current positions, +$1,524.06 in
+all-time realized-plus-unrealized profit on $247,562 of lifetime volume
+across 220 markets traded. The two largest positions are both "No"
+contracts on Middle East ladders: 3,380 shares of "Strait of Hormuz
+traffic returns to normal by September 30?" bought at an average 68.2c and
+now marked at 89.5c (+31%), and 1,273 shares of "US-Iran 60 day
+negotiation period extended?" - the contract this blog covered on
+August 15 as it fell toward its lows - bought at 45.0c and now marked at
+95.3c (+112%), the payoff from having bet No while the extension question
+kept fading toward a No resolution.</p>
+
+<pre><code><span class="c">/</span> Maru.lucky.nala.lenu   tab: TRADERS
+* Maru.lucky.nala.lenu   0x392a...262d
+positions $11K
+
+Strait of Hormuz No  $3,025  <span class="g">+31%</span>
+US-Iran extension No $1,214  <span class="g">+112%</span>
+
+<span class="c">space</span> follow   <span class="c">enter</span> open profile</code></pre>
+
+<p>None of that required an account. Read-only wallet tracking - your own
+portfolio or anyone else's - works the same whether or not you have
+credentials configured; only placing orders needs a funder address and
+key.</p>
+
+<p class="quiet">Try it: search a name you recognize from a market's trade
+tape, <code>tab</code> into TRADERS, and <code>space</code> to follow.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui</code></pre>
+
+<p class="quiet">The <a href="../#install">install page</a> has Homebrew and
+one-liner options. Press <code>/</code> once it's open, <code>tab</code>
+for traders.</p>
+
+</article>
+
+<p class="post-foot">Portfolio figures are a snapshot from 2026-08-17
+07:31 UTC and will have moved since. More posts on the <a href="./">blog
+index</a>, or subscribe via <a href="feed.xml">RSS</a>. Not affiliated with
+Polymarket; nothing here is financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
