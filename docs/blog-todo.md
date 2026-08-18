@@ -32,6 +32,18 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Florida Republican Governor Primary Odds on Polymarket: August 2026
+  (event: Florida's Republican gubernatorial primary, held August 18, 2026 -
+  Trump-endorsed Rep. Byron Donalds priced above 95c on Polymarket every day
+  since at least July 1 and closed at 98.85c on primary day, unmoved by
+  Agriculture Commissioner Wilton Simpson's July 3 endorsement completing a
+  sweep of Florida's statewide Cabinet or by rival Lt. Gov. Jay Collins's
+  August 13 Florida Phoenix interview calling it a "two-person race" (his
+  contract stayed at 0.05c); the genuine two-sided market sat one level
+  down, in a separate ladder pricing runner-up James Fishback's primary
+  vote share at 49c for under 10%, 37c for 10-15%, and single digits above
+  that) - 2026-08-18,
+  `site/blog/florida-republican-governor-primary-odds-polymarket-august-2026.html`
 - [x] How to Follow a Trader's Portfolio on Polymarket (fallback/evergreen:
   search a trader (/, tab to TRADERS), preview their top positions, follow
   with space, and check back from the watchlist's Traders tab - worked with
