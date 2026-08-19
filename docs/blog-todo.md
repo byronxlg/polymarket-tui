@@ -32,6 +32,23 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Kostyantynivka Capture Odds on Polymarket: August 2026 (event: Polymarket's
+  "Will Russia capture Kostyantynivka by...?" capture-by-date ladder - which
+  resolves only when the ISW Ukraine control map shades the city's railroad
+  station red for Russian control, with that shading required to persist
+  through the next full ISW daily update cycle - had faded for three days,
+  the September 30 contract sliding from 70.5c on August 15 to a 62c low at
+  18:00 UTC August 18 and the August 31 contract drifting from the mid-30s
+  to 32c over the same window, then both gapped to the high 90s within the
+  next hour (Sep 30 to 98.95c, Aug 31 to 98.35c, and the December 31, 2026
+  contract from an 86.75-87.1c band to 99.85c); ISW's own August 18
+  assessment described Russian forces "likely consolidat[ing] some
+  positions ... which they had previously infiltrated" rather than a
+  captured station, and traders posting in the event's comment thread
+  through 19:18 UTC still described the ISW map as not showing the station
+  under Russian control - the price moved before the market's own
+  resolution source had) - 2026-08-19,
+  `site/blog/kostyantynivka-capture-odds-polymarket-august-2026.html`
 - [x] Florida Republican Governor Primary Odds on Polymarket: August 2026
   (event: Florida's Republican gubernatorial primary, held August 18, 2026 -
   Trump-endorsed Rep. Byron Donalds priced above 95c on Polymarket every day
