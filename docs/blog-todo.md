@@ -32,6 +32,21 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Bitcoin $70,000 Odds on Polymarket: August 2026 (event: bitcoin broke
+  $69,000 for the first time in two months on Wednesday, August 19, 2026,
+  after the U.S. Treasury said Wednesday morning it would at least double
+  its long-end liquidity-support buyback size (from a $2B cap to a $4B
+  minimum per operation, covering 10-20yr and 20-30yr securities, effective
+  September 9) and the SEC's crypto task force proposed "Regulation Crypto
+  Assets" the prior afternoon (registration exemptions up to $5M over four
+  years or $75M/year for larger issuers) - together triggering $1.92B in
+  crypto futures liquidations, $1.7B of it inside one four-hour window;
+  Polymarket's "What price will Bitcoin hit in August?" ladder repriced with
+  it - the $70,000 contract went from under 10c to 99.95c and its order book
+  emptied out entirely, while $72,500 jumped from about 4c to a 48.8c/48.9c
+  coin flip (+45.7pts on the day), with $75,000 at 22.8c/23c and $77,500 at
+  11.3c/11.4c also still actively priced) - 2026-08-20,
+  `site/blog/bitcoin-70000-odds-polymarket-august-2026.html`
 - [x] Kostyantynivka Capture Odds on Polymarket: August 2026 (event: Polymarket's
   "Will Russia capture Kostyantynivka by...?" capture-by-date ladder - which
   resolves only when the ISW Ukraine control map shades the city's railroad
