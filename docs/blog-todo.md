@@ -32,6 +32,25 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] NATO x Russia Clash Odds on Polymarket: August 2026 (event: overnight
+  August 19-20, 2026, Russia hit Kyiv with a mass missile and drone
+  barrage - at least 15 dead per Mayor Klitschko, around 40 injured per
+  President Zelensky, a children's hospital and residential buildings
+  damaged - while in the same window a Russian drone tied to a strike on
+  Ukrainian Danube ports crossed into Romanian airspace near Galați,
+  prompting two Spanish NATO F-18s and a Romanian helicopter to scramble
+  (the drone crashed on its own, no intercept), a separate Romanian F-16
+  shot down a different explosive-laden drone near the Neptun Deep gas
+  field, and Poland's command put aircraft on preventive alert; Polymarket's
+  "NATO x Russia military clash by...?" ladder spiked on the headlines -
+  the August 31 contract from 2.85c to a 56.5c peak at 15:30 UTC August 20,
+  October 31 from 12.5c to the same 56.5c peak, December 31 from 22.5c to
+  69c - then fully round-tripped back down by the morning of August 21 (Aug
+  31 to 3.6-3.8c, Oct 31 to 13.5c, Dec 31 to 24.5c) once it became clear
+  neither incident cleared the market's own resolution bar, which
+  explicitly excludes airspace violations and interceptions of munitions
+  aimed at a third party) - 2026-08-21,
+  `site/blog/nato-russia-clash-odds-polymarket-august-2026.html`
 - [x] Bitcoin $70,000 Odds on Polymarket: August 2026 (event: bitcoin broke
   $69,000 for the first time in two months on Wednesday, August 19, 2026,
   after the U.S. Treasury said Wednesday morning it would at least double
