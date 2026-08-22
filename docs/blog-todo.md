@@ -32,6 +32,22 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] XRP $2 Odds on Polymarket: August 2026 (event: a crypto-market-wide
+  short squeeze liquidated over $1.25 billion in leveraged positions
+  overnight into Saturday, August 22, 2026, while whale wallets added
+  roughly 300 million XRP over the preceding several days and spot XRP
+  ETFs logged a $13.2 million net inflow on August 20 - all building on
+  President Trump's August 19 White House crypto meeting with Ripple CEO
+  Brad Garlinghouse and other executives, where Trump pushed Congress to
+  pass the CLARITY Act; XRP traded at $1.59 (+21.4% on the day, ~40% on
+  the week) as of 07:08 UTC August 22, and The Block reported it crossed
+  $1.40 for the first time in months; Polymarket's "What price will XRP
+  hit in August?" ladder repriced across the board - $1.60 to
+  effectively-settled 99.9c, $1.80 from under 1c to 36c, $2.00 from under
+  1c to 19.7c - while the separate "Clarity Act signed into law in 2026?"
+  market, covered on this blog August 7 at 13c, moved far more slowly to
+  25c over the same stretch) - 2026-08-22,
+  `site/blog/xrp-2-dollar-odds-polymarket-august-2026.html`
 - [x] NATO x Russia Clash Odds on Polymarket: August 2026 (event: overnight
   August 19-20, 2026, Russia hit Kyiv with a mass missile and drone
   barrage - at least 15 dead per Mayor Klitschko, around 40 injured per
