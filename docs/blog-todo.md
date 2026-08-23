@@ -32,6 +32,23 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Bitcoin $80,000 Odds on Polymarket: August 2026 (event: bitcoin gained
+  nearly 30% over five days to touch an intraday high near $79,500 early
+  Saturday, August 22, 2026 - riding the same Treasury bond-buyback/SEC
+  crypto-framework rally this blog covered August 20 plus Trump's August 19
+  CLARITY Act push - then flash-crashed shortly after 04:00 UTC that same
+  morning, briefly sliding under $77,000 and liquidating $523 million in a
+  single hour (86% long positions) and $1.8 billion over 24 hours across
+  286,130 traders, after the 4-hour RSI hit its highest reading in over
+  seven years; Polymarket's "What price will Bitcoin hit in August?" ladder
+  fully resolved its $75,000 and $77,500 contracts to 100c on the spike,
+  while the still-contested rungs above them gave back much of Friday's
+  gain by the morning of August 23 - $80,000 from a 91.4c peak to 45.35c
+  (-19.6pts on the day), $82,500 from 62.5c to 25.25c (-12.9pts), $85,000 to
+  12.55c (-8.2pts) - even as the order book showed real bid size (17,000+
+  shares at both $80,000 and $82,500) resting just under the market rather
+  than a panic-driven book) - 2026-08-23,
+  `site/blog/bitcoin-80000-odds-polymarket-august-2026.html`
 - [x] XRP $2 Odds on Polymarket: August 2026 (event: a crypto-market-wide
   short squeeze liquidated over $1.25 billion in leveraged positions
   overnight into Saturday, August 22, 2026, while whale wallets added
