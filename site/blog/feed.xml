@@ -9,6 +9,14 @@
 
   <!-- ITEMS: newest first. -->
   <item>
+    <title>How to Chart Polymarket Price History in the Terminal</title>
+    <link>https://polymarket-tui.botsmith.dev/blog/how-to-chart-polymarket-price-history-in-the-terminal.html</link>
+    <guid>https://polymarket-tui.botsmith.dev/blog/how-to-chart-polymarket-price-history-in-the-terminal.html</guid>
+    <pubDate>Mon, 24 Aug 2026 07:45:00 +0000</pubDate>
+    <description>How polymarket-tui charts Polymarket price history: six intervals, up to six outcomes overlaid on one axis, and a crosshair to inspect any candle.</description>
+  </item>
+
+  <item>
     <title>Bitcoin $80,000 Odds on Polymarket: August 2026</title>
     <link>https://polymarket-tui.botsmith.dev/blog/bitcoin-80000-odds-polymarket-august-2026.html</link>
     <guid>https://polymarket-tui.botsmith.dev/blog/bitcoin-80000-odds-polymarket-august-2026.html</guid>

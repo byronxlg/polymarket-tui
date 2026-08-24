@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How to Chart Polymarket Price History in the Terminal — polymarket-tui blog</title>
+<meta name="description" content="How polymarket-tui charts Polymarket price history: six intervals, up to six outcomes overlaid on one axis, and a crosshair to inspect any candle." />
+<link rel="canonical" href="https://polymarket-tui.botsmith.dev/blog/how-to-chart-polymarket-price-history-in-the-terminal.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://polymarket-tui.botsmith.dev/blog/how-to-chart-polymarket-price-history-in-the-terminal.html" />
+<meta property="og:title" content="How to Chart Polymarket Price History in the Terminal" />
+<meta property="og:description" content="How polymarket-tui charts Polymarket price history: six intervals, up to six outcomes overlaid on one axis, and a crosshair to inspect any candle." />
+<meta property="og:image" content="https://polymarket-tui.botsmith.dev/assets/og.png" />
+<meta property="article:published_time" content="2026-08-24" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "How to Chart Polymarket Price History in the Terminal",
+  "description": "How polymarket-tui charts Polymarket price history: six intervals, up to six outcomes overlaid on one axis, and a crosshair to inspect any candle.",
+  "datePublished": "2026-08-24",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://polymarket-tui.botsmith.dev/blog/how-to-chart-polymarket-price-history-in-the-terminal.html",
+  "image": "https://polymarket-tui.botsmith.dev/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>price-chart</p>
+<h1>How to Chart Polymarket Price History in the Terminal</h1>
+<p class="post-meta"><span>2026-08-24</span><span class="d">/</span><span>4 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">Polymarket's own price-history API returns exactly what a
+chart needs - timestamps and prices, nothing else - but reading a JSON array
+of them tells you nothing about the shape of a move. polymarket-tui turns
+that same endpoint into a chart in the terminal: six time windows, up to six
+outcomes overlaid on one axis, and a crosshair that steps back through the
+series one candle at a time. Below is what it draws for a live market -
+Polymarket's Fed September rate-decision event, as of 2026-08-24 07:37 UTC.</p>
+
+<span class="sec-label"><i>01</i>Where the data comes from</span>
+<h2>One endpoint, six windows</h2>
+
+<p>Every price chart on Polymarket, on the website or here, reads from the
+same public CLOB endpoint: <code>clob.polymarket.com/prices-history</code>,
+called with a token ID and either a relative window
+(<code>interval=1h|6h|1d|1w|1m|max</code>) or an explicit
+<code>startTs</code>/<code>endTs</code> range in epoch seconds, plus a
+<code>fidelity</code> in minutes that sets how many points come back. It
+answers with a flat array of <code>{"t": ..., "p": ...}</code> pairs and
+nothing else - no volume, no OHLC candles, just a price at a time. In
+polymarket-tui those six relative windows are the tabs sitting right above
+the chart (<code>1H 6H 1D 1W 1M ALL</code>), cycled with <code>tab</code> or
+selected directly; each maps to a fidelity fine enough to look smooth
+without asking the API for more points than the terminal has columns to
+draw. No account is needed - the endpoint is public, and browsing charts
+never touches your credentials.</p>
+
+<span class="sec-label"><i>02</i>One line, or the whole event</span>
+<h2>A single outcome, or every outcome at once</h2>
+
+<p>A market page charts one line at a time: whichever side of the YES/NO
+pair is currently selected, flipped with <code>tab</code> the same as
+everywhere else in the app, redrawing instantly. An event page - the one
+listing every contract in a multi-outcome market - overlays up to six lines
+on the same axis instead, picked as the highest-priced outcomes so the
+contracts actually worth watching lead. That is the more interesting view
+when an event's story is one contract crossing another, not just a single
+number going up. Polymarket's "Fed Decision in September?" event is a clean
+example: five yes/no contracts, one per possible outcome, two of them
+genuinely contested right now.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 720 300" role="img" aria-label="Polymarket Fed September decision Yes prices, Aug 10-24 2026. No Change rose from 63.5c to a 74.5c peak around Aug 15-17 then eased to 67.5c; Increase 25bps mirrored it, falling from 34.5c to a 24.5c low then climbing back to 31.5c." xmlns="http://www.w3.org/2000/svg">
+<title>Polymarket Fed September decision Yes prices, Aug 10-24 2026. No Change rose from 63.5c to a 74.5c peak around Aug 15-17 then eased to 67.5c; Increase 25bps mirrored it, falling from 34.5c to a 24.5c low then climbing back to 31.5c.</title>
+<g font-size="10.5" font-family="inherit">
+<line x1="46" y1="256.2" x2="602" y2="256.2" stroke="#1b232e" stroke-width="1"/>
+<text x="38" y="259.7" text-anchor="end" fill="#57626f">20c</text>
+<line x1="46" y1="183.5" x2="602" y2="183.5" stroke="#1b232e" stroke-width="1"/>
+<text x="38" y="187.0" text-anchor="end" fill="#57626f">40c</text>
+<line x1="46" y1="110.8" x2="602" y2="110.8" stroke="#1b232e" stroke-width="1"/>
+<text x="38" y="114.3" text-anchor="end" fill="#57626f">60c</text>
+<line x1="46" y1="38.2" x2="602" y2="38.2" stroke="#1b232e" stroke-width="1"/>
+<text x="38" y="41.7" text-anchor="end" fill="#57626f">80c</text>
+<text x="46.0" y="284" text-anchor="start" fill="#57626f">Aug 10</text>
+<text x="231.3" y="284" text-anchor="middle" fill="#57626f">Aug 14</text>
+<text x="416.7" y="284" text-anchor="middle" fill="#57626f">Aug 19</text>
+<text x="602.0" y="284" text-anchor="end" fill="#57626f">Aug 24</text>
+<line x1="46" y1="20" x2="62" y2="20" stroke="#4d8bf5" stroke-width="2"/>
+<text x="67" y="24" fill="#828f9e">No change</text>
+<line x1="148.4" y1="20" x2="164.4" y2="20" stroke="#bd8b2b" stroke-width="2"/>
+<text x="169.4" y="24" fill="#828f9e">Hike 25bps</text>
+<polyline points="46.0,98.1 52.6,101.8 59.3,112.7 65.9,130.8 72.5,127.2 79.1,127.2 85.8,123.6 92.4,119.9 99.0,116.3 105.6,116.3 112.3,112.7 118.9,105.4 125.5,101.8 132.2,101.8 138.8,87.2 145.4,87.2 152.0,87.2 158.7,87.2 165.3,87.2 171.9,87.2 178.5,69.1 185.2,72.7 191.8,72.7 198.4,65.4 205.0,69.1 211.7,65.4 218.3,54.5 224.9,58.2 231.6,58.2 238.2,58.2 244.8,58.2 251.4,58.2 258.1,61.8 264.7,61.8 271.3,61.8 277.9,61.8 284.6,61.8 291.2,61.8 297.8,61.8 304.4,58.2 311.1,58.2 317.7,58.2 324.3,58.2 331.0,58.2 337.6,54.5 344.2,72.7 350.8,72.7 357.5,69.1 364.1,69.1 370.7,69.1 377.3,72.7 384.0,72.7 390.6,72.7 397.2,69.1 403.9,69.1 410.5,69.1 417.1,72.7 423.7,72.7 430.4,69.1 437.0,69.1 443.6,65.4 450.2,65.4 456.9,69.1 463.5,72.7 470.1,72.7 476.8,72.7 483.4,69.1 490.0,72.7 496.6,83.6 503.3,83.6 509.9,83.6 516.5,80.0 523.1,80.0 529.8,80.0 536.4,80.0 543.0,80.0 549.6,80.0 556.3,80.0 562.9,80.0 569.5,80.0 576.1,80.0 582.8,80.0 589.4,83.6 596.0,83.6 602.0,83.6" fill="none" stroke="#4d8bf5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="602.0" cy="83.6" r="3" fill="#4d8bf5"/>
+<text x="610.0" y="87.6" fill="#c9d3df" font-size="11">No change 67.5c</text>
+<polyline points="46.0,203.5 52.6,199.9 59.3,185.3 65.9,170.8 72.5,170.8 79.1,181.7 85.8,178.1 92.4,185.3 99.0,181.7 105.6,181.7 112.3,185.3 118.9,189.0 125.5,196.2 132.1,196.2 138.8,207.1 145.4,210.8 152.0,210.8 158.7,210.8 165.3,210.8 171.9,210.8 178.5,225.3 185.2,225.3 191.8,228.9 198.4,228.9 205.0,228.9 211.7,236.2 218.3,243.5 224.9,239.8 231.6,239.8 238.2,239.8 244.8,239.8 251.4,239.8 258.1,239.8 264.7,239.8 271.3,239.8 277.9,239.8 284.6,239.8 291.2,239.8 297.8,239.8 304.4,239.8 311.1,239.8 317.7,239.8 324.3,239.8 331.0,243.5 337.6,243.5 344.2,221.7 350.8,228.9 357.5,225.3 364.1,225.3 370.7,225.3 377.3,225.3 384.0,225.3 390.6,225.3 397.2,225.3 403.8,225.3 410.5,225.3 417.1,225.3 423.7,225.3 430.4,228.9 437.0,228.9 443.6,232.6 450.2,232.6 456.9,228.9 463.5,228.9 470.1,228.9 476.8,228.9 483.4,228.9 490.0,228.9 496.6,210.8 503.3,214.4 509.9,218.0 516.5,218.0 523.1,218.0 529.8,218.0 536.4,218.0 543.0,218.0 549.6,218.0 556.3,218.0 562.9,218.0 569.5,218.0 576.1,218.0 582.8,218.0 589.4,214.4 596.0,214.4 602.0,214.4" fill="none" stroke="#bd8b2b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="602.0" cy="214.4" r="3" fill="#bd8b2b"/>
+<text x="610.0" y="218.4" fill="#c9d3df" font-size="11">Hike 25bps 31.5c</text>
+</g></svg>
+</figure>
+<figcaption class="fig-caption">Polymarket "Fed Decision in September?" -
+No Change and Increase 25bps Yes prices, Aug 10-24 2026, hourly. CLOB price
+history, fetched 2026-08-24 07:37 UTC.</figcaption>
+
+<p>The two lines move as near mirror images: No Change ran from 63.5c up to
+a 74.5c peak around August 15-17 as a run of soft data landed, then eased
+back to 67.5c; Increase 25bps fell from 34.5c to a 24.5c low over the same
+stretch before climbing back to 31.5c. On the event page all five
+contracts in the ladder draw together, so a shift like this - one outcome
+gaining exactly as another gives it back - shows up as two lines crossing
+apart rather than something you'd have to notice by flipping between five
+separate tabs:</p>
+
+<pre><code><span class="c">FED DECISION IN SEPTEMBER - PRICE   24H</span>
+Decrease 50+ bps                    0.25c   (flat)
+Decrease 25 bps                     1.25c  <span class="r">-0.10c</span>
+No change                          67.50c  <span class="r">-1.00c</span>
+Increase 25 bps                    31.50c   <span class="g">+1.00c</span>
+Increase 50+ bps                    0.45c   (flat)
+</code></pre>
+
+<span class="sec-label"><i>03</i>Reading the shape</span>
+<h2>Freeze it and step through with a crosshair</h2>
+
+<p><code>x</code>, bound on whichever screen owns the chart, focuses the
+panel and drops a crosshair on it; on an event page, arrow-down past the
+last row of the outcome table flows straight into the same inspect mode -
+down means down, whatever's below the table. Once inspecting,
+<code>left</code>/<code>right</code> step the crosshair through the series
+a small amount at a time (roughly 1.5% of the visible window per press),
+<code>shift+left</code>/<code>shift+right</code> jump ten times as far per
+press for covering a wide window fast, and <code>escape</code>, <code>x</code>,
+<code>up</code>, or <code>down</code> all exit cleanly and hand focus back
+to wherever it came from. While inspecting, the legend swaps the live
+price-plus-24h-change it normally shows for the exact price at the
+crosshair's timestamp - put it on a spike and read precisely how high the
+line went and when, instead of eyeballing a pixel against the axis.</p>
+
+<span class="sec-label"><i>04</i>In the terminal</span>
+<h2>Resizing live, not a static screenshot</h2>
+
+<p>Because the chart is real Rich/Textual output rather than an image, it
+redraws at whatever width the pane happens to be - a five-line event chart
+like the Fed one above is legible at full width and still readable
+compressed into a narrower drill pane, something a fixed-size embed can't
+do. In <a href="https://github.com/byronxlg/polymarket-tui">polymarket-tui</a>,
+every market and event page carries one, no account required to browse it,
+and the same interval tabs and crosshair work identically whether you're
+watching a two-sided coin flip or, like this Fed event, a five-way ladder
+with two contracts actively trading places.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">No account is needed to browse markets, books, and charts.
+The <a href="../#install">install page</a> has Homebrew and one-liner
+options.</p>
+
+</article>
+
+<p class="post-foot">Prices are a snapshot from 2026-08-24 07:37 UTC and
+will have moved since - the Fed's September meeting is still weeks out and
+this ladder is still repricing. More posts on the <a href="./">blog
+index</a>, or subscribe via <a href="feed.xml">RSS</a>. Not affiliated with
+Polymarket; nothing here is financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>
