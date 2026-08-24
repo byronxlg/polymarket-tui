@@ -19,7 +19,7 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Queue (fallback)
 
-- [ ] Charting Polymarket price history in the terminal - intent: "polymarket
+- [x] Charting Polymarket price history in the terminal - intent: "polymarket
   price history", "polymarket chart"
 - [ ] What happens when a market resolves (redemption, UMA, disputed
   outcomes) - intent: "polymarket resolution", "how does polymarket settle"
@@ -32,6 +32,16 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] How to Chart Polymarket Price History in the Terminal (fallback/evergreen:
+  the CLOB `/prices-history` endpoint behind polymarket-tui's chart - six
+  interval tabs, a single flippable outcome on a market page vs. up to six
+  outcomes overlaid on an event page, and the `x`-key crosshair for stepping
+  through a series - worked with a live example from Polymarket's "Fed
+  Decision in September?" event, whose No Change and Increase 25bps
+  contracts moved as near mirror images over Aug 10-24, 2026: No Change from
+  63.5c to a 74.5c peak on Aug 15-17 then back to 67.5c, Increase 25bps from
+  34.5c to a 24.5c low then back to 31.5c) - 2026-08-24,
+  `site/blog/how-to-chart-polymarket-price-history-in-the-terminal.html`
 - [x] Bitcoin $80,000 Odds on Polymarket: August 2026 (event: bitcoin gained
   nearly 30% over five days to touch an intraday high near $79,500 early
   Saturday, August 22, 2026 - riding the same Treasury bond-buyback/SEC
