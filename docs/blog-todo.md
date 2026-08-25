@@ -32,6 +32,21 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] How Polymarket Resolved Bitcoin's $80,000 Contract (event: Polymarket's
+  "Will Bitcoin reach $80,000 in August?" contract closed at 15:43:42 UTC on
+  August 24, 2026, after a single one-minute Binance BTC/USDT candle printed
+  a high at or above $80,000, the culmination of the round trip this blog
+  covered August 20-23 - the contract bottomed at a 42.25c low August 23
+  before bitcoin's rally, fueled by continued Treasury buyback optimism and
+  fresh ETF inflows, carried it to resolution, while several mainstream
+  price trackers reading composite/Coinbase feeds were still describing
+  bitcoin in the high $70,000s well into the next morning; post explains
+  Polymarket's Gamma resolution lifecycle (closed/closedTime/acceptingOrders/
+  outcomePrices freezing to ["1","0"]/umaResolutionStatus) and in-app
+  redemption (won positions flagged "won - redeem on web", `o` opens
+  polymarket.com), with the still-live $82,500/$85,000 rungs - up 34 and 21
+  points on the day to 72.5c/42.5c - as ongoing context) - 2026-08-25,
+  `site/blog/how-polymarket-resolved-bitcoins-80000-contract.html`
 - [x] How to Chart Polymarket Price History in the Terminal (fallback/evergreen:
   the CLOB `/prices-history` endpoint behind polymarket-tui's chart - six
   interval tabs, a single flippable outcome on a market page vs. up to six
