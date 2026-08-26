@@ -32,6 +32,25 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Strait of Hormuz Reopening Odds on Polymarket: September 2026 (event: the
+  Trump administration launched "Operation Economic Outcast" on Monday, August
+  24, 2026 - Treasury Secretary Scott Bessent added five more sanctioned
+  sectors (aviation, digital assets, gold, shipping, technology) to Iran's
+  economy, blacklisted 60+ Iran-linked targets, and threatened secondary
+  sanctions on any country still trading with Iran - yet Polymarket's Iran
+  de-escalation odds barely moved on the sanctions news itself; the real
+  move came the next day, Tuesday August 25, when Oman's foreign minister
+  Badr Albusaidi met Iranian counterpart Abbas Araghchi in Tehran to discuss
+  a "phased framework" for a temporary Strait of Hormuz shipping corridor
+  and mine-clearing project, with Albusaidi calling an announcement possible
+  "soon"; Polymarket's "US announces end of Iranian blockade by September
+  30?" jumped from a 28.5c low to a 43c intraday peak starting 08:30 UTC
+  Aug 25, settling 40.5c (every date on the blockade-end ladder closed
+  green, Aug 31 through Dec 31), "Strait of Hormuz traffic returns to
+  normal by September 30?" roughly doubled from 5.5c to 11.5c, and the
+  "US ceasefire against Iran continues through...?" ladder also rose
+  7-10 points across its September and October dates) - 2026-08-26,
+  `site/blog/strait-of-hormuz-reopening-odds-september-2026.html`
 - [x] How Polymarket Resolved Bitcoin's $80,000 Contract (event: Polymarket's
   "Will Bitcoin reach $80,000 in August?" contract closed at 15:43:42 UTC on
   August 24, 2026, after a single one-minute Binance BTC/USDT candle printed
