@@ -32,6 +32,20 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed Rate Hike Odds on Polymarket: Jackson Hole 2026 (event: Fed Chair
+  Kevin Warsh delivered his first Jackson Hole speech as chairman at 10am ET
+  (14:00 UTC) August 28, 2026, at the Kansas City Fed's annual economic
+  symposium, saying "we must be confident that underlying inflation is
+  moving to our objective, clearly and at sufficient speed - otherwise, we
+  have work to do" with PCE inflation at 3.7% YoY (core 3.3%), while also
+  rejecting explicit forward guidance as a "hall-of-mirrors problem";
+  Polymarket's "Fed Decision in September?" market moved within ten minutes
+  of the speech starting - "No change" fell from 69.5c to a 46.5-47.5c
+  low before settling 49.5c (-18pt on the day), "25 bps increase" rose from
+  30.5c to a 52.5c high before settling 49.5c (+19pt), a coin flip that had
+  been a clear "no change" favorite the day before, while "25 bps decrease"
+  - the favorite as recently as early August - collapsed further to 0.65c)
+  - 2026-08-28, `site/blog/fed-rate-hike-odds-jackson-hole-2026.html`
 - [x] Strait of Hormuz Reopening Odds on Polymarket: September 2026 (event: the
   Trump administration launched "Operation Economic Outcast" on Monday, August
   24, 2026 - Treasury Secretary Scott Bessent added five more sanctioned
