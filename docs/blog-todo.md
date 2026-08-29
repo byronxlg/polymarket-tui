@@ -32,6 +32,22 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Lake America Odds on Polymarket: August 2026 (event: President Trump
+  signed an executive order Thursday, August 27, 2026, renaming Lake
+  Ontario "Lake America," tasking Interior Secretary Doug Burgum and the
+  Board on Geographic Names with updating the Geographic Names Information
+  System (GNIS) within 30 days, amid an escalating US-Canada trade war;
+  Canadian PM Mark Carney rejected the rename the same day; Polymarket's
+  "Google Maps renames Lake Ontario to Lake America by...?" ladder saw its
+  December 31 contract jump from a 17.5c pre-news level to 94.5c within
+  about four hours starting 17:15 UTC August 27 as the order landed, while
+  a newly-listed "by August 31" contract - asking whether the rename would
+  land within 4 days of signing, evoking the ~3-week Gulf of Mexico-to-Gulf
+  of America precedent from January 2025 - launched Aug 28 at 45c, crashed
+  to a 4c low within two hours, round-tripped as high as 55c twice more,
+  and settled 23.7c (-26.7pts on the day) by the time of writing, two days
+  before its own resolution) - 2026-08-29,
+  `site/blog/lake-america-odds-polymarket-august-2026.html`
 - [x] Fed Rate Hike Odds on Polymarket: Jackson Hole 2026 (event: Fed Chair
   Kevin Warsh delivered his first Jackson Hole speech as chairman at 10am ET
   (14:00 UTC) August 28, 2026, at the Kansas City Fed's annual economic
