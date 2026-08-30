@@ -32,6 +32,24 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Jannik Sinner Out of the 2026 US Open: Odds Move (event: world No. 1
+  Jannik Sinner, unbeaten in majors he'd entered all year and 44-3 with six
+  titles in 2026 including the season's first five ATP Masters 1000 events,
+  withdrew from the 2026 US Open on Friday, August 21, 2026, citing a right
+  knee injury dating to his Wimbledon win in July - his first missed Grand
+  Slam since his 2019 major debut, and confirmed after he'd already
+  withdrawn from the Montreal and Cincinnati warm-up events; Polymarket's
+  "2026 Men's US Open Winner" market had already drifted Sinner's contract
+  from 50.5c on August 17 to a 32-35.5c band by the morning of August 21 on
+  the warm-up withdrawals, then crashed it from 35.5c to 0.15c within six
+  hours (12:00-18:00 UTC) once the US Open withdrawal was official, settling
+  0.05c and flipping Gamma's `closed` flag to true more than a week before
+  the tournament's first match; Carlos Alcaraz absorbed the largest single
+  jump (25.5c to 33c the same window) and remained the new favorite at 25.5c
+  by August 30, while Alexander Zverev nearly doubled (11.25c to 21.65c) and
+  kept climbing to 23.05c, closing to within 2.45c of Alcaraz as the main
+  draw began) - 2026-08-30,
+  `site/blog/jannik-sinner-2026-us-open-withdrawal-odds.html`
 - [x] Lake America Odds on Polymarket: August 2026 (event: President Trump
   signed an executive order Thursday, August 27, 2026, renaming Lake
   Ontario "Lake America," tasking Interior Secretary Doug Burgum and the
