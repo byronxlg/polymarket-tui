@@ -32,6 +32,25 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Iran Strikes Jordan and UAE Odds on Polymarket: August 2026 (event: US
+  forces struck two IRGC rocket launchers on Larak Island in the Strait of
+  Hormuz on Sunday, August 30, 2026 - CENTCOM said the Guard had been
+  observed preparing to launch rockets with sea mines into the strait, the
+  first US military action there in a month; the IRGC acknowledged
+  casualties and vowed retaliation, then early Monday, August 31, launched
+  ballistic missiles at Jordan's King Hussein and Al-Azraq air bases
+  (Jordan says it intercepted all eight, no damage) and drones at the
+  UAE's Al Minhad Air Base (UAE denies any hit, calls it "baseless");
+  Polymarket's "Will Iran target an Arab country by...?" ladder, flat in a
+  4-9c band all weekend, jumped to 67c within 15 minutes once reports of
+  the retaliation broke at 19:30 UTC Aug 30, reached 99.5c by 02:15 UTC
+  Aug 31, and formally resolved 100/0 across its August 31, September 15,
+  and September 30 rungs by 14:07 UTC Aug 31 - while the broader "Israel x
+  Iran ceasefire continues through...?" ladder, which only counts direct
+  Israel-Iran strikes, slid a modest 6-7 points on its September-December
+  legs, and "Will the US invade Iran before 2027?" moved just +3 points on
+  the day) - 2026-08-31,
+  `site/blog/iran-strikes-jordan-uae-odds-polymarket-august-2026.html`
 - [x] Jannik Sinner Out of the 2026 US Open: Odds Move (event: world No. 1
   Jannik Sinner, unbeaten in majors he'd entered all year and 44-3 with six
   titles in 2026 including the season's first five ATP Masters 1000 events,
