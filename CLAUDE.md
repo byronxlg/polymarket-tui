@@ -5,6 +5,9 @@ books, charts, portfolio, and order placement against the real exchange.
 
 @.claude/rules/design-principles.md
 
+Operations (what "live" means, release pipeline, schedules, rollback): `runbook/`
+(`runbook/README.md` front door, `runbook/updates.md` how change ships). Fleet standard tier 3.
+
 ## Commands
 
 ```sh
