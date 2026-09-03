@@ -32,6 +32,20 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] GTA VI Extended Look Views Odds on Polymarket: September 2026 (event:
+  Rockstar posted "Grand Theft Auto VI: An Extended Look" to its YouTube
+  channel August 27, 2026 at 6:00pm PT (01:00 UTC August 28); Polymarket's
+  twelve-bracket ladder on the video's first-168-hour YouTube view count
+  drifted in a choppy 15-45c range for three days, then flipped fast around
+  16:20 UTC Tuesday, September 2 - "under 20 million views" fell from 53.5c
+  to 26.5c in ten minutes while "20 to 22 million" jumped from 44.5c to 72c,
+  no news event behind it, just the running view-count pace on the counter
+  crossing the bracket boundary early; by 2026-09-03 11:27 UTC the actual
+  YouTube counter read 20,341,522 views, "under 20 million" had collapsed
+  to 0.55c (-61.5pts on the day) and "20 to 22 million" priced 90.5c
+  (+52pts), with "22 to 24 million" still holding a live 9.1c tail (+8.5pts)
+  as the market's 23:59 UTC close approached) - 2026-09-03,
+  `site/blog/gta-vi-extended-look-views-odds-polymarket-september-2026.html`
 - [x] Iran Strikes Jordan and UAE Odds on Polymarket: August 2026 (event: US
   forces struck two IRGC rocket launchers on Larak Island in the Strait of
   Hormuz on Sunday, August 30, 2026 - CENTCOM said the Guard had been
