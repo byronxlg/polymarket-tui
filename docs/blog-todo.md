@@ -32,6 +32,23 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed September 2026 Odds on Polymarket: The Waller Flip (event: Fed
+  Governor Christopher Waller said Thursday, September 3, 2026, that he
+  could support holding rates steady at the September 15-16 FOMC meeting -
+  "If this continues in the data due over the next two weeks, I would be
+  inclined to support holding the target" - conditional on the still-
+  unreleased August CPI report confirming continued disinflation; CME
+  FedWatch showed September hike odds falling about 12 points to roughly
+  54.6% on the news; Polymarket's "Fed Decision in September?" market,
+  which this blog covered after Fed Chair Warsh's hawkish August 28 Jackson
+  Hole speech flipped it to a 49.5c coin flip, had drifted further toward a
+  hike over the following days - "no change" falling to a 37.5c low
+  September 1 while "25 bps increase" climbed to a 60.5c high August 31 -
+  then reversed hard starting 12:30 UTC September 3, "no change" jumping
+  from 48.5c to a 62.5c intraday high within 90 minutes and settling near
+  59.5c (+10pt on the day) by 2026-09-04 11:30 UTC, with "25 bps increase"
+  giving back the same ground to 41.5c (-8pt)) - 2026-09-04,
+  `site/blog/fed-september-2026-odds-waller-flip.html`
 - [x] GTA VI Extended Look Views Odds on Polymarket: September 2026 (event:
   Rockstar posted "Grand Theft Auto VI: An Extended Look" to its YouTube
   channel August 27, 2026 at 6:00pm PT (01:00 UTC August 28); Polymarket's
