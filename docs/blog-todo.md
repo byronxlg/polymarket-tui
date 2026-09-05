@@ -32,6 +32,26 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Israel Airspace Closure Odds on Polymarket: September 2026 (event: Iran
+  delivered a message to Washington via Oman in mid-August warning that a
+  full Israeli offensive on Lebanon's Ali al-Taher ridge - a Hezbollah
+  command position where Iranian personnel were reportedly also based -
+  would draw a "large-scale" Iranian attack on Israel; after overnight IDF
+  strikes killed seven per Lebanese health authorities, the IDF said
+  Thursday, September 4, 2026, that it had taken "operational control" of
+  the ridge (while assessing no IRGC personnel were actually present);
+  Polymarket's "Israel closes its airspace by...?" September 30 contract,
+  flat in a 5-13c band for the prior six days, spiked to a 65.5c intraday
+  high within 90 minutes of the ridge news breaking around 18:00 UTC
+  September 4, faded back to a 37.5-39c plateau by 23:45 UTC once no
+  immediate Iranian strike came, then spiked again overnight to an 83c peak
+  at 02:00 UTC September 5 - coinciding with unconfirmed reports of blasts
+  near Iran's Kharg Island oil terminal around 07:00 UTC - before settling
+  67.5c (+59pts on the day) by 2026-09-05 10:48 UTC, while the broader
+  "Israel x Iran ceasefire continues through...?" September 30 contract,
+  which only counts direct Israel-Iran strikes, held an 82.5-87.5c band
+  throughout with no comparable move) - 2026-09-05,
+  `site/blog/israel-airspace-closure-odds-polymarket-september-2026.html`
 - [x] Fed September 2026 Odds on Polymarket: The Waller Flip (event: Fed
   Governor Christopher Waller said Thursday, September 3, 2026, that he
   could support holding rates steady at the September 15-16 FOMC meeting -
