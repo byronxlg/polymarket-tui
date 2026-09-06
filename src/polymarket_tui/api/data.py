@@ -56,9 +56,7 @@ class DataApiClient:
         data = await self._get("/positions", {"user": user, "limit": limit, "sortBy": "CURRENT"})
         return [Position.model_validate(p) for p in data]
 
-    async def closed_positions(
-        self, user: str, limit: int = CLOSED_LIMIT
-    ) -> list[ClosedPosition]:
+    async def closed_positions(self, user: str, limit: int = CLOSED_LIMIT) -> list[ClosedPosition]:
         """Settled positions, most recently closed first.
 
         sortBy accepts only [REALIZEDPNL AVGPRICE PRICE TITLE TIMESTAMP]; the
@@ -66,6 +64,7 @@ class DataApiClient:
         reel rather than a history, so ask for TIMESTAMP.
         """
         out: list[ClosedPosition] = []
+        seen: set[tuple[str, str]] = set()
         offset = 0
         while len(out) < limit:
             page = await self._get(
@@ -80,7 +79,18 @@ class DataApiClient:
             )
             if not page:
                 break
-            out.extend(ClosedPosition.model_validate(p) for p in page)
+            for raw in page:
+                pos = ClosedPosition.model_validate(raw)
+                # Offset pages are not a stable cursor: rows with a tied
+                # timestamp can reorder between requests, and a position that
+                # settles mid-walk shifts every later offset by one. Either
+                # hands the same (slug, asset) back on two pages, and the
+                # table keys rows on exactly that pair (DuplicateKey crash).
+                key = (pos.slug, pos.asset)
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(pos)
             if len(page) < CLOSED_PAGE_LIMIT:
                 break  # short page - that was the last one
             offset += len(page)
