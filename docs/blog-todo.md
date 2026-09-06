@@ -32,6 +32,18 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Israel-Lebanon Strike Odds on Polymarket: September 2026 (event: Israel
+  said it struck southern Lebanon at dawn on Sunday, September 6, 2026, after
+  Hezbollah fighters launched two drones toward Israeli forces in the
+  self-declared southern security zone; strikes on Nabatieh al-Fawqa, Arab
+  Salim, Nabatieh city, and Kfar Reman killed at least four and wounded 20,
+  despite the Israel-Lebanon ceasefire framework in place since June;
+  Polymarket's "Israel military action against Lebanon on September 6?"
+  daily contract held an 80c overnight plateau, then jumped to a 97.9c
+  intraday high between 03:55-04:40 UTC, settling 97.7c (+67.3pts on the
+  day), while the broader "Israel closes its airspace by September 30?"
+  contract wobbled in a 57-73c band, unmoved) - 2026-09-06,
+  `site/blog/israel-lebanon-strike-odds-polymarket-september-2026.html`
 - [x] Israel Airspace Closure Odds on Polymarket: September 2026 (event: Iran
   delivered a message to Washington via Oman in mid-August warning that a
   full Israeli offensive on Lebanon's Ali al-Taher ridge - a Hezbollah
