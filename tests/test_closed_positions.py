@@ -114,6 +114,29 @@ async def test_walks_offsets_past_the_fifty_row_page_cap() -> None:
 
 
 @pytest.mark.asyncio
+async def test_a_row_straddling_a_page_boundary_is_not_duplicated() -> None:
+    # Offset pages are not a stable cursor: tied timestamps reorder between
+    # requests and a position settling mid-walk shifts later offsets by one,
+    # so page 3 can open with the row that closed page 2. The table keys rows
+    # on slug|asset; a repeat is a DuplicateKey crash in the portfolio pane.
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        offset = int(request.url.params.get("offset", 0))
+        start = offset - offset // 50  # each later page re-sends its predecessor's last row
+        rows = 50 if offset < 100 else 7
+        return httpx.Response(200, json=[_raw(start + i) for i in range(rows)])
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url=BASE_URL)
+    out = await DataApiClient(http).closed_positions("0xf", limit=150)
+    keys = [(p.slug, p.asset) for p in out]
+    assert len(keys) == len(set(keys))
+    assert len(out) == 105  # 107 rows served, two of them repeats
+    assert [int(r.url.params["offset"]) for r in seen] == [0, 50, 100]
+
+
+@pytest.mark.asyncio
 async def test_a_short_first_page_ends_the_walk() -> None:
     client, seen = _client({0: 12})
     assert len(await client.closed_positions("0xf", limit=150)) == 12
