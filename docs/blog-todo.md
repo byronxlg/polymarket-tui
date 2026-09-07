@@ -32,6 +32,22 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Carlos Alcaraz's US Open 2026 Title Odds, Ahead of the Shelton
+  Quarterfinal (event: defending champion Carlos Alcaraz beat 13th seed
+  Tommy Paul 6-4, 6-3, 6-4 on September 6, 2026 to reach the US Open
+  quarterfinals, where he faces American Ben Shelton on September 8;
+  Polymarket's "2026 Men's US Open Winner" market, which this blog covered
+  August 30 after Jannik Sinner's withdrawal left Alcaraz (25.5c) and
+  Alexander Zverev (23.05c) 2.45c apart, had Alcaraz climb from 34.5c on
+  September 1 to a 57.5-58.5c intraday high around 20:00 UTC September 6 on
+  the Paul win, settling 56.5c (+9pts on the day, +22pts on the week) as of
+  2026-09-07 12:48 UTC, while Zverev held a 20-24c band all week and last
+  traded 23.1c - a 33.4c gap versus the 2.45c gap eight days earlier; the
+  event also traded $1.13M over the prior 24 hours on $1.10M of liquidity,
+  and Alcaraz's order book showed a 1c-wide spread with 10,874 shares bid
+  at 56c and 28,511 offered at 57c versus a few hundred shares on either
+  side of Zverev's touch) - 2026-09-07,
+  `site/blog/carlos-alcaraz-us-open-2026-odds-shelton-quarterfinal.html`
 - [x] Israel-Lebanon Strike Odds on Polymarket: September 2026 (event: Israel
   said it struck southern Lebanon at dawn on Sunday, September 6, 2026, after
   Hezbollah fighters launched two drones toward Israeli forces in the
