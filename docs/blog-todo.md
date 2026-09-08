@@ -32,6 +32,18 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Israel Airspace Closure Odds on Polymarket Hit 96c (event: overnight
+  into September 8, 2026, Yemen's Houthis fired dozens of ballistic
+  missiles and drones at a Saudi air base and Aramco's Jazan refinery
+  complex, wounding 73, on top of Iran firing missiles at two US Navy
+  warships September 5, CENTCOM striking three Iranian tankers in
+  response, and Iran's parliament speaker declaring "the era of
+  proportionate responses is over" September 6; Polymarket's "Israel
+  closes its airspace by September 30?" contract, covered on this blog
+  September 5 at 67.5c, jumped from 61.5c to 94.5c in 30 minutes late
+  September 7 and settled at 96c, while the separate Israel-Iran
+  ceasefire-holds contract stayed flat at 87.5c) - 2026-09-08,
+  `site/blog/israel-airspace-closure-odds-houthi-strikes-september-2026.html`
 - [x] Carlos Alcaraz's US Open 2026 Title Odds, Ahead of the Shelton
   Quarterfinal (event: defending champion Carlos Alcaraz beat 13th seed
   Tommy Paul 6-4, 6-3, 6-4 on September 6, 2026 to reach the US Open
