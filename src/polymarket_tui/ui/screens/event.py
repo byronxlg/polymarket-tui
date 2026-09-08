@@ -20,6 +20,7 @@ from polymarket_tui.core import fmt
 from polymarket_tui.models.market import Event
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
+from polymarket_tui.ui.staleness import RefreshOnReturn
 from polymarket_tui.ui.theme import BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import (
     ColumnSpec,
@@ -92,7 +93,7 @@ def market_meta(market) -> str:
     )
 
 
-class EventPane(TierAware, Vertical):
+class EventPane(RefreshOnReturn, TierAware, Vertical):
     """Event detail body - hosted as a drill pane by NavHost."""
 
     header_title = "event"
