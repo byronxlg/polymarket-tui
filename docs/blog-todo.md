@@ -32,6 +32,22 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Ben Shelton's US Open 2026 Odds After Toppling Alcaraz (event: Ben
+  Shelton beat defending champion Carlos Alcaraz 6-7(5), 6-1, 6-3, 1-6,
+  7-6(10-7) in their US Open quarterfinal, a match that started Tuesday
+  night September 8, 2026 and finished 03:33 ET Wednesday, the latest
+  finish in tournament history; Polymarket's "Will Carlos Alcaraz win the
+  2026 Men's US Open?" contract, covered on this blog September 7 at
+  56.5c, peaked at 61c after Alcaraz won the first-set tiebreak, bottomed
+  at 23c as Shelton took sets two and three, recovered to 45.5c on
+  Alcaraz's 6-1 fourth set, then collapsed from 40c to 0.05c within
+  fifteen minutes of the deciding tiebreak, closing at 0; Shelton's own
+  contract rose from a flat ~7c the evening before to 35.9c by
+  2026-09-09 11:35 UTC, second behind Alexander Zverev's new-favorite
+  44.8c, while Frances Tiafoe's five-set comeback over fellow American
+  Alex Michelsen the same day set up an all-American semifinal - only the
+  second at a men's major since 2005) - 2026-09-09,
+  `site/blog/ben-shelton-alcaraz-upset-us-open-2026-odds.html`
 - [x] Israel Airspace Closure Odds on Polymarket Hit 96c (event: overnight
   into September 8, 2026, Yemen's Houthis fired dozens of ballistic
   missiles and drones at a Saudi air base and Aramco's Jazan refinery
