@@ -32,6 +32,26 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Elena Rybakina's US Open 2026 Odds After Reaching No. 1 (event: Elena
+  Rybakina beat Zheng Qinwen in Wednesday's US Open quarterfinal, September
+  9, 2026, to become the WTA's world No. 1 for the first time in her
+  career; Zheng had herself upset two-time major champion Iga Swiatek in
+  the fourth round September 7, and Coco Gauff saved match points against
+  Mirra Andreeva to reach the semifinals the same Wednesday evening,
+  completing the first US Open women's semifinal with all four top seeds
+  since 1975 (only the second time in the Open Era) and the first at any
+  Grand Slam since Wimbledon 2009; Polymarket's Rybakina title contract
+  rose from 18.4c to a 25.65c intraday high (settling 26.5c, +7.6pts on
+  the day) on the Zheng win, while Gauff's swung from 20.9c down to a
+  12.5c low and back up to a 27.25c high within about two hours as she
+  faced and saved match points, settling 25.0c (+4.0pts); Aryna Sabalenka,
+  who beat Linda Noskova in her own quarterfinal and is chasing a third
+  straight US Open title, ceded the No. 1 ranking to Rybakina this week
+  but remained the outright favorite at 36.0c (-0.5pt) ahead of a
+  semifinal against Jessica Pegula (13.2c, -0.8pt), who beat Emma Navarro;
+  Rybakina and Gauff's semifinal is a rematch of the National Bank Open
+  Toronto semifinal Rybakina won 5-7, 6-2, 6-2 on August 12) - 2026-09-10,
+  `site/blog/rybakina-world-no-1-us-open-2026-odds.html`
 - [x] Ben Shelton's US Open 2026 Odds After Toppling Alcaraz (event: Ben
   Shelton beat defending champion Carlos Alcaraz 6-7(5), 6-1, 6-3, 1-6,
   7-6(10-7) in their US Open quarterfinal, a match that started Tuesday
