@@ -32,6 +32,23 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Sabalenka vs. Rybakina: US Open 2026 Final Odds (event: Aryna
+  Sabalenka beat Jessica Pegula 7-5, 6-2 and Elena Rybakina beat Coco
+  Gauff 3-6, 6-4, 6-4 in Thursday night's US Open semifinals, September
+  10-11, 2026, setting up Saturday, September 12's women's final - a
+  rubber match after the pair split their two prior Grand Slam finals
+  (Sabalenka won the 2023 Australian Open, Rybakina the 2026 Australian
+  Open) and with Sabalenka leading the head-to-head 10-7 overall and
+  chasing a third straight US Open title; Polymarket's Sabalenka title
+  contract, flat around 36.5-37.5c through most of September 9-10, jumped
+  from 35.5c to a 60.5c intraday high as she closed out the match,
+  settling 55.5c (+18.5pts on the day), while Rybakina's contract fell to
+  a 12.05c intraday low as she dropped the first set to Gauff before
+  completing the comeback, rallying to a 44.65c high and settling 42.75c
+  (+16.8pts); Sabalenka's order book showed a 1c-wide market (3,968 shares
+  bid at 55c, 2,790 offered at 56c) versus a wider 2.4c spread and thinner
+  100-share best bid on Rybakina's side) - 2026-09-11,
+  `site/blog/sabalenka-rybakina-us-open-2026-final-odds.html`
 - [x] Elena Rybakina's US Open 2026 Odds After Reaching No. 1 (event: Elena
   Rybakina beat Zheng Qinwen in Wednesday's US Open quarterfinal, September
   9, 2026, to become the WTA's world No. 1 for the first time in her
