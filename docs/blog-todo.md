@@ -32,6 +32,23 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed September 2026 Odds on Polymarket: The CPI Flip (event: the BLS's
+  August 2026 CPI report, released 12:30 UTC September 11, 2026, showed
+  headline CPI up 0.4% for the month (3.4% YoY, in line with estimates,
+  driven by gasoline +3.9% MoM/+27.4% YoY) and core CPI up 0.3% (a tenth of
+  a point above forecast, holding the annual core rate at 2.4%) - the last
+  inflation print before the September 15-16 FOMC meeting; Polymarket's
+  "Fed Decision in September?" market, which this blog covered September 4
+  after Fed Governor Waller's conditional dovish comments left "no change"
+  a 59.5c favorite, had drifted to 41.5c by the morning of September 11
+  before the CPI print broke it at 12:30 UTC - "no change" falling to a
+  16.5c intraday low (settling near 19.5c, -19pt on the day) while "25 bps
+  increase" rose to an 81.5c high (settling near 78.5c, +18pt), a 16-point
+  favorite/underdog gap widening to 61 points in half an hour; both
+  contracts' order books were 1c wide with over 150,000 shares resting at
+  the touch on both sides, and the event traded $20M over the prior 24
+  hours on $10.3M of liquidity) - 2026-09-12,
+  `site/blog/fed-september-2026-odds-cpi-flip.html`
 - [x] Sabalenka vs. Rybakina: US Open 2026 Final Odds (event: Aryna
   Sabalenka beat Jessica Pegula 7-5, 6-2 and Elena Rybakina beat Coco
   Gauff 3-6, 6-4, 6-4 in Thursday night's US Open semifinals, September
