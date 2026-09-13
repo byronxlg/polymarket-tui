@@ -32,6 +32,24 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Iran-Oman Hormuz Meeting Odds on Polymarket, After Bahrain's Boycott
+  (event: an Iranian commercial vessel was struck near Qeshm Island in the
+  Strait of Hormuz overnight into Sunday, September 13, 2026, killing one of
+  ten crew and wounding four, while the UK Maritime Trade Operations Centre
+  reported a separate vessel hit by an unidentified projectile the night
+  before - landing a day ahead of a meeting Iran called in Muscat, Oman for
+  Monday, September 14 on managing strait shipping traffic, which Bahrain's
+  foreign ministry said Saturday, September 12 it would boycott until
+  Iran-Bahrain diplomatic relations (cut in 2016) are restored; Polymarket's
+  "Iran-Oman Hormuz Agreement by September 14?" contract, which only
+  requires Iran and Oman (not Bahrain) to reach a deal, round-tripped from a
+  9.5c low Friday morning to a 46c intraday high Saturday morning, an 18c
+  low Saturday evening, and back to 34.5c (34c bid/35c ask, on a thin
+  100-vs-1,486-share touch) by 2026-09-13 12:06 UTC - net flat across 24
+  hours despite the 28-point swing - while the September 21 and September
+  30 rungs on the same ladder priced 38c and 48c, a gradual step-up rather
+  than a bet on Monday's meeting alone) - 2026-09-13,
+  `site/blog/iran-oman-hormuz-meeting-odds-bahrain-boycott.html`
 - [x] Fed September 2026 Odds on Polymarket: The CPI Flip (event: the BLS's
   August 2026 CPI report, released 12:30 UTC September 11, 2026, showed
   headline CPI up 0.4% for the month (3.4% YoY, in line with estimates,
