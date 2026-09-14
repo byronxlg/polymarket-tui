@@ -32,6 +32,22 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Sweden Election 2026 Odds on Polymarket: The PM Flip (event: Sweden
+  held its parliamentary election Sunday, September 13, 2026, with polls
+  closing 18:00 UTC; with 94.7% of votes counted the opposition
+  Social-Democrat-led left bloc (S+MP+V+C) led 176 seats to 173 for
+  incumbent PM Ulf Kristersson's right bloc (M+SD+KD+L) in the 349-seat
+  Riksdag, a three-seat margin with official results due within a week;
+  the Sweden Democrats, framed pre-election as eyeing a "historic
+  breakthrough," instead lost 11 seats and fell to third place (17.56%)
+  behind the Moderates (19.86%); Polymarket's "Next Prime Minister of
+  Sweden" market moved within 20 minutes of poll close - Kristersson's
+  contract fell from 34.5c to an 8c low before settling 10.5c, Social
+  Democrat leader Magdalena Andersson's rose from 66c to a 90.5c high
+  before settling 87.5c - while the separate "2nd Place" market inverted
+  almost completely, Sweden Democrats' shot at second falling from 76.5c
+  to 0.05c and the Moderates' rising from 23.5c to 99.95c) - 2026-09-14,
+  `site/blog/sweden-election-2026-odds-pm-flip.html`
 - [x] Iran-Oman Hormuz Meeting Odds on Polymarket, After Bahrain's Boycott
   (event: an Iranian commercial vessel was struck near Qeshm Island in the
   Strait of Hormuz overnight into Sunday, September 13, 2026, killing one of
