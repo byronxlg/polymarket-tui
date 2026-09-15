@@ -4,7 +4,7 @@
 #   upload_youtube.sh <video.mp4> <title> <description-file>
 #
 # Needs YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET / YOUTUBE_REFRESH_TOKEN in
-# the environment (GH secrets in CI; doppler run locally).
+# the environment (GH secrets in CI; `chamber exec polymarket-tui/prd --` locally).
 #
 # YOUTUBE_PRIVACY defaults to private: until the project passes YouTube's
 # compliance audit, the API forces private anyway - defaulting to it keeps the

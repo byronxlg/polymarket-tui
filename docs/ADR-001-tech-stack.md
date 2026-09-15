@@ -100,7 +100,7 @@ form-heavy, multi-screen apps, which is what "web UI parity" demands.
 | REST | httpx (async) |
 | WebSocket | websockets |
 | Models | pydantic v2 |
-| Config/secrets | Doppler (`polymarket-tui` project) - see config-and-auth.md |
+| Config/secrets | SSM Parameter Store `/polymarket-tui/{prd,dev}/` (management D28; Doppler `global/home` for the wallet) - see config-and-auth.md |
 | Tests | pytest + pytest-asyncio + textual Pilot; respx for HTTP mocking |
 | Lint/format | ruff |
 
