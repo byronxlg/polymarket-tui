@@ -20,7 +20,8 @@ deleted afterwards. Run it as:
 The daily workflow reads them from GitHub secrets - sync with:
 
     doppler run --project global --config home -- chamber exec polymarket-tui/prd -- \
-        sh -c 'printf %s "$YOUTUBE_CLIENT_ID" | gh secret set YOUTUBE_CLIENT_ID'   # and likewise for the other two
+        sh -c 'printf %s "$YOUTUBE_CLIENT_ID" | gh secret set YOUTUBE_CLIENT_ID'
+    # and likewise for the other two
 """
 
 from __future__ import annotations
@@ -42,7 +43,7 @@ REGION = "ap-southeast-2"
 def store(name: str, value: str) -> None:
     # Value via a 0600 temp file so it never appears in the process table.
     doc = {"Name": SSM_PREFIX + name, "Type": "SecureString", "Value": value,
-           "Description": "YouTube upload credential, minted by scripts/shorts/mint_youtube_token.py",
+           "Description": "YouTube upload credential, minted by mint_youtube_token.py",
            "Overwrite": True}
     fd, path = tempfile.mkstemp(suffix=".json")
     try:
