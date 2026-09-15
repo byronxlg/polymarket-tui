@@ -32,6 +32,26 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Clarity Act Odds on Polymarket: The Warren Selloff (event: Senate
+  Majority Leader John Thune set up a cloture vote on the motion to
+  proceed to the Digital Asset Market Clarity Act (H.R. 3633) for 2:15pm
+  ET (18:15 UTC) September 15, 2026 - a procedural 60-vote threshold, not
+  final passage, for a bill that already passed the House 294-134 on
+  July 17, 2025 and cleared the Senate Banking Committee 15-9 on May 14,
+  2026; Republican sponsors released updated "final offer" text late
+  Sunday, September 13 addressing banks' Section 404 stablecoin-yield-ban
+  demands and Democrats' ethics-language demands, and Senate Banking
+  ranking member Elizabeth Warren then used a Monday, September 14 floor
+  speech to call the new ethics language a "weak fig leaf" against
+  Trump's "next $1.4 billion in crypto profits"; Polymarket's "signed
+  into law in 2026?" contract jumped from 22.5c to a 34.5c high around
+  04:20 UTC September 14 on the compromise text, held a 27.5-32.5c band
+  through the day, then broke decisively lower around 21:00 UTC as
+  Warren's speech circulated, falling to a 15.5c low by 22:50 UTC, before
+  settling 18.5c (1c-wide book, 13,312 shares bid at 18c vs. 10,507
+  offered at 19c) by 2026-09-15 11:55 UTC on $1.2M of 24h volume against
+  $344,512 of liquidity) - 2026-09-15,
+  `site/blog/clarity-act-odds-polymarket-warren-selloff.html`
 - [x] Sweden Election 2026 Odds on Polymarket: The PM Flip (event: Sweden
   held its parliamentary election Sunday, September 13, 2026, with polls
   closing 18:00 UTC; with 94.7% of votes counted the opposition
