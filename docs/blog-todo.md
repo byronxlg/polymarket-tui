@@ -32,6 +32,23 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed September 2026 Odds on Polymarket: Decision Day (event: the FOMC's
+  September 15-16, 2026 meeting concludes with a rate decision due 2pm ET
+  (18:00 UTC) September 16, followed by Chair Warsh's press conference and
+  the quarterly Summary of Economic Projections/dot plot; a Reuters poll of
+  101 economists published Monday, September 14 found 86 (85%) now expect a
+  25bp hike to 3.75%-4.00%, a reversal from the prior week when two-thirds
+  expected no change, citing the hot August CPI print this blog covered
+  September 12 plus oil near $100/barrel on Middle East supply concerns;
+  Polymarket's "Fed Decision in September?" market, which settled near
+  19.5c "no change"/78.5c "25bps increase" after that CPI post, ground
+  lower starting 13:15 UTC September 14 as the poll circulated, reaching a
+  12.5c/86.5c close that evening and a 9.5c low/89.5c high around 18:30-
+  23:15 UTC September 15, before settling 11.5c/87.5c (11c bid/12c ask vs.
+  87c bid/88c ask, 152,859 and 283,220 shares resting at the respective
+  bids) by 2026-09-16 11:51 UTC on $21.8M of 24h volume against $16.2M of
+  liquidity) - 2026-09-16,
+  `site/blog/fed-september-2026-odds-decision-day.html`
 - [x] Clarity Act Odds on Polymarket: The Warren Selloff (event: Senate
   Majority Leader John Thune set up a cloture vote on the motion to
   proceed to the Digital Asset Market Clarity Act (H.R. 3633) for 2:15pm
