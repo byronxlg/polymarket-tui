@@ -32,6 +32,26 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed October 2026 Odds on Polymarket: After September's Hike (event: the
+  FOMC voted 12-0 on September 16, 2026 to raise the federal funds rate 25
+  basis points to 3.75%-4.00%, the first hike since July 2023, exactly what
+  Polymarket's "Fed Decision in September?" market had priced at 87.5c the
+  morning before (covered on this blog September 16 as decision day
+  approached); that contract resolved 100c/0c by 21:40 UTC. Chair Warsh
+  said the hike "will support a timelier return to the committee's 2
+  percent goal" and called inflation "too high" and "for too long" above
+  target; the Summary of Economic Projections showed 12 of 18 participants
+  projecting one more 25bp hike by year-end (4.00%-4.25%), 4 projecting two
+  more (4.25%-4.50%), and 2 projecting no more (median 4.1%), with the
+  October 27-28 and December 8-9 meetings remaining. Polymarket's "Fed
+  Decision in October?" market barely moved on the 2pm ET statement itself
+  (priced in), then swung hard during Warsh's 2:30pm ET press conference -
+  "no change" falling from a 63.5c morning level to a 49.5c low by 19:30
+  UTC, "25 bps increase" rising from 37.5c to a 50.5c high in the same
+  window - before both settled back to a 52.5c/45.5c split (1c-wide books,
+  45,182 shares bid at 52c vs. 55,650 bid at 45c) by 2026-09-17 11:55 UTC on
+  $3.0M of 24h volume against $1.45M of liquidity) - 2026-09-17,
+  `site/blog/fed-october-2026-odds-polymarket-after-september-hike.html`
 - [x] Fed September 2026 Odds on Polymarket: Decision Day (event: the FOMC's
   September 15-16, 2026 meeting concludes with a rate decision due 2pm ET
   (18:00 UTC) September 16, followed by Chair Warsh's press conference and
