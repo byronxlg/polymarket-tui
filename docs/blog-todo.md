@@ -32,6 +32,27 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Mecklenburg-Vorpommern 2026 Odds on Polymarket: The SPD Flip (event:
+  Polymarket's "Mecklenburg-Vorpommern Parliamentary Election Winner"
+  market priced AfD an 83.5c favorite to win the most seats in the state's
+  September 20, 2026 Landtag election from at least September 15 through
+  the afternoon of September 17, even as four straight polls (pollytix
+  Sept 8-9: AfD 36/SPD 30; Insa Sept 10: AfD 36/SPD 33; Insa fieldwork
+  Sept 8-15, published the evening of Sept 17: AfD 37/SPD 35; Forschungsgruppe
+  Wahlen for ZDF, fieldwork Sept 14-17, published the morning of Sept 18:
+  SPD 37/AfD 36) showed AfD's lead narrowing and then flipping to the
+  governing SPD (Minister-President Manuela Schwesig, in coalition with
+  Die Linke since the SPD won 39.6% to AfD's 16.7% in 2021) for the first
+  time all cycle; the market broke on the Insa release, AfD falling from
+  75.5c to 56.0c and SPD rising from 22.5c to 41.5c within ten minutes at
+  19:50 UTC Sept 17, then broke again on the Forschungsgruppe Wahlen poll,
+  AfD falling from 54.5c to 49.0c and SPD rising to match around 03:00 UTC
+  Sept 18, drifting to a 39.5c AfD low/60c SPD high by mid-morning before
+  partly reversing to a 48.5c/51.0c coin flip (AfD's book 48c bid/49c ask,
+  SPD's 50c bid/52c ask, a 25-point AfD swing and 24.5-point SPD swing on
+  the day) by 2026-09-18 11:31 UTC on $391,672 of 24h volume against
+  $636,292 of liquidity, two days ahead of the vote) - 2026-09-18,
+  `site/blog/mecklenburg-vorpommern-2026-odds-polymarket-spd-flip.html`
 - [x] Fed October 2026 Odds on Polymarket: After September's Hike (event: the
   FOMC voted 12-0 on September 16, 2026 to raise the federal funds rate 25
   basis points to 3.75%-4.00%, the first hike since July 2023, exactly what
