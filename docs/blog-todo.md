@@ -32,6 +32,28 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Russia Election 2026 Odds on Polymarket: The Seat-Gain Quirk (event:
+  Russia's 9th State Duma election ran a three-day vote September 18-20,
+  2026 - the first Duma election to include ballots from occupied Ukrainian
+  territory (seven new single-mandate constituencies: three in Donetsk, two
+  in Luhansk, one each in Kherson and Zaporizhzhia) plus polling stations in
+  Moldova's Transnistria, condemned by Kyiv, Chisinau, and the European
+  Commission; Polymarket's "Which party will gain most seats in Russian
+  Parliamentary Election?" event - $4.85M of 24h volume by 2026-09-19 11:13
+  UTC, the largest event on the site that day - resolves on net seats gained
+  versus the outgoing 8th Duma (United Russia 310, KPRF 56, SRZP 27, LDPR
+  22, New People 15 of 450), not on which party is largest outright; against
+  PolitPro's aggregate poll (United Russia 46.0%, KPRF 15.8%, LDPR 12.8%,
+  New People 11.5%, SRZP 5.7%), that priced United Russia 76.5c (thin 122-
+  share bid vs. 27,956-share ask at the 76c/77c touch), New People 21.3c
+  despite fourth-place polling, and KPRF at just 0.25c despite being the
+  current second-largest party - because New People's small 15-seat base
+  leaves room for a big proportional gain while KPRF's 56-seat base is
+  expected to shrink; both UR's and NL's contracts chopped without a clean
+  directional break over the three days of voting, UR swinging 66.6c-82.5c
+  and NL 16.1c-21.3c, on $9.89M of the past week's volume against $3.55M of
+  liquidity) - 2026-09-19,
+  `site/blog/russia-election-2026-odds-polymarket-seat-gain-quirk.html`
 - [x] Mecklenburg-Vorpommern 2026 Odds on Polymarket: The SPD Flip (event:
   Polymarket's "Mecklenburg-Vorpommern Parliamentary Election Winner"
   market priced AfD an 83.5c favorite to win the most seats in the state's
