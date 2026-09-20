@@ -32,6 +32,26 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] US-Iran Ceasefire Odds on Polymarket: The Riyadh Missile Scare (event: at
+  dawn Saturday, September 19, 2026, Saudi Arabia's air defenses intercepted a
+  ballistic missile fired at Riyadh - the first air-raid alert the capital has
+  sounded since Saudi-Houthi fighting escalated in July 2026 - with no
+  casualties or damage reported, per Saudi authorities, while Houthi spokesman
+  Yahya Saree claimed further missile and drone strikes on Riyadh and Saudi
+  Aramco's Yanbu facility plus attempts on Bisha, Taif, and Farasan, all said
+  to be intercepted; Polymarket's "US-Iran ceasefire continues through...?"
+  ladder - which resolves "No" only on a US strike that directly impacts
+  Iranian soil, explicitly excluding intercepted munitions and anything not
+  executed by the US against Iran - nonetheless sold off within minutes of the
+  strike breaking around 00:00 UTC September 20: the through-September-30 leg
+  fell from 81.5c to a 62.5c low and the through-October-31 leg from 51c to a
+  22c low, before both round-tripped back to roughly 77c and 46c respectively
+  within about an hour once it was clear the incident was Houthi-on-Saudi, not
+  a qualifying US-Iran strike; the event traded $783,578 over the prior 24
+  hours and $1.12M over the prior week against $180,691 of liquidity, with
+  1c-wide books on both legs (2,230 shares bid at 76c on Sep 30, 814 at 45c on
+  Oct 31) as of 2026-09-20 11:40 UTC) - 2026-09-20,
+  `site/blog/us-iran-ceasefire-odds-polymarket-riyadh-missile-scare.html`
 - [x] Russia Election 2026 Odds on Polymarket: The Seat-Gain Quirk (event:
   Russia's 9th State Duma election ran a three-day vote September 18-20,
   2026 - the first Duma election to include ballots from occupied Ukrainian
