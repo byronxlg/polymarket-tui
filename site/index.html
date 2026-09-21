@@ -141,6 +141,14 @@
   .hero-meta .dry { color: var(--amber); }
   .hero-meta .hm { white-space: nowrap; } /* keep "item /" together on wrap */
 
+  /* ---- launch video ---- */
+  .brag { margin: 40px 0 0; }
+  .brag video {
+    display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+    border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg-2);
+  }
+  .brag .term-caption { margin-top: 12px; }
+
   /* ---- terminal demo ---- */
   .term-shell { margin: 46px 0 0; padding-bottom: 56px; }
   .term {
@@ -348,6 +356,13 @@
     <span class="hm">starts in <span class="dry">dry-run</span> <span class="d">/</span></span>
     <span class="hm">open source</span>
   </p>
+
+  <div class="brag">
+    <video src="assets/brag.mp4" poster="assets/brag.jpg" width="1920" height="1080"
+      muted autoplay loop playsinline controls preload="metadata"
+      aria-label="polymarket-tui in 20 seconds: the live order book, order entry, and the dry-run toast"></video>
+    <p class="term-caption">polymarket-tui in 20 seconds. Below it, the same session as an interactive recording.</p>
+  </div>
 
   <div class="term-shell">
     <div class="term">

@@ -20,6 +20,7 @@ site/
     demo.cast                       the recording (asciinema v2 format)
     demo-poster.png                 generated: readable crop shown instead of the player under 900px
     og.png                          generated: 1200x630 social preview card (og:image)
+    brag.mp4 / brag.jpg             launch video and its poster, made with the /brag skill (see below)
     fonts/plexmono-*.woff2          vendored IBM Plex Mono, latin subset (OFL)
 scripts/
   record_demo.sh                    re-records assets/demo.cast
@@ -67,6 +68,15 @@ After re-recording, regenerate the derived images (poster crop + og card):
 ```sh
 uv run --with playwright python scripts/make_site_images.py
 ```
+
+## Regenerate the launch video
+
+The 20-second launch video on the landing page and in the README is made with the
+`/brag` skill (Hyperframes, local render). Run `/brag` in the repo; the plan, the
+composition and the render land in `brag/` (`brag/brag.mp4`, `brag/brag.jpg`). The
+composition reuses frames of `assets/demo.gif`, so re-record the demo first if the UI
+changed, then copy `brag/brag.mp4` and `brag/brag.jpg` to `site/assets/`. Keep the mp4
+under about 6 MB (`--crf 26` on the render did it).
 
 ## Update the player assets
 

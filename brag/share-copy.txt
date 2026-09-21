@@ -1,0 +1,1 @@
+Introducing polymarket-tui: Polymarket in your terminal. Live order books, charts, P&L and order entry, all keyboard, no browser. Dry-run by default. Python, MIT, open source.

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>polymarket-tui brag</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script src="assets/audio-data.js"></script>
+<style>
+  @font-face { font-family: "Plex Mono"; src: url(assets/fonts/plexmono-400.woff2) format("woff2"); font-weight: 400; font-style: normal; }
+  @font-face { font-family: "Plex Mono"; src: url(assets/fonts/plexmono-500.woff2) format("woff2"); font-weight: 500; font-style: normal; }
+  @font-face { font-family: "Plex Mono"; src: url(assets/fonts/plexmono-600.woff2) format("woff2"); font-weight: 600; font-style: normal; }
+  :root {
+    --bg: #0a0e14; --bg-2: #0d1219; --line: #1b232e; --line-2: #29323f;
+    --ink: #c9d3df; --dim: #828f9e; --accent: #4d8bf5; --amber: #d9a032;
+    --mono: "Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); }
+  #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+  .clip { position: absolute; inset: 0; }
+  .wrap { position: absolute; inset: 0; }
+  .rail { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .rail.l { left: 120px; } .rail.r { right: 120px; }
+
+  /* scene 1 */
+  .ps1 { position: absolute; left: 180px; top: 300px; margin: 0; font-size: 30px; color: var(--dim); white-space: nowrap; }
+  .ps1 .p { color: var(--accent); }
+  .ps1 .ch { opacity: 0; }
+  .caret { display: inline-block; width: 16px; height: 30px; background: var(--dim); vertical-align: -4px; margin-left: 4px; }
+  .h1 { position: absolute; left: 180px; top: 400px; margin: 0; font-size: 104px; line-height: 1.1; letter-spacing: -3px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .h1 .u { color: var(--accent); }
+  .sub { position: absolute; left: 180px; top: 560px; margin: 0; font-size: 34px; color: var(--dim); white-space: nowrap; }
+  .sub b { color: var(--ink); font-weight: 500; }
+
+  /* scenes 2-3 */
+  .label { position: absolute; left: 180px; top: 78px; margin: 0; font-size: 34px; font-weight: 500; color: var(--ink); white-space: nowrap; }
+  .label .dry { color: var(--amber); }
+  .term { position: absolute; left: 290px; top: 166px; width: 1340px; height: 846px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--bg-2); overflow: hidden; }
+  .term-bar { height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 15px; color: var(--dim); background: var(--bg-2); border-bottom: 1px solid var(--line); }
+  .term-bar .rec { color: #e05a51; margin-right: 8px; }
+  .shot { position: absolute; left: 0; top: 37px; width: 1338px; height: 809px; overflow: hidden; }
+  .shot img { display: block; width: 1338px; height: 809px; }
+  .shot img.top { position: absolute; left: 0; top: 0; }
+
+  /* scene 4 */
+  .mark { position: absolute; left: 0; right: 0; top: 400px; margin: 0; text-align: center; font-size: 96px; font-weight: 600; letter-spacing: -2px; color: var(--ink); }
+  .mark .p { color: var(--accent); font-weight: 400; }
+  .install { position: absolute; left: 0; right: 0; top: 570px; margin: 0; text-align: center; font-size: 34px; color: var(--dim); }
+  .install .ch { opacity: 0; }
+  .install .p { color: var(--accent); }
+  .url { position: absolute; left: 0; right: 0; top: 660px; margin: 0; text-align: center; font-size: 26px; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="brag" data-start="0" data-width="1920" data-height="1080" data-duration="20" data-fps="30">
+
+  <section id="s1" class="clip" data-start="0" data-duration="4.8" data-track-index="1">
+    <div id="s1-wrap" class="wrap">
+      <div class="rail l"></div><div class="rail r"></div>
+      <p id="s1-ps1" class="ps1"><span class="p">~ $</span> <span id="s1-typed"></span><span id="s1-caret" class="caret"></span></p>
+      <h1 id="s1-h1" class="h1">Polymarket in your terminal<span class="u">_</span></h1>
+      <p id="s1-sub" class="sub">Browse, chart, trade. <b>All keyboard, no browser.</b></p>
+    </div>
+  </section>
+
+  <section id="s2" class="clip" data-start="4.2" data-duration="6.4" data-track-index="2">
+    <div id="s2-wrap" class="wrap">
+      <div class="rail l"></div><div class="rail r"></div>
+      <p id="s2-label" class="label">Live order books, straight from the CLOB.</p>
+      <div id="s2-term" class="term">
+        <div class="term-bar"><span><span class="rec">&#9679;</span>polymarket-tui &mdash; recorded session</span><span>dry-run &middot; balances hidden &middot; 160&times;42</span></div>
+        <div class="shot" data-layout-allow-overflow><img id="s2-img" src="assets/ui/book.png" alt="polymarket-tui market screen: YES/NO chips above a live order book with depth bars" /></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s3" class="clip" data-start="10.2" data-duration="5.8" data-track-index="3">
+    <div id="s3-wrap" class="wrap">
+      <div class="rail l"></div><div class="rail r"></div>
+      <p id="s3-label" class="label">Orders in cents, under the live book.</p>
+      <p id="s3-label2" class="label">Dry-run by default: <span class="dry">signed, never posted</span>.</p>
+      <div id="s3-term" class="term">
+        <div class="term-bar"><span><span class="rec">&#9679;</span>polymarket-tui &mdash; recorded session</span><span>dry-run &middot; balances hidden &middot; 160&times;42</span></div>
+        <div class="shot" data-layout-allow-overflow>
+          <img id="s3-img" src="assets/ui/order.png" alt="order entry panel: BUY 100 YES at 32.5c, limit GTC, DRY" />
+          <img id="s3-img2" class="top" src="assets/ui/dryrun.png" alt="dry run toast: order signed, not posted" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s4" class="clip" data-start="15.6" data-duration="4.4" data-track-index="4">
+    <div id="s4-wrap" class="wrap">
+      <div class="rail l"></div><div class="rail r"></div>
+      <p id="s4-mark" class="mark"><span class="p">&gt;_</span> polymarket-tui</p>
+      <p id="s4-install" class="install"><span class="p">$</span> <span id="s4-typed"></span></p>
+      <p id="s4-url" class="url">polymarket-tui.botsmith.dev</p>
+    </div>
+  </section>
+
+  <audio id="bg-music" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3" data-start="0" data-duration="20" data-track-index="10" data-volume="0.3"
+    data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0},{"t":0.6,"v":1},{"t":18.2,"v":1},{"t":19.9,"v":0}]}]}'></audio>
+  <audio id="sfx-drop-1" src="assets/sfx/interface/drop_001.ogg" data-start="4.35" data-duration="1" data-track-index="11" data-volume="0.5"></audio>
+  <audio id="sfx-drop-2" src="assets/sfx/interface/drop_001.ogg" data-start="13.08" data-duration="1" data-track-index="12" data-volume="0.5"></audio>
+  <audio id="sfx-bong" src="assets/sfx/interface/bong_001.ogg" data-start="16.36" data-duration="1.5" data-track-index="13" data-volume="0.55"></audio>
+  <audio id="key-1" src="assets/sfx/keyboard/keypress-003.wav" data-start="0.50" data-duration="0.3" data-track-index="20" data-volume="0.4"></audio>
+  <audio id="key-2" src="assets/sfx/keyboard/keypress-007.wav" data-start="0.64" data-duration="0.3" data-track-index="21" data-volume="0.4"></audio>
+  <audio id="key-3" src="assets/sfx/keyboard/keypress-011.wav" data-start="0.78" data-duration="0.3" data-track-index="22" data-volume="0.4"></audio>
+  <audio id="key-4" src="assets/sfx/keyboard/keypress-015.wav" data-start="0.92" data-duration="0.3" data-track-index="23" data-volume="0.4"></audio>
+  <audio id="key-5" src="assets/sfx/keyboard/keypress-019.wav" data-start="1.06" data-duration="0.3" data-track-index="24" data-volume="0.4"></audio>
+  <audio id="key-6" src="assets/sfx/keyboard/keypress-023.wav" data-start="1.20" data-duration="0.3" data-track-index="25" data-volume="0.4"></audio>
+  <audio id="key-7" src="assets/sfx/keyboard/keypress-027.wav" data-start="1.34" data-duration="0.3" data-track-index="26" data-volume="0.4"></audio>
+  <audio id="key-8" src="assets/sfx/keyboard/keypress-031.wav" data-start="17.47" data-duration="0.3" data-track-index="27" data-volume="0.35"></audio>
+  <audio id="key-9" src="assets/sfx/keyboard/keypress-003.wav" data-start="17.63" data-duration="0.3" data-track-index="28" data-volume="0.35"></audio>
+  <audio id="key-10" src="assets/sfx/keyboard/keypress-011.wav" data-start="17.79" data-duration="0.3" data-track-index="29" data-volume="0.35"></audio>
+  <audio id="key-11" src="assets/sfx/keyboard/keypress-019.wav" data-start="17.95" data-duration="0.3" data-track-index="30" data-volume="0.35"></audio>
+  <audio id="key-12" src="assets/sfx/keyboard/keypress-027.wav" data-start="18.11" data-duration="0.3" data-track-index="31" data-volume="0.35"></audio>
+  <audio id="key-13" src="assets/sfx/keyboard/keypress-007.wav" data-start="18.27" data-duration="0.3" data-track-index="32" data-volume="0.35"></audio>
+</div>
+
+<script>
+  // Split typed strings into per-character spans (deterministic, no timers).
+  function splitInto(id, text) {
+    var host = document.getElementById(id);
+    var spans = [];
+    for (var i = 0; i < text.length; i++) {
+      var s = document.createElement("span");
+      s.className = "ch";
+      s.textContent = text[i] === " " ? " " : text[i];
+      host.appendChild(s);
+      spans.push(s);
+    }
+    return spans;
+  }
+  var typed1 = splitInto("s1-typed", "polymarket-tui");
+  var typed4 = splitInto("s4-typed", "uv tool install polymarket-tui");
+
+  var tl = gsap.timeline({ paused: true });
+
+  // ---- scene 1: hook (0 - 4.8) ----
+  tl.set("#s1-wrap", { opacity: 1 }, 0);
+  for (var i = 0; i < typed1.length; i++) {
+    tl.set(typed1[i], { opacity: 1 }, 0.5 + i * 0.07);   // key ticks on every other char
+  }
+  tl.fromTo("#s1-h1", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 2.19); // beat-locked: 2.19s
+  tl.fromTo("#s1-sub", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 2.9);
+  tl.to("#s1-wrap", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 4.2);
+
+  // ---- scene 2: the book (4.2 - 10.6) ----
+  tl.fromTo("#s2-wrap", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.inOut" }, 4.2);
+  tl.fromTo("#s2-term", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 4.39); // beat-locked: 4.39s
+  tl.fromTo("#s2-img", { scale: 1, transformOrigin: "36% 42%" }, { scale: 1.07, duration: 6.0, ease: "none" }, 4.4);
+  tl.fromTo("#s2-label", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 5.34); // beat-grid: 5.34s
+  tl.to("#s2-wrap", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 10.2);
+
+  // ---- scene 3: order entry, dry-run (10.2 - 16.0) ----
+  tl.fromTo("#s3-wrap", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.inOut" }, 10.2);
+  tl.set("#s3-img2", { opacity: 0 }, 10.2);
+  tl.set("#s3-label2", { opacity: 0 }, 10.2);
+  tl.fromTo("#s3-img", { scale: 1.02, transformOrigin: "62% 20%" }, { scale: 1.06, duration: 5.6, ease: "none" }, 10.2);
+  tl.fromTo("#s3-img2", { scale: 1.02, transformOrigin: "62% 20%" }, { scale: 1.06, duration: 5.6, ease: "none" }, 10.2);
+  tl.fromTo("#s3-label", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 10.93); // beat-locked: 10.93s
+  tl.set("#s3-img2", { opacity: 1 }, 13.11);                                   // beat-locked: 13.11s (hard cut to the toast)
+  tl.to("#s3-label", { opacity: 0, duration: 0.25, ease: "power2.in" }, 13.0);
+  tl.fromTo("#s3-label2", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 13.15);
+  tl.to("#s3-wrap", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 15.6);
+
+  // ---- scene 4: outro (15.6 - 20) ----
+  tl.fromTo("#s4-wrap", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.inOut" }, 15.6);
+  tl.fromTo("#s4-mark", { scale: 0.94, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: "power3.out" }, 16.38); // beat-locked: 16.38s
+  tl.set("#s4-install", { opacity: 0 }, 15.6);
+  tl.set("#s4-install", { opacity: 1 }, 17.4);
+  for (var j = 0; j < typed4.length; j++) {
+    tl.set(typed4[j], { opacity: 1 }, 17.47 + j * 0.032);   // beat-locked: 17.47s
+  }
+  tl.fromTo("#s4-url", { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 18.56); // beat-locked: 18.56s
+
+  // ---- audio-reactive: music RMS breathes the window glow (s2-s3) and the wordmark glow (s4) ----
+  var termEls = [document.getElementById("s2-term"), document.getElementById("s3-term")];
+  var markEl = document.getElementById("s4-mark");
+  function draw(frame) {
+    var r = frame.r;
+    var glow = 18 + Math.round(r * 30);
+    var a = (0.10 + r * 0.16).toFixed(3);
+    for (var k = 0; k < termEls.length; k++) {
+      termEls[k].style.boxShadow = "0 0 " + glow + "px rgba(77,139,245," + a + ")";
+    }
+    markEl.style.textShadow = "0 0 " + (10 + Math.round(r * 24)) + "px rgba(77,139,245," + (0.15 + r * 0.25).toFixed(3) + ")";
+  }
+  for (var f = 0; f < AUDIO_DATA.totalFrames; f++) {
+    tl.call((function (fr) { return function () { draw(fr); }; })(AUDIO_DATA.frames[f]), [], f / AUDIO_DATA.fps);
+  }
+
+  window.__timelines["brag"] = tl;
+</script>
+</body>
+</html>
