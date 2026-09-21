@@ -32,6 +32,25 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Russia Election 2026 Results on Polymarket: The 355-Seat Gap (event:
+  Russia's 9th State Duma election - three days of voting September 18-20,
+  2026 - reported preliminary results on Monday, September 21: CEC chair
+  Ella Pamfilova said United Russia took 57.83% of the party-list vote and
+  led in 208 of 225 single-mandate constituencies with 95% of ballots
+  counted, putting the party on track for a record 355 of 450 seats
+  (beating 2016's 343) on record 59.32% turnout; Polymarket's "Which party
+  will gain most seats" market (covered on this blog 2026-09-19) resolved
+  United Russia Yes at 12:43 UTC September 21, and its turnout ladder's
+  59-62% bracket matched the reported figure at 95.9c, but the separate
+  "United Russia seats" bracket ladder did not converge on the headline
+  number: its 355+ contract spiked to a 90.45c high around 08:20 UTC as the
+  "355 seats" reporting circulated, then reversed as the 340-354 bracket
+  retook the lead by 10:50 UTC, settling 91.3c (90.6c bid/91.9c ask) versus
+  355+'s 8.75c (8.1c bid/9.0c ask) by 2026-09-21 13:04 UTC on $856,889 of
+  24h volume against $466,267 of liquidity - the market pricing real odds
+  that United Russia's preliminary district leads don't all survive to
+  certification) - 2026-09-21,
+  `site/blog/russia-election-2026-results-polymarket-355-seat-gap.html`
 - [x] US-Iran Ceasefire Odds on Polymarket: The Riyadh Missile Scare (event: at
   dawn Saturday, September 19, 2026, Saudi Arabia's air defenses intercepted a
   ballistic missile fired at Riyadh - the first air-raid alert the capital has
