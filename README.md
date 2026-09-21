@@ -13,6 +13,10 @@ terminal.
 
 <sub>▶ [Watch the interactive demo](https://polymarket-tui.botsmith.dev/) - browse markets, open a live book, chart, search.</sub>
 
+[![polymarket-tui in 20 seconds](https://polymarket-tui.botsmith.dev/assets/brag.jpg)](https://polymarket-tui.botsmith.dev/assets/brag.mp4)
+
+<sub>▶ [Watch the 20-second launch video](https://polymarket-tui.botsmith.dev/assets/brag.mp4) - the live book, order entry, the dry-run toast.</sub>
+
 Built with Python 3.12 and [Textual](https://textual.textualize.io/).
 
 ## Install
