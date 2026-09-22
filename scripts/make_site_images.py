@@ -79,6 +79,9 @@ def main() -> None:
         assert box and box["width"] > 2000, f"terminal did not widen: {box}"
         page.screenshot(
             path=str(ASSETS / "demo-poster.png"),
+            # full_page: the widened rail makes the terminal taller than the
+            # viewport, and a clip is only valid inside the resulting image
+            full_page=True,
             clip={
                 "x": box["x"] + POSTER_CROP_X,
                 "y": box["y"],

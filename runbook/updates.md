@@ -76,7 +76,8 @@ merge gates; `publish.yml` runs the test suite before it uploads, which is the o
 | `polymarket-tui-ci` AWS access key | on suspicion of leak, otherwise not rotated | create second key via `doppler run --project global --config home -- aws iam create-access-key --user-name polymarket-tui-ci`, `gh secret set`, then delete the old one; never delete first | `newsletter.yml` plan on a no-op PR |
 | Terraform providers (`.terraform.lock.hcl`) | quarterly | `terraform init -upgrade` locally, commit the lock, PR | plan shows no changes |
 | Re-record `site/assets/demo.cast` | after visible UI changes | `bash scripts/record_demo.sh` (authed DRY, redacted; the script refuses to write if identity survives) | play the page locally |
-| Regenerate the launch video (`site/assets/brag.mp4`, `brag.jpg`) | after re-recording the demo | run `/brag` in the repo; output in `brag/`; copy `brag/brag.mp4` and `brag/brag.jpg` to `site/assets/` (`site/README.md`) | the video plays on the landing page, README poster links to it |
+| Regenerate the demo's derived assets (`demo-poster.png`, `og.png`, `demo.gif`) | with every re-record - they are all frames of the cast | `uv run --with playwright python scripts/make_site_images.py`, then the `agg` line in `site/README.md` | the hero GIF and poster show the current UI |
+| Regenerate the launch video (`site/assets/brag.mp4`, `brag.jpg`) | after re-recording the demo | `uv run --with playwright python scripts/make_brag_stills.py`, then re-render `brag/composition` (`npx hyperframes check && npx hyperframes render`), re-encode and copy to `site/assets/` (`site/README.md`); `/brag` only for a new story | the video plays on the landing page, README poster links to it |
 | Scheduled-workflow liveness | weekly review | `gh workflow list --all` shows no unexpected `disabled_inactivity`; re-enable with `gh workflow enable <file>` | run history |
 
 ## Flags, arming and other runtime switches
