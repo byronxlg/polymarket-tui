@@ -63,6 +63,17 @@ snap() {  # snap <name>: dump the pane for post-hoc scene review
   mkdir -p "$SNAP_DIR"
   tmux -L "$SOCK" capture-pane -p > "$SNAP_DIR/$1.txt"
 }
+refuse_on_block() {  # a blocked review means no DRY scene and a rendered balance
+  pane="$(tmux -L "$SOCK" capture-pane -p 2>/dev/null || true)"
+  case "$pane" in
+    *"but cash is"*|*"Minimum "*" shares."*)
+      tmux -L "$SOCK" kill-server 2>/dev/null || true
+      echo "order review blocked - fund the demo wallet or lower the size in this script:" >&2
+      printf '%s\n' "$pane" | grep -oE '(Costs [^|]*|Minimum [0-9,]+ shares\.)' | head -1 >&2
+      exit 1
+      ;;
+  esac
+}
 
 wait_for_rows                              # cached list paints ~instantly
 sleep 2.4                                  # live refresh lands; a beat to read
@@ -79,10 +90,14 @@ K Down; sleep 0.55; K Down; sleep 0.55; K Down; sleep 0.55; K Down; sleep 1.1
 snap 04_book_cursor
 # Buy: b prefills the price from the touch and focuses size. Enter reviews,
 # a second deliberate Enter places - DRY signs the order, never posts it.
+# Size is the market minimum (5 shares): the review validates against the real
+# cash balance even in DRY, so a size the wallet cannot afford blocks the order
+# and renders the balance, which redact_cast.py then refuses to ship.
 K b; sleep 1.8
-K 1 0 0; sleep 1.3
+K 5; sleep 1.3
 K Enter; sleep 2.8                         # review strip: cost, payout, DRY
 snap 05_review
+refuse_on_block                            # stop here, not after a 90 s record
 K Enter; sleep 2.6                         # DRY RUN: signed, not posted
 snap 06_dry_placed
 # Flip the book to the NO side and back (tab is the outcome toggle).

@@ -12,12 +12,13 @@ Create a short launch-style brag video for polymarket-tui.
 ## Source Material
 - Project root: repo root (byronxlg/polymarket-tui)
 - Primary files read: README.md, site/index.html, site/README.md, docs/marketing.md,
-  site/assets/demo.gif (frames), demo-poster.png
+  site/assets/demo.cast (stills via scripts/make_brag_stills.py), demo-poster.png
 - Product name: polymarket-tui
 - Tagline / strongest claim: "Polymarket in your terminal" / "all keyboard, no browser"
 - Key UI moment to show: the market screen (live order book with depth bars), order
   entry under the book, the dry-run toast. Real frames from the recorded demo, no
-  invented UI: `assets/ui/book.png`, `assets/ui/order.png`, `assets/ui/dryrun.png`.
+  invented UI: `assets/ui/book.png`, `assets/ui/order.png`, `assets/ui/dryrun.png`,
+  all regenerated from the cast by `scripts/make_brag_stills.py` after a re-record.
 - Copy that must appear verbatim:
   - Polymarket in your terminal_
   - all keyboard, no browser

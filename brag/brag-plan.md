@@ -7,8 +7,8 @@ the terminal. Orders are dry-run until you explicitly go LIVE.
 
 ## The angle
 A real exchange, rendered in text. No mockups: every product frame in the video is a
-frame from the recorded demo session already on the landing page (`site/assets/demo.gif`,
-redacted `demo-trader`, balances hidden). The video opens the way the product opens,
+frame of the recorded demo session already on the landing page (`site/assets/demo.cast`,
+redacted `demo-trader`, balances hidden), captured by `scripts/make_brag_stills.py`. The video opens the way the product opens,
 with a shell prompt, and ends with the install line.
 
 ## Hook (first 2-3 seconds)
@@ -18,15 +18,16 @@ A prompt types `polymarket-tui`, then the landing page headline rises in:
 ## Key moments (the middle)
 - The market screen: YES/NO chips, a live order book with depth bars, the trade tape,
   the price chart. Slow push toward the book.
-- Order entry under the book: `BUY 100 YES @ 32.5c (limit GTC)`, cost line, `[DRY]`.
-- The dry-run toast: `DRY RUN: BUY 100 YES @ 32.5c (LIMIT GTC) signed, not posted`.
+- Order entry under the book: `BUY 5 ... @ 28.0c (limit GTC)`, cost line, `[DRY]`.
+- The dry-run toast: `DRY RUN: BUY 5 ... @ 28.0c (LIMIT GTC) signed, not posted`.
 
 ## Outro / punchline
 `>_ polymarket-tui`, then `uv tool install polymarket-tui` types out, then the site URL.
 
 ## User flow worth showing
 Open a market -> cursor the live book -> place a buy (dry-run: signed, never posted).
-Taken straight from the recorded session, frames 25, 31 and 49 of the demo GIF.
+Taken straight from the recorded session: the three stills
+`scripts/make_brag_stills.py` pauses the cast on (book, order ticket, dry-run toast).
 
 ## Tone
 - Preset: polished

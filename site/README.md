@@ -63,10 +63,14 @@ skipped for `prefers-reduced-motion` users; under 900px the player is replaced
 by a static crop (`demo-poster.png`) until tapped, so phones don't parse the
 full cast on load.
 
-After re-recording, regenerate the derived images (poster crop + og card):
+After re-recording, regenerate everything derived from the cast - the poster
+crop and og card, the README's hero GIF, and the launch video's terminal stills:
 
 ```sh
-uv run --with playwright python scripts/make_site_images.py
+uv run --with playwright python scripts/make_site_images.py     # demo-poster.png, og.png
+agg --font-size 14 --speed 2 --fps-cap 4 --theme asciinema \
+    site/assets/demo.cast site/assets/demo.gif                  # README hero (brew install agg)
+uv run --with playwright python scripts/make_brag_stills.py     # brag/composition/assets/ui/*.png
 ```
 
 ## Regenerate the launch video
@@ -74,9 +78,12 @@ uv run --with playwright python scripts/make_site_images.py
 The 20-second launch video on the landing page and in the README is made with the
 `/brag` skill (Hyperframes, local render). Run `/brag` in the repo; the plan, the
 composition and the render land in `brag/` (`brag/brag.mp4`, `brag/brag.jpg`). The
-composition reuses frames of `assets/demo.gif`, so re-record the demo first if the UI
-changed, then copy `brag/brag.mp4` and `brag/brag.jpg` to `site/assets/`. Keep the mp4
-under about 6 MB (`--crf 26` on the render did it).
+composition holds on three stills of the recorded demo, so a UI change means:
+re-record the demo, run `make_brag_stills.py`, then re-render the existing
+composition (`cd brag/composition && npx hyperframes check && npx hyperframes render`)
+- a full `/brag` rerun is only needed when the story changes. Copy `brag/brag.mp4`
+and `brag/brag.jpg` to `site/assets/`, keeping the mp4 near 2 MB (the renders/ output
+is re-encoded with `ffmpeg -crf 28 -preset slow`; the poster is a frame at 7.6 s).
 
 ## Update the player assets
 
