@@ -32,6 +32,28 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Saudi Oil Pipeline Restart Odds on Polymarket: The Confirmation Gap
+  (event: Saudi Arabia's East-West Crude Oil Pipeline - the kingdom's main
+  bypass for the Strait of Hormuz, rerouting roughly 4 million barrels a day
+  (about 4% of global supply) to the Red Sea port of Yanbu - was shut down
+  September 10-11, 2026 after drone attacks originating from Iraq's Maysan
+  governorate hit the route and triggered fires; at 10:00 UTC September 22,
+  Reuters reported "three sources briefed on the matter" said the pipeline
+  had restarted and could resume Yanbu exports later that day, pumping at a
+  reduced rate toward the pre-outage 4 million barrels a day, with Aramco
+  not responding to a request for comment - Brent crude fell over $2/barrel
+  to its lowest since September 8 on the news; Polymarket's four-rung
+  "restarts by...?" ladder, whose resolution rule requires an announcement
+  from the Saudi government itself (explicitly excluding third-party
+  attribution), reacted unevenly: the by-September-22 contract spiked from
+  1.4c to a 66.05c high in the ten minutes after the report, then reversed
+  to settle 30.6c (28.3c bid/31.8c ask) as traders judged anonymous wire
+  sourcing didn't clear its resolution bar with hours left on the clock,
+  while the by-September-30 contract held far higher after the same spike,
+  28.5c to a 92.5c high settling 88.5c (87c bid/89c ask), and by-October-31
+  sat at 95.6c - on $224,860 of 24h volume and $866,763 over the past week
+  against $188,744 of liquidity) - 2026-09-22,
+  `site/blog/saudi-oil-pipeline-restart-odds-polymarket-confirmation-gap.html`
 - [x] Russia Election 2026 Results on Polymarket: The 355-Seat Gap (event:
   Russia's 9th State Duma election - three days of voting September 18-20,
   2026 - reported preliminary results on Monday, September 21: CEC chair
