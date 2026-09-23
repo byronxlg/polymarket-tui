@@ -35,7 +35,9 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Explicit token instead of the Claude GitHub App (not installed on
           # this repo). Known trade-off: events created with GITHUB_TOKEN do
-          # not trigger other workflows - irrelevant here, no PR-triggered CI.
+          # not trigger other workflows, so ci.yml does not run on these PRs.
+          # Acceptable while the diff is site/docs files only; a post PR that
+          # touches src/ is left open and reviewed by hand.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Read .claude/skills/blog-post/SKILL.md and follow it end to end:

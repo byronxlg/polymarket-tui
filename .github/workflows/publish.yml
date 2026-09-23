@@ -30,6 +30,8 @@ jobs:
         uses: astral-sh/setup-uv@v8.3.0
         with:
           python-version: "3.12"
+      # ci.yml is the gate on push and pull_request; kept here too because a
+      # release can be cut from any commit, tag or not.
       - name: Test
         run: uv run pytest -q
       - name: Build sdist + wheel
