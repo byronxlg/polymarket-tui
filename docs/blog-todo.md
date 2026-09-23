@@ -32,6 +32,24 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Saudi Pipeline Restart Odds on Polymarket: The Gap Widens (event: follow-up
+  to the September 22 Reuters restart report on Saudi Arabia's East-West
+  crude pipeline - Polymarket's own by-September-22 contract, which had
+  priced the restart at just 30.6c on the "third-party sourcing doesn't
+  qualify" resolution rule, closed at 08:22 UTC September 23 and resolved
+  No at 0c, the pipeline still lacking an on-record Saudi government or
+  Aramco statement even as Business Standard, Arab News, the Korea Times,
+  the Express Tribune, Hydrocarbon Processing, Arabian Business, and BOE
+  Report all repeated the same Reuters-sourced line and a security source
+  put full restoration at six to eight weeks at reduced flow; rather than
+  gaining confidence as the restart went unchallenged, the two remaining
+  rungs fell hard over the same 24 hours - by-September-30 from a settled
+  88.5c to 56c (-31pts, book thinning from 4,237-vs-287 shares to just
+  25-vs-388) and by-October-31 from 95.6c to 83c (-14pts) - on $188,678 of
+  24h volume and $1.01M over the past week against $117,895 of liquidity,
+  down from $188,744 the day before, with comments growing from 58 to 74)
+  - 2026-09-23,
+  `site/blog/saudi-pipeline-restart-odds-polymarket-gap-widens.html`
 - [x] Saudi Oil Pipeline Restart Odds on Polymarket: The Confirmation Gap
   (event: Saudi Arabia's East-West Crude Oil Pipeline - the kingdom's main
   bypass for the Strait of Hormuz, rerouting roughly 4 million barrels a day
