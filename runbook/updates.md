@@ -18,6 +18,7 @@ the newsletter but never the package; users only see app changes after a release
 
 | Change to | Pipeline | Trigger | Lands in prod when | Evidence |
 | --- | --- | --- | --- | --- |
+| Anything, before it lands (the gate) | `ci.yml`: `uv run ruff check src/ tests/`, `uv run pytest -q` | every push to `main`, every pull request | nothing - it ships nothing, it blocks a red merge | the checks on the PR; `gh run list --workflow ci.yml` |
 | `src/**`, `pyproject.toml` (the package) | `publish.yml`: `uv run pytest`, `uv build`, `pypa/gh-action-pypi-publish` via OIDC (environment `pypi`) | `gh release create v<X.Y.Z>` after bumping `version` in `pyproject.toml` and tagging | PyPI shows the version, usually within 5 min | https://pypi.org/project/polymarket-tui/ ; `pip index versions polymarket-tui` |
 | Homebrew | `bump.yml` in `byronxlg/homebrew-tap` rewrites the formula url and sha256 from PyPI | daily `17 6 * * *`, or `gh workflow run bump.yml -R byronxlg/homebrew-tap` | the tap commit lands | `brew info byronxlg/tap/polymarket-tui`; tap commit log |
 | `site/**` (landing page, blog) | `pages.yml`: upload `site/`, `actions/deploy-pages` | push to `main` touching `site/**`; `workflow_dispatch` (what `blog-post.yml` uses) | deploy job finishes, about 1 min | `curl -sI https://polymarket-tui.botsmith.dev/`; the run's `page_url` |
@@ -32,6 +33,10 @@ Not in the table:
   `brew install --HEAD`.
 - The blog cron merges its own PRs (authorized 2026-07-17). A post that ships something other
   than post files is left as an open PR; that is the review point.
+- The blog and shorts crons open and merge their PRs with `GITHUB_TOKEN`, and events made
+  with that token do not trigger workflows, so `ci.yml` does not run on those PRs or on the
+  merge commit. Their diffs are site and docs files; a post PR touching `src/**` is left
+  open by design and gets a hand review.
 - GitHub Actions secrets change with `gh secret set`; nothing needs a redeploy to pick them up.
 
 ## Post-deploy smoke test
