@@ -32,6 +32,26 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed October 2026 Odds on Polymarket: The Barr Flip (event: follow-up
+  to the September 17 post - Polymarket's "Fed Decision in October?" market,
+  which had settled a near coin flip (52.5c no change/45.5c 25bps increase)
+  after the September FOMC hike, broke decisively over the following week;
+  S&P Global's flash September PMI, released 9:45am ET September 23, showed
+  input-cost inflation at its steepest pace since October 2022, and around
+  the same window Fed Governor Michael Barr said in a Chicago speech that
+  "further policy adjustments are likely to be needed" and the committee had
+  been "out of position" on rates before September's hike - "no change"
+  fell from 45.5c to a 29.5c intraday low and "25 bps increase" rose from
+  53.5c to a 69.5c high within about 90 minutes; the next morning, September
+  24, NY Fed President John Williams, speaking at the London Macro Policy
+  Forum around 08:20-08:30 UTC, called another hike by year-end "reasonable"
+  without committing to October specifically, pushing "no change" to a
+  fresh 29.5c low and "25 bps increase" to 68.5c before both settled 31.5c
+  and 67.5c; both legs held 1c-wide books with real size (3,196 bid at 31c
+  vs. 3,935 offered at 32c on "no change"; 12,313 bid at 67c vs. 3,029
+  offered at 68c on "increase") on $1.64M of 24h volume against $1.89M of
+  liquidity, up from $1.45M a week earlier, as of 2026-09-24 12:00 UTC) -
+  2026-09-24, `site/blog/fed-october-2026-odds-polymarket-barr-flip.html`
 - [x] Saudi Pipeline Restart Odds on Polymarket: The Gap Widens (event: follow-up
   to the September 22 Reuters restart report on Saudi Arabia's East-West
   crude pipeline - Polymarket's own by-September-22 contract, which had
