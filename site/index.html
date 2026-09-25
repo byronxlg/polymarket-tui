@@ -16,7 +16,6 @@
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="alternate" type="application/rss+xml" title="polymarket-tui blog" href="https://polymarket-tui.botsmith.dev/blog/feed.xml" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
-<link rel="stylesheet" href="assets/asciinema-player.css" />
 <style>
   /* Vendored IBM Plex Mono (latin subset) — no external requests. */
   @font-face { font-family: "Plex Mono"; src: url(assets/fonts/plexmono-400.woff2) format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
@@ -141,46 +140,15 @@
   .hero-meta .dry { color: var(--amber); }
   .hero-meta .hm { white-space: nowrap; } /* keep "item /" together on wrap */
 
-  /* ---- launch video ---- */
-  .brag { margin: 40px 0 0; }
+  /* ---- launch video: the one recording in the hero ---- */
+  .brag { margin: 40px 0 0; padding-bottom: 56px; }
   .brag video {
     display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
     border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg-2);
   }
-  .brag .term-caption { margin-top: 12px; }
-
-  /* ---- terminal demo ---- */
-  .term-shell { margin: 46px 0 0; padding-bottom: 56px; }
-  .term {
-    border: 1px solid var(--line-2); border-radius: 6px;
-    background: var(--bg-2); overflow: hidden;
-  }
-  .term-bar {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 9px 14px; background: var(--bg-2); border-bottom: 1px solid var(--line);
-    font-size: 11px; color: var(--faint); letter-spacing: 0.4px;
-  }
-  .term-bar .t { color: var(--dim); }
-  .term-bar .rec { color: var(--red); margin-right: 6px; }
-  .term-body { padding: 8px 6px 2px; }
-  .demo-player { width: 100%; max-width: 100%; overflow: hidden; }
-  .demo-player .ap-wrapper { justify-content: center; }
-  .demo-player .ap-player { max-width: 100%; background: transparent; }
-  .term-caption { margin: 14px 0 0; font-size: 12.5px; color: var(--dim); font-style: italic; }
-  .term-caption a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-  .term-caption a:hover { color: #fff; }
-
-  /* static frame shown instead of the player under 900px (JS swaps them) */
-  .demo-static { position: relative; }
-  .demo-static img { display: block; width: 100%; height: auto; }
-  .demo-play {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    font-family: var(--mono); font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase;
-    color: var(--ink); background: rgba(10,14,20,0.88);
-    border: 1px solid var(--line-2); border-radius: 3px;
-    padding: 13px 18px; cursor: pointer;
-  }
-  .demo-play:hover { border-color: var(--accent); color: #fff; }
+  .video-caption { margin: 12px 0 0; font-size: 12.5px; color: var(--dim); font-style: italic; }
+  .video-caption a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .video-caption a:hover { color: #fff; }
 
   /* ---- features: shared-border grid ---- */
   .feats {
@@ -310,7 +278,7 @@
   @media (max-width: 900px) {
     section, header.hero { padding-left: 22px; padding-right: 22px; }
     .foot-in, .manline { padding-left: 22px; padding-right: 22px; }
-    .hero-spec, .term-bar .meta { display: none; }
+    .hero-spec { display: none; }
     .feats { grid-template-columns: 1fr; }
     .keys-wrap { grid-template-columns: 1fr; }
     .split { grid-template-columns: 1fr; }
@@ -361,28 +329,10 @@
     <video src="assets/brag.mp4" poster="assets/brag.jpg" width="1920" height="1080"
       muted autoplay loop playsinline controls preload="metadata"
       aria-label="polymarket-tui in 20 seconds: the live order book, order entry, and the dry-run toast"></video>
-    <p class="term-caption">polymarket-tui in 20 seconds. Below it, the same session as an interactive recording.</p>
-  </div>
-
-  <div class="term-shell">
-    <div class="term">
-      <div class="term-bar">
-        <span class="t"><span class="rec">&#9679;</span>polymarket-tui &mdash; recorded session</span>
-        <span class="meta">dry-run &middot; balances hidden &middot; 160&times;42</span>
-      </div>
-      <div class="term-body">
-        <div id="demo-player" class="demo-player"></div>
-        <div id="demo-static" class="demo-static" hidden>
-          <img src="assets/demo-poster.png" width="790" height="610" loading="lazy"
-            alt="polymarket-tui market screen: YES/NO price chips above a live order book with depth bars" />
-          <button id="demo-play" class="demo-play" type="button">Play recording</button>
-        </div>
-        <noscript><p class="term-caption">The recorded session needs JavaScript; everything below works without it.</p></noscript>
-      </div>
-    </div>
-    <p class="term-caption">Open the top market &#8594; cursor the live book &#8594; place a buy (dry-run:
-      signed, never posted) &#8594; flip to the NO book &#8594; chart &#8594; the trade tape and a top
-      trader &#8594; search. Real exchange, real data. <a href="#install">Install it</a>.</p>
+    <p class="video-caption">polymarket-tui in 20 seconds: open the top market &#8594; cursor the
+      live book &#8594; place a buy (dry-run: signed, never posted) &#8594; flip to the NO book
+      &#8594; chart &#8594; the trade tape and a top trader &#8594; search. Real exchange, real
+      data. <a href="#install">Install it</a>.</p>
   </div>
 </header>
 
@@ -533,36 +483,7 @@ cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><butt
   </div>
 </footer>
 
-<script src="assets/asciinema-player.min.js"></script>
 <script>
-  // The recorded TUI session, played in the hero terminal window.
-  var playerHolder = document.getElementById("demo-player");
-  function startPlayer(autoplay) {
-    AsciinemaPlayer.create("assets/demo.cast", playerHolder, {
-      autoPlay: autoplay,
-      loop: true,
-      controls: true,
-      fit: "width",     // scale the terminal to the container width (never overflow)
-      theme: "asciinema",
-      poster: "npt:0:18",
-      idleTimeLimit: 2,
-    });
-  }
-  if (window.matchMedia("(max-width: 900px)").matches) {
-    // The 160-col cast is unreadable at phone width; show a readable static
-    // crop instead and only build the player (and fetch the cast) on request.
-    var demoStatic = document.getElementById("demo-static");
-    playerHolder.hidden = true;
-    demoStatic.hidden = false;
-    document.getElementById("demo-play").addEventListener("click", function () {
-      demoStatic.hidden = true;
-      playerHolder.hidden = false;
-      startPlayer(true);  // an explicit tap is user-initiated motion
-    }, { once: true });
-  } else {
-    startPlayer(!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }
-
   // Digest signup -> newsletter API (infra/newsletter).
   var digestForm = document.getElementById("digest-form");
   digestForm.addEventListener("submit", function (ev) {
