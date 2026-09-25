@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How Polymarket Markets Resolve: UMA, Disputes, Redemption — polymarket-tui blog</title>
+<meta name="description" content="How Polymarket turns a settled event into a paid position: UMA's bonded propose-and-challenge oracle, disputes, and what redeemable means in the app." />
+<link rel="canonical" href="https://polymarket-tui.botsmith.dev/blog/how-polymarket-markets-resolve.html" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://polymarket-tui.botsmith.dev/blog/how-polymarket-markets-resolve.html" />
+<meta property="og:title" content="How Polymarket Markets Resolve: UMA, Disputes, Redemption" />
+<meta property="og:description" content="How Polymarket turns a settled event into a paid position: UMA's bonded propose-and-challenge oracle, disputes, and what redeemable means in the app." />
+<meta property="og:image" content="https://polymarket-tui.botsmith.dev/assets/og.png" />
+<meta property="article:published_time" content="2026-09-25" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%230a0e14'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%234d8bf5' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../assets/blog.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "How Polymarket Markets Resolve: UMA, Disputes, Redemption",
+  "description": "How Polymarket turns a settled event into a paid position: UMA's bonded propose-and-challenge oracle, disputes, and what redeemable means in the app.",
+  "datePublished": "2026-09-25",
+  "author": { "@type": "Organization", "name": "polymarket-tui" },
+  "mainEntityOfPage": "https://polymarket-tui.botsmith.dev/blog/how-polymarket-markets-resolve.html",
+  "image": "https://polymarket-tui.botsmith.dev/assets/og.png"
+}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="brand"><a href="../"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></a></div>
+    <div class="nav-links">
+      <a href="./">Blog</a>
+      <a href="../">Home</a>
+      <a class="gh" href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub &#8599;</a>
+    </div>
+  </div>
+</nav>
+
+<div class="rail">
+<div class="page">
+
+<p class="crumbs"><a href="../">polymarket-tui</a><span class="sep">/</span><a href="./">blog</a><span class="sep">/</span>resolution</p>
+<h1>How Polymarket Markets Resolve: UMA, Disputes, Redemption</h1>
+<p class="post-meta"><span>2026-09-25</span><span class="d">/</span><span>5 min read</span><span class="d">/</span><span>markets 101</span></p>
+
+<article>
+
+<p class="lead">A Polymarket price is a live estimate of a probability,
+right up until it isn't. The Fed votes, the election gets called, the game
+ends - and the market has to turn that fact into a number every open
+position gets paid out against. Nobody at Polymarket flips that switch by
+hand: every market resolves through the same on-chain pipeline, whether the
+outcome is a coin flip or dead obvious the moment it happens. This blog has
+<a href="./how-polymarket-resolved-bitcoins-80000-contract.html">covered one
+resolution in the wild before</a>; this post is the general mechanism, verified
+against Polymarket's own documentation and a market that resolved this month,
+as of 2026-09-25.</p>
+
+<span class="sec-label"><i>01</i>The propose-and-challenge pipeline</span>
+<h2>A bonded proposal, a 2-hour clock, and a fallback vote</h2>
+
+<p>Polymarket resolves markets with UMA's Optimistic Oracle - permissionless
+by design, so anyone can propose the winning outcome, not just Polymarket
+itself. A proposer picks the outcome and posts a bond, "typically $750
+pUSD" per Polymarket's resolution docs. If nobody disputes it within a
+<b>2-hour challenge period</b>, the proposal stands, the market resolves,
+and the proposer gets their bond back plus a reward. That is the entire
+mechanism for most markets: propose, wait two hours, done.</p>
+
+<p>A dispute changes the shape of it. Disputing costs a matching
+counter-bond, and triggers a new proposal round; if that second proposal is
+also disputed, resolution escalates to UMA's DVM (Data Verification
+Mechanism), where UMA token holders vote on the correct outcome after a
+24-48 hour debate window on UMA's Discord, with the vote itself taking
+roughly 48 hours. A disputed market therefore takes 4-6 days end to end
+against about 2 hours undisputed - and the bond design is what keeps the
+fast path honest: propose incorrectly, or before the event has actually
+concluded, and you lose the entire bond to whoever disputed you correctly.
+There is even a named outcome for a proposal that jumped the gun - "too
+early" - which pays the disputer exactly like a correct dispute would, and
+a rare "unknown/50-50" outcome for a genuinely ambiguous question, where
+every outcome token redeems for 50c instead of 0 or 100.</p>
+
+<span class="sec-label"><i>02</i>A resolution nobody disputed</span>
+<h2>Even an obvious outcome runs the same clock, per market</h2>
+
+<p>Polymarket's "Fed Decision in September?" event resolved this month on
+the FOMC's 25bp hike, announced 2pm ET (18:00 UTC) September 16, 2026 - as
+uncontested an outcome as exists, confirmed within minutes by the Fed's own
+statement. Gamma's per-market data shows the pipeline ran anyway, and ran on
+its own clock for each Yes/No question inside the event rather than once for
+the event as a whole: the losing legs ("no change," both decrease
+contracts, and the 50+ bps increase) all carry <code>closedTime</code>
+2026-09-16 20:02:43 UTC - almost exactly the ~2-hour undisputed window the
+docs describe, measured from the decision. The winning "increase 25 bps"
+leg didn't close until 21:40:27 UTC, nearly two hours later still. Same
+event, same real-world fact, five separate propose-and-resolve timers -
+because on UMA each binary question is its own request, not a single switch
+for the event.</p>
+
+<pre><code><span class="c">RESOLUTION PATH                 DURATION</span>
+Propose (bond ~$750 pUSD)       instant
+Challenge period                    2h
+Debate period (if disputed)     24-48h
+DVM token-holder vote (if any)    ~48h
+<span class="c">undisputed total ~2h  ·  disputed total 4-6 days</span>
+</code></pre>
+
+<span class="sec-label"><i>03</i>The listed end date is not a trading cutoff</span>
+<h2>The book stays open until the oracle actually finalizes</h2>
+
+<p>It is tempting to read a market's end date as when it stops trading -
+it isn't. Gamma's <code>endDate</code> is the expected resolution time, not
+a hard cutoff: <code>acceptingOrders</code> and <code>closed</code> only
+flip once a resolution actually finalizes through the pipeline above, so a
+market's book can keep trading, with real depth, well past the date printed
+on the question. What actually governs the outcome is each market's
+resolution rules - the source it resolves from, and how edge cases get
+called - which can differ in ways the headline question doesn't hint at.
+Polymarket can also publish an "Additional context" clarification after
+trading starts if a genuine edge case needs spelling out, though it cannot
+change what the question fundamentally asks. Reading those rules before you
+trade, not just the title, is worth the ten seconds: press <code>i</code> on
+any market page in polymarket-tui to open them.</p>
+
+<span class="sec-label"><i>04</i>Getting paid: redemption is not a price</span>
+<h2>A won position becomes a fixed $1 token, not a tick to sell into</h2>
+
+<p>Once a market's <code>closed</code> flag flips true, its
+<code>outcomePrices</code> freeze at <code>["1", "0"]</code> and the CLOB
+book empties - a winning share stops being something you sell at a
+fluctuating price and becomes a token redeemable for a fixed amount.
+Redemption itself happens through the CTF collateral adapter on Polygon: it
+burns your ERC1155 outcome tokens through the CTF contract, releases the
+USDC.e collateral behind them, wraps it into pUSD, and returns it to your
+wallet - 100 winning tokens redeem for $100 pUSD, always, regardless of
+where the market last traded.</p>
+
+<p>polymarket-tui doesn't perform that on-chain call itself - deposits,
+withdrawals, and redemption are on-chain operations the app leaves to the
+website. What it does do is track data-api's <code>redeemable</code> flag on
+every position, and flag a winner everywhere it shows up rather than let it
+look like a stale price:</p>
+
+<pre><code><span class="c">POSITIONS</span>
+No change (Fed decision, Sept 2026)  <span class="g">won - redeem on web</span>
+</code></pre>
+
+<p>The order panel carries the same warning if you try to sell a won
+position back into whatever book remains: <i>"won - redeems at 100c on the
+web; selling here takes the bid"</i> - a reminder that redemption always pays
+the full dollar, while a resting bid, if one still exists, might not.
+<code>redeemable</code> alone doesn't mean you won, either: data-api keeps returning
+losing shares as redeemable too, until you redeem them for nothing, and a
+genuine 50/50 resolution prices at 50c and still pays out - so the app
+checks <code>redeemable</code> together with price above 50c before it
+calls a position a win. Pressing <code>o</code> on a won position opens it
+on polymarket.com, where the actual redemption happens.</p>
+
+<pre><code><span class="c">$</span> uv tool install polymarket-tui
+<span class="c">$</span> polymarket-tui
+</code></pre>
+
+<p class="quiet">No account is needed to browse markets, order books, and
+resolution rules. The <a href="../#install">install page</a> has Homebrew and
+one-liner options.</p>
+
+</article>
+
+<p class="post-foot">Mechanism details and contract addresses are from
+Polymarket's own documentation, cross-checked against Gamma's resolved-market
+data as of 2026-09-25. More posts on the <a href="./">blog index</a>, or
+subscribe via <a href="feed.xml">RSS</a>. Not affiliated with Polymarket;
+nothing here is financial advice.</p>
+
+</div>
+</div><!-- /rail -->
+
+<footer>
+  <div class="foot-in">
+    <div class="brand"><span class="prompt">&gt;_</span> <b>polymarket-tui</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/byronxlg/polymarket-tui" target="_blank" rel="noopener">GitHub</a>
+      <a href="../">Home</a>
+      <a href="./">Blog</a>
+    </div>
+  </div>
+  <div class="manline">
+    <span>polymarket-tui-blog(7)</span>
+    <span class="mid">miscellaneous information</span>
+    <span>polymarket-tui-blog(7)</span>
+  </div>
+</footer>
+
+</body>
+</html>

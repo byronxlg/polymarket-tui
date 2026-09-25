@@ -21,7 +21,7 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 - [x] Charting Polymarket price history in the terminal - intent: "polymarket
   price history", "polymarket chart"
-- [ ] What happens when a market resolves (redemption, UMA, disputed
+- [x] What happens when a market resolves (redemption, UMA, disputed
   outcomes) - intent: "polymarket resolution", "how does polymarket settle"
 - [ ] Ticks, minimum sizes, and other Polymarket microstructure details -
   intent: "polymarket tick size", "polymarket minimum order"
@@ -32,6 +32,21 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] How Polymarket Markets Resolve: UMA, Disputes, Redemption
+  (fallback/evergreen: the UMA Optimistic Oracle pipeline behind every
+  Polymarket resolution - a $750 pUSD bond, a 2-hour undisputed challenge
+  window, and escalation to a 24-48h debate plus ~48h DVM token-holder vote
+  if disputed, 4-6 days total, per Polymarket's own resolution docs; worked
+  with a live example from the September 2026 FOMC "Fed Decision in
+  September?" event, whose per-market Gamma `closedTime` fields show the
+  losing legs closing 2026-09-16 20:02:43 UTC - almost exactly the docs'
+  ~2-hour undisputed window measured from the 18:00 UTC decision - while the
+  winning "increase 25 bps" leg didn't close until 21:40:27 UTC, showing
+  each Yes/No question inside one event runs its own propose-and-resolve
+  timer; also covers the app's `redeemable`/`won - redeem on web` handling,
+  including the 50/50-resolution edge case, and that a listed `endDate`
+  doesn't stop trading - only oracle finalization does) - 2026-09-25,
+  `site/blog/how-polymarket-markets-resolve.html`
 - [x] Fed October 2026 Odds on Polymarket: The Barr Flip (event: follow-up
   to the September 17 post - Polymarket's "Fed Decision in October?" market,
   which had settled a near coin flip (52.5c no change/45.5c 25bps increase)
