@@ -32,6 +32,27 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Iran's Hormuz Plan Odds on Polymarket: Trump's Rejection (event: Iranian
+  Foreign Minister Abbas Araghchi told reporters Friday, September 25, 2026,
+  on the sidelines of the UN General Assembly in New York, that Iran had
+  conveyed a seven-day plan to Washington through Qatar - fighting stops on
+  every front including Lebanon, the US lifts its naval blockade and oil
+  sanctions and releases roughly $12 billion in frozen Iranian assets over
+  the first four to five days, the Strait of Hormuz reopens on day six, and
+  nuclear talks start day seven ("The choice now rests with the United
+  States. Iran does not accept coercion, threats or intimidation."); Reuters/
+  WSJ reported Trump quickly rejected the offer, and late Friday night he
+  posted an image labeled "Trump Strait" to Truth Social; Polymarket's "US
+  announces end of Iranian blockade by...?" ladder jumped on the offer within
+  the hour - October 31 from 34.5c to a 42.5c high by 16:20 UTC, December 31
+  from 62.4c to a 68.55c high by 18:20 UTC - then both cratered overnight
+  once the rejection reports landed, October 31 to a 24.5c low by 00:50 UTC
+  and December 31 to a 56.45c low by 07:30 UTC, each below its pre-offer
+  level; both steadied to settle 26.5c and 56.8c (-7.0 and -5.1 points on the
+  day) by 2026-09-26 11:40 UTC, with every date on the ladder lower on the
+  day, $629,219 of 24h volume and $2.73M over the past week against
+  $534,419 of liquidity, and 643 comments on the thread) - 2026-09-26,
+  `site/blog/iran-hormuz-plan-odds-polymarket-trump-rejection.html`
 - [x] How Polymarket Markets Resolve: UMA, Disputes, Redemption
   (fallback/evergreen: the UMA Optimistic Oracle pipeline behind every
   Polymarket resolution - a $750 pUSD bond, a 2-hour undisputed challenge
