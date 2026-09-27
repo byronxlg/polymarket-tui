@@ -32,6 +32,29 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Bitcoin $87,500 Odds on Polymarket: September 2026 Whipsaw (event:
+  bitcoin's "Will Bitcoin reach $85,000 in September?" contract on
+  Polymarket resolved Yes three separate times this month as bitcoin
+  repeatedly crossed the level and fell back - September 21 11:12 UTC,
+  September 25 11:33 UTC, and again September 27 10:36 UTC - each
+  resolution spawning a fresh contract to cover the rest of the month;
+  the run traces back to a July 1, 2026 21-month low of $57,950, a
+  second higher low near $62,210 on August 1, and a climb to $81,265 by
+  August 25 (covered on this blog), then bitcoin clearing $87,000 on
+  September 22 as $648M in short positions were liquidated following
+  nearly $1B in ETF creations the day before (+13-14% on the week per
+  Bloomberg/Benzinga), feeding into a record $18B crypto options expiry
+  September 25 (largest of 2026, $15.9B of it Bitcoin contracts, wiping
+  37% of Deribit's BTC open interest, with the heaviest call open
+  interest stacked at exactly $85,000/$90,000/$100,000); as of
+  2026-09-27 12:20 UTC bitcoin traded near $84,980 (up ~47% off the July
+  low), with Polymarket's live rungs pricing "reach $87,500" at 30c
+  (+11.0 on the day) and "reach $90,000" at 9c (+3.3), while a "dip to
+  $82,500" hedge sat at 35c (-18.5) - real two-sided risk with three
+  days left before the ladder closes October 1 04:00 UTC; the event
+  traded $518,107 over 24 hours and $5.06M over the past week against
+  $2.58M of liquidity) - 2026-09-27,
+  `site/blog/bitcoin-87500-odds-polymarket-september-2026-whipsaw.html`
 - [x] Iran's Hormuz Plan Odds on Polymarket: Trump's Rejection (event: Iranian
   Foreign Minister Abbas Araghchi told reporters Friday, September 25, 2026,
   on the sidelines of the UN General Assembly in New York, that Iran had
