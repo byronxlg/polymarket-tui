@@ -32,6 +32,30 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Ballon d'Or 2026 Polymarket Odds: Kane Fades, Yamal Surges (event:
+  voting for the 2026 Ballon d'Or - France Football's 30-man shortlist,
+  announced September 8, 2026 - closed today, September 28, 2026 (100
+  journalists, one per eligible country, each ranking ten nominees on a
+  15-12-10-8-7-6-5-4-2-1 scale), with the winner revealed at an October 26
+  ceremony at the London Palladium; Barcelona's Lamine Yamal told Jorge
+  Valdano on Movistar+ on September 14 "I think maybe there are two of us,
+  me and Mbappe, but I think this year I deserve it because of what I've
+  won," leaning on Spain's 2026 World Cup title, and Real Madrid's Kylian
+  Mbappe (World Cup Golden Boot winner despite France falling short of the
+  final) responded Sunday, September 27, calling Yamal "an extremely
+  talented player"; Polymarket's "Ballon d'Or Winner 2026" market never
+  priced the two-man framing - Harry Kane (61 goals in 51 games for Bayern
+  Munich) has been the outright favorite since the shortlist dropped, and
+  Mbappe has traded in the single digits for weeks, behind Kane, Yamal, and
+  Messi - and the real move was Kane fading from 59.35c (Sep 14) to 50.05c
+  and Yamal surging from 19.4c to 36.3c, with Yamal's break starting late
+  September 26 (22.1c to 26.9c within hours), more than a day before
+  Mbappe's response, and accelerating through today as voting closed; Kane's
+  book stayed a tight 1c wide (912 bid at 50c vs. 999 offered at 50.1c)
+  while Yamal's widened to nearly 1.2c on a thinner touch, on $784,592 of
+  24h volume and $2.33M over the past week against $8.5M of liquidity
+  across all 30 candidates and 1,062 comments) - 2026-09-28,
+  `site/blog/ballon-dor-2026-odds-polymarket-yamal-surge.html`
 - [x] Bitcoin $87,500 Odds on Polymarket: September 2026 Whipsaw (event:
   bitcoin's "Will Bitcoin reach $85,000 in September?" contract on
   Polymarket resolved Yes three separate times this month as bitcoin
