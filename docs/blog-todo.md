@@ -32,6 +32,17 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Brazil Election 2026 Odds: Polymarket Flips to Flavio Bolsonaro (event: Brazil's
+  October 4, 2026 presidential election - BTG/Nexus (Lula 42-37 first
+  round, 46-44 runoff) and Quaest (39-34, tied 42-42), both published
+  September 28, and AtlasIntel/Bloomberg (Flavio 47.7 vs Lula 47.6 runoff),
+  against Polymarket's "Brazil Presidential Election" market, where the
+  contracts flipped from the August 16 post (Lula 65.5c, Flavio 28.75c):
+  Lula fell from 58.5c (Sep 8) to 41.5c and Flavio rose to 58.05c as of
+  2026-09-29 13:07 UTC, crossing on September 10 the day PoderData
+  (fielded Sep 6-9) showed Flavio ahead 47-45 in a runoff; Flavio's book
+  58c/58.1c, Lula's 41c/42c, $151,318 and $137,212 of 24h volume) -
+  2026-09-29, `site/blog/brazil-election-2026-odds-polymarket-flavio-bolsonaro-favorite.html`
 - [x] Ballon d'Or 2026 Polymarket Odds: Kane Fades, Yamal Surges (event:
   voting for the 2026 Ballon d'Or - France Football's 30-man shortlist,
   announced September 8, 2026 - closed today, September 28, 2026 (100
