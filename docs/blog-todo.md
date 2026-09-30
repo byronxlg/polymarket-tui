@@ -32,6 +32,18 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed October 2026 Odds on Polymarket: Williams Says No Urgency (event: follow-up
+  to the September 24 Barr post - NY Fed President John Williams, speaking
+  at the University at Buffalo September 29, 2026, said "there is no need
+  for urgency" after the September hike while still seeing "one further
+  upward adjustment" as possibly appropriate late this year; Polymarket's
+  "Fed Decision in October?" market moved "no change" from 31.5c to 47.5c
+  in the 18:10 UTC print that day, held near 55.5c overnight, then jumped
+  from 54.5c to 65.5c at 12:40 UTC September 30 with no verified headline,
+  while "25 bps increase" fell from 67.5c to 33.5c; as of 2026-09-30 12:46
+  UTC "no change" 65c (64c/66c book), "increase" 33.5c, $2.61M of 24h
+  volume vs $1.82M liquidity) - 2026-09-30,
+  `site/blog/fed-october-2026-odds-polymarket-williams-no-urgency.html`
 - [x] Brazil Election 2026 Odds: Polymarket Flips to Flavio Bolsonaro (event: Brazil's
   October 4, 2026 presidential election - BTG/Nexus (Lula 42-37 first
   round, 46-44 runoff) and Quaest (39-34, tied 42-42), both published
