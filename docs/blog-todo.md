@@ -32,6 +32,14 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Best AI Model End of October 2026: Polymarket Flips to Google After Gemini 4 Argon (event: Google's Gemini 4
+  Argon launch September 30, 2026, listed #1 in Arena's Text leaderboard;
+  Polymarket's "Which company has the best AI model end of October?" moved
+  Google from 10.3c to 62.5c and Anthropic from 88.5c to 29.5c between the
+  20:00 and 20:20 UTC prints; as of 2026-10-01 13:32 UTC Google 71.8c,
+  Anthropic 27.5c, $530k of 24h volume vs $1.11M liquidity; resolves on
+  Arena Text overall at October 31 12:00 PM ET) - 2026-10-01,
+  `site/blog/best-ai-model-end-of-october-2026-odds-polymarket-gemini-4-argon.html`
 - [x] Fed October 2026 Odds on Polymarket: Williams Says No Urgency (event: follow-up
   to the September 24 Barr post - NY Fed President John Williams, speaking
   at the University at Buffalo September 29, 2026, said "there is no need
