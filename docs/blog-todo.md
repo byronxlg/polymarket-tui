@@ -32,6 +32,15 @@ Shipped; that list is how the workflow avoids re-covering an event.
 
 ## Shipped
 
+- [x] Fed October 2026 Odds on Polymarket: Weak Jobs Report Lifts Hold to 83c (event: follow-up
+  to the September 30 Williams post - the September jobs report released
+  October 2, 2026 at 12:30 UTC showed payrolls +29,000 (Dow Jones consensus
+  84,000), unemployment 4.2% vs 4.1%, and August/July revised down 60,000 in
+  total; Polymarket's "Fed Decision in October?" market moved "no change"
+  from 74.5c to 84.5c in the 12:40 UTC print and "25 bps increase" from
+  24.5c to 14.5c; as of 2026-10-02 12:51 UTC "no change" 82.5c (82c/83c
+  book), "increase" 15.5c, $2.76M of 24h volume vs $2.62M liquidity; next
+  FOMC October 27-28) - 2026-10-02, `site/blog/fed-october-2026-odds-polymarket-september-jobs-report.html`
 - [x] Best AI Model End of October 2026: Polymarket Flips to Google After Gemini 4 Argon (event: Google's Gemini 4
   Argon launch September 30, 2026, listed #1 in Arena's Text leaderboard;
   Polymarket's "Which company has the best AI model end of October?" moved
