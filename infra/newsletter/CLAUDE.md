@@ -95,20 +95,22 @@ delete first.
 
 ## SES sandbox
 
-A fresh SES account only delivers to verified addresses. The config verifies
-`byron.lg.smith@gmail.com` as a test recipient (a verification email arrives
-on first apply and must be clicked). Before real subscribers can receive
-anything, request production access once in the SES console
+A fresh SES account only delivers to verified addresses. This account has
+production access (the digest was delivered on 2026-10-01 and 10-02 with no
+recipient identity present), so the config no longer declares a test
+recipient: the block was removed 2026-10-03. If the config is ever applied to
+a fresh account, request production access once in the SES console
 (ap-southeast-2 -> Account dashboard -> Request production access; cite the
-double-opt-in flow and the one-click unsubscribe headers). Until then,
-subscribe confirmations to unverified addresses fail silently server-side by
-design (the API never leaks delivery state).
+double-opt-in flow and the one-click unsubscribe headers), or verify a
+recipient by hand for testing. Until then, subscribe confirmations to
+unverified addresses fail silently server-side by design (the API never leaks
+delivery state).
 
 ## Testing a real run
 
 Invoking the digest lambda sends real email to every confirmed subscriber -
-treat it like the money path. To exercise it end to end while in sandbox:
-subscribe with the verified test address on the site, click the confirm link,
+treat it like the money path. To exercise it end to end:
+subscribe with a test address on the site, click the confirm link,
 then invoke `polymarket-tui-newsletter-digest` from the Lambda console (or
 wait for the 07:00 NZ run, when the schedule is enabled). Read the CloudWatch summary line
 (`sent/failed/subscribers`) rather than assuming.

@@ -5,9 +5,9 @@
 # the bounce domain under bounce., DMARC under _dmarc.
 #
 # NOTE: a fresh SES account is in sandbox mode - it can only send TO verified
-# addresses (var.test_recipient below gets a verification email on first
-# apply). Real subscribers need production access, requested once in the
-# console; see CLAUDE.md.
+# addresses. This account has production access, so no recipient identity is
+# declared here: the sandbox test recipient was removed 2026-10-03 (the live
+# identity had been gone since 2026-09-07 and the digest sent without it).
 
 resource "aws_sesv2_email_identity" "domain" {
   email_identity = var.sender_domain
@@ -58,10 +58,4 @@ resource "cloudflare_dns_record" "dmarc" {
   content = "\"v=DMARC1; p=none;\""
   ttl     = 1
   proxied = false
-}
-
-# Sandbox-mode test recipient. Creating this sends a verification email that
-# must be clicked before SES will deliver to the address.
-resource "aws_sesv2_email_identity" "test_recipient" {
-  email_identity = var.test_recipient
 }
