@@ -6,6 +6,11 @@ movers, volume leaders, ending-soon markets, and new markets. Region:
 ap-southeast-2. Costs sit inside the Lambda/DynamoDB free tiers at current
 scale; both functions carry reserved-concurrency caps.
 
+Status: the daily send is stopped since 2026-10-03 at Byron's request
+(`state = "DISABLED"` on `aws_scheduler_schedule.digest` in `schedule.tf`).
+Everything else is still deployed: sign-up, confirm and unsubscribe work and
+the subscriber table is kept. Set `state = "ENABLED"` and merge to resume.
+
 ## Pieces
 
 - `polymarket-tui-newsletter-api` (python3.12/arm64): POST /subscribe,
@@ -105,7 +110,7 @@ Invoking the digest lambda sends real email to every confirmed subscriber -
 treat it like the money path. To exercise it end to end while in sandbox:
 subscribe with the verified test address on the site, click the confirm link,
 then invoke `polymarket-tui-newsletter-digest` from the Lambda console (or
-wait for the 07:00 NZ run). Read the CloudWatch summary line
+wait for the 07:00 NZ run, when the schedule is enabled). Read the CloudWatch summary line
 (`sent/failed/subscribers`) rather than assuming.
 
 ## Follow-ups not built yet

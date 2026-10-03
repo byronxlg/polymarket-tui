@@ -1,7 +1,8 @@
 # Blog to-do
 
-Topic pipeline for the blog at `site/blog/`. The daily workflow
-(`.github/workflows/blog-post.yml`) is **current-events-first**: it scans
+Topic pipeline for the blog at `site/blog/`. The blog workflow
+(`.github/workflows/blog-post.yml`; daily until 2026-10-03, now manual
+dispatch only) is **current-events-first**: it scans
 both the news (headlines with matching markets) and Polymarket itself
 (trending 24h volume, sharp price moves, imminent decision dates) for the
 day's story, and writes about how the event and the market relate - signals

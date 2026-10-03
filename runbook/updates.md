@@ -22,8 +22,8 @@ the newsletter but never the package; users only see app changes after a release
 | `src/**`, `pyproject.toml` (the package) | `publish.yml`: `uv run pytest`, `uv build`, `pypa/gh-action-pypi-publish` via OIDC (environment `pypi`) | `gh release create v<X.Y.Z>` after bumping `version` in `pyproject.toml` and tagging | PyPI shows the version, usually within 5 min | https://pypi.org/project/polymarket-tui/ ; `pip index versions polymarket-tui` |
 | Homebrew | `bump.yml` in `byronxlg/homebrew-tap` rewrites the formula url and sha256 from PyPI | daily `17 6 * * *`, or `gh workflow run bump.yml -R byronxlg/homebrew-tap` | the tap commit lands | `brew info byronxlg/tap/polymarket-tui`; tap commit log |
 | `site/**` (landing page, blog) | `pages.yml`: upload `site/`, `actions/deploy-pages` | push to `main` touching `site/**`; `workflow_dispatch` (what `blog-post.yml` uses) | deploy job finishes, about 1 min | `curl -sI https://polymarket-tui.botsmith.dev/`; the run's `page_url` |
-| `infra/newsletter/**` (Terraform and Lambda `src/`) | `newsletter.yml`: fmt, validate, `plan -out`, `apply` of that plan | merge to `main` (PRs plan only) | apply step finishes | Actions log; next 07:00 NZ digest |
-| `.github/workflows/*.yml`, `.claude/skills/blog-post/**` | none, read at run time | merge to `main` | the next scheduled run | that run's log |
+| `infra/newsletter/**` (Terraform and Lambda `src/`) | `newsletter.yml`: fmt, validate, `plan -out`, `apply` of that plan | merge to `main` (PRs plan only) | apply step finishes | Actions log; next 07:00 NZ digest (none while the schedule is disabled, see README Schedules) |
+| `.github/workflows/*.yml`, `.claude/skills/blog-post/**` | none, read at run time | merge to `main` | the next run (manual dispatch; no cron since 2026-10-03) | that run's log |
 | `Formula/polymarket-tui.rb` in this repo | nothing consumes it | n/a | never | It is a stale copy pinned to a 0.1.0 commit; the tap's formula is the one users install. Treat as history |
 
 Not in the table:
@@ -52,7 +52,8 @@ gh workflow run bump.yml -R byronxlg/homebrew-tap && sleep 90 && brew info byron
 
 After a site deploy: `curl -s -o /dev/null -w '%{http_code}\n' https://polymarket-tui.botsmith.dev/`
 returns 200 and the new post is linked from `/blog/`. After a newsletter apply: read the apply
-log for the resource count, then the next digest's CloudWatch summary line. None of these are
+log for the resource count, then the next digest's CloudWatch summary line (no digest runs
+while the schedule is disabled). None of these are
 merge gates; `publish.yml` runs the test suite before it uploads, which is the only gate.
 
 ## Rollback
@@ -95,8 +96,9 @@ merge gates; `publish.yml` runs the test suite before it uploads, which is the o
 | `TELEGRAM_BOT_TOKEN` | Actions secret | short delivery and failure message to chat `8851680837` | `gh secret list` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Actions secret | blog job runs on plan usage, not API billing | `gh secret list`; a blog run that fails at auth |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `CLOUDFLARE_API_TOKEN` | Actions secrets | `newsletter.yml` Terraform credentials (`polymarket-tui-ci` user; Cloudflare token scoped to botsmith.dev DNS) | `gh secret list` |
+| Digest schedule `state` (`DISABLED` since 2026-10-03) | `infra/newsletter/schedule.tf` | whether the daily digest email is sent at all; `ENABLED` resumes it | `aws scheduler get-schedule --region ap-southeast-2 --name polymarket-tui-newsletter-digest --query State` |
 | `blurb_model_id` | `infra/newsletter/variables.tf` | Bedrock model for the digest intro; empty disables the blurb | the variable's default; digest log |
-| Workflow enabled or disabled | GitHub | whether a cron fires at all | `gh workflow list --all` (today: `daily-short.yml` is `disabled_manually`) |
+| Workflow enabled or disabled | GitHub | whether a cron fires at all | `gh workflow list --all` (today: `daily-short.yml` is `disabled_manually`; `blog-post.yml` is active but has no `schedule:` trigger since 2026-10-03) |
 | `POLYMARKET_EXECUTION_LIVE`, `L` toggle | the user's own machine (`~/.config/polymarket-tui/credentials.toml`) | real orders. Not a CI concern; documented in `docs/trading.md` | n/a here |
 
 ## Things that are risky to change
@@ -110,8 +112,10 @@ merge gates; `publish.yml` runs the test suite before it uploads, which is the o
   makes the run fail at upload (PyPI rejects the duplicate) and a tag that does not match the
   version confuses the tap. Bump, commit, tag, release, in that order (`docs/releasing.md`).
 - The newsletter digest path. Any change to `handler_digest.py` or the schedule runs against
-  real subscribers at 07:00 NZ with no retry and no staging environment. Test with the verified
-  address only, and never invoke the Lambda twice for the same day.
+  real subscribers at 07:00 NZ with no retry and no staging environment once the schedule is
+  enabled (it is disabled since 2026-10-03; re-enabling it resumes mail to every confirmed
+  subscriber the next morning). Test with the verified address only, and never invoke the Lambda
+  twice for the same day.
 - `newsletter.yml` and `infra/newsletter/backend.tf`. The state bucket has `prevent_destroy`;
   keep it. Applying locally breaks the audit trail the pipeline exists for.
 - The `polymarket-tui-api.botsmith.dev` hostname and the Pages CNAME. Anything under
@@ -119,4 +123,4 @@ merge gates; `publish.yml` runs the test suite before it uploads, which is the o
   certificate; the API host must stay a first-level name under the apex. The CNAME itself is
   owned by x402-services' Terraform.
 - The blog job's self-merge condition. It is what keeps an automated PR from shipping code;
-  widening the allowed diff removes the only review on a daily unattended write to `main`.
+  widening the allowed diff removes the only review on an unattended write to `main`.
