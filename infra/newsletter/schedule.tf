@@ -30,6 +30,8 @@ resource "aws_iam_role_policy" "scheduler" {
 
 resource "aws_scheduler_schedule" "digest" {
   name = "${local.prefix}-digest"
+  # Stopped 2026-10-03 at Byron's request; set back to "ENABLED" to resume.
+  state = "DISABLED"
 
   flexible_time_window {
     mode = "OFF"

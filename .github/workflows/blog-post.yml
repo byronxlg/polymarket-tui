@@ -6,9 +6,12 @@ name: Daily blog post
 #   gh secret set CLAUDE_CODE_OAUTH_TOKEN
 # Post-only PRs are merged by the run itself (authorized by Byron,
 # 2026-07-17); the PR remains as the audit trail and revert point.
+# The daily cron was stopped 2026-10-03 at Byron's request; the workflow now
+# runs only on manual dispatch (`gh workflow run blog-post.yml`). To resume
+# the daily post, put this back under `on:`
+#   schedule:
+#     - cron: "23 6 * * *" # daily 06:23 UTC; offset to dodge on-the-hour load
 on:
-  schedule:
-    - cron: "23 6 * * *" # daily 06:23 UTC; offset to dodge on-the-hour load
   workflow_dispatch:
 
 permissions:

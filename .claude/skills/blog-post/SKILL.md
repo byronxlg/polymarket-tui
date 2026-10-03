@@ -1,6 +1,6 @@
 ---
 name: blog-post
-description: Write and publish a new blog post for the polymarket-tui site (site/blog/). Use whenever asked to write a blog post, add SEO/blog content, publish the next post from the queue, or when the daily blog automation runs. Covers the full pipeline - picking the topic from docs/blog-todo.md, writing the datasheet-styled HTML post, and updating the blog index, landing page, RSS feed, sitemap, and the to-do queue.
+description: Write and publish a new blog post for the polymarket-tui site (site/blog/). Use whenever asked to write a blog post, add SEO/blog content, publish the next post from the queue, or when the blog-post.yml workflow runs (manual dispatch; the daily cron was stopped 2026-10-03). Covers the full pipeline - picking the topic from docs/blog-todo.md, writing the datasheet-styled HTML post, and updating the blog index, landing page, RSS feed, sitemap, and the to-do queue.
 ---
 
 # Writing a blog post

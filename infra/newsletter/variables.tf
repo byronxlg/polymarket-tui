@@ -28,7 +28,7 @@ variable "sender_domain" {
 }
 
 variable "test_recipient" {
-  description = "Verified recipient for testing while SES is in sandbox mode; also receives budget alerts"
+  description = "Receives the budget alerts (was also the sandbox test recipient until 2026-10-03)"
   type        = string
   default     = "byron.lg.smith@gmail.com"
 }
