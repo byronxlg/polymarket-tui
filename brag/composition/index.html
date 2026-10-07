@@ -82,7 +82,7 @@
       <div id="s3-term" class="term">
         <div class="term-bar"><span><span class="rec">&#9679;</span>polymarket-tui &mdash; recorded session</span><span>dry-run &middot; balances hidden &middot; 160&times;42</span></div>
         <div class="shot" data-layout-allow-overflow>
-          <img id="s3-img" src="assets/ui/order.png" alt="order entry panel: BUY 5 Cincinnati Reds at 28.0c, limit GTC, DRY" />
+          <img id="s3-img" src="assets/ui/order.png" alt="order entry panel: BUY 5 SPIRIT at 52.0c, limit GTC, DRY" />
           <img id="s3-img2" class="top" src="assets/ui/dryrun.png" alt="dry run toast: order signed, not posted" />
         </div>
       </div>
@@ -149,7 +149,9 @@
   // ---- scene 2: the book (4.2 - 10.6) ----
   tl.fromTo("#s2-wrap", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.inOut" }, 4.2);
   tl.fromTo("#s2-term", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 4.39); // beat-locked: 4.39s
-  tl.fromTo("#s2-img", { scale: 1, transformOrigin: "36% 42%" }, { scale: 1.07, duration: 6.0, ease: "none" }, 4.4);
+  // push in on the whole window, not the still inside it: scaling the image crops the
+  // terminal's left columns (cut-off text read as a bug in the 2026-09-23 render)
+  tl.fromTo("#s2-term", { scale: 1, transformOrigin: "36% 42%" }, { scale: 1.07, duration: 6.0, ease: "none" }, 4.4);
   tl.fromTo("#s2-label", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 5.34); // beat-grid: 5.34s
   tl.to("#s2-wrap", { opacity: 0, duration: 0.6, ease: "power2.inOut" }, 10.2);
 
@@ -157,8 +159,7 @@
   tl.fromTo("#s3-wrap", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.inOut" }, 10.2);
   tl.set("#s3-img2", { opacity: 0 }, 10.2);
   tl.set("#s3-label2", { opacity: 0 }, 10.2);
-  tl.fromTo("#s3-img", { scale: 1.02, transformOrigin: "62% 20%" }, { scale: 1.06, duration: 5.6, ease: "none" }, 10.2);
-  tl.fromTo("#s3-img2", { scale: 1.02, transformOrigin: "62% 20%" }, { scale: 1.06, duration: 5.6, ease: "none" }, 10.2);
+  tl.fromTo("#s3-term", { scale: 1.02, transformOrigin: "62% 20%" }, { scale: 1.06, duration: 5.6, ease: "none" }, 10.2);
   tl.fromTo("#s3-label", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 10.93); // beat-locked: 10.93s
   tl.set("#s3-img2", { opacity: 1 }, 13.11);                                   // beat-locked: 13.11s (hard cut to the toast)
   tl.to("#s3-label", { opacity: 0, duration: 0.25, ease: "power2.in" }, 13.0);

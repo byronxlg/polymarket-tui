@@ -10,6 +10,11 @@ Each is the asciinema player paused on a frame of site/assets/demo.cast and
 screenshotted at the terminal's own size, so the video always shows the UI the
 demo recorded - no hand-built mockups, no frames of an older release.
 
+The page itself no longer loads the player (site/README.md: one recording in
+the hero, the launch video), so this script serves site/ and injects the
+vendored player (assets/asciinema-player.*) into its own holder on the page;
+the page's fonts and theme still apply.
+
 Run after re-recording the demo, before rendering the video:
 
     uv run --with playwright python scripts/make_brag_stills.py
@@ -56,18 +61,30 @@ def main() -> None:
         page = browser.new_page(viewport={"width": RAIL_PX + 160, "height": 1400})
         page.goto(url)
         page.wait_for_load_state("networkidle")
-        page.add_style_tag(content=f".rail {{ width: {RAIL_PX}px; max-width: none; }}")
+        # the page dropped the player; bring the vendored one in and give it a
+        # holder of its own, as wide as the rail used to be
+        page.add_style_tag(url="assets/asciinema-player.css")
+        page.add_script_tag(url="assets/asciinema-player.min.js")
+        page.wait_for_function("typeof AsciinemaPlayer !== 'undefined'")
+        page.evaluate(
+            f"""() => {{
+              const holder = document.createElement("div");
+              holder.id = "brag-still-holder";
+              holder.style.cssText = "position:fixed;top:0;left:0;width:{RAIL_PX}px;z-index:9999;background:#0a0e14";
+              document.body.appendChild(holder);
+            }}"""
+        )
         # a paused player paints its play overlay over the terminal; the stills
         # are product frames, not a player
         page.add_style_tag(
             content=".ap-overlay, .ap-play-button, .ap-control-bar { display: none !important; }"
+            " #brag-still-holder .ap-player { background: transparent; }"
         )
 
         for name, at in STILLS:
             page.evaluate(
                 """(at) => {
-                  const holder = document.getElementById("demo-player");
-                  holder.hidden = false;
+                  const holder = document.getElementById("brag-still-holder");
                   holder.innerHTML = "";
                   AsciinemaPlayer.create("assets/demo.cast", holder, {
                     autoPlay: false, controls: false, fit: "width",
