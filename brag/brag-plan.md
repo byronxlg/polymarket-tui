@@ -18,8 +18,8 @@ A prompt types `polymarket-tui`, then the landing page headline rises in:
 ## Key moments (the middle)
 - The market screen: YES/NO chips, a live order book with depth bars, the trade tape,
   the price chart. Slow push toward the book.
-- Order entry under the book: `BUY 5 ... @ 28.0c (limit GTC)`, cost line, `[DRY]`.
-- The dry-run toast: `DRY RUN: BUY 5 ... @ 28.0c (LIMIT GTC) signed, not posted`.
+- Order entry under the book: `BUY 5 ... @ 52.0c (limit GTC)`, cost line, `[DRY]`.
+- The dry-run toast: `DRY RUN: BUY 5 ... @ 52.0c (LIMIT GTC) signed, not posted`.
 
 ## Outro / punchline
 `>_ polymarket-tui`, then `uv tool install polymarket-tui` types out, then the site URL.

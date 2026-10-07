@@ -84,7 +84,8 @@ The 20-second launch video on the landing page and in the README is made with th
 `/brag` skill (Hyperframes, local render). Run `/brag` in the repo; the plan, the
 composition and the render land in `brag/` (`brag/brag.mp4`, `brag/brag.jpg`). The
 composition holds on three stills of the recorded demo, so a UI change means:
-re-record the demo, run `make_brag_stills.py`, then re-render the existing
+re-record the demo, run `make_brag_stills.py` (it serves `site/` and injects the
+vendored player itself, since the page no longer loads one), then re-render the existing
 composition (`cd brag/composition && npx hyperframes check && npx hyperframes render`)
 - a full `/brag` rerun is only needed when the story changes. Copy `brag/brag.mp4`
 and `brag/brag.jpg` to `site/assets/`, keeping the mp4 near 2 MB (the renders/ output
