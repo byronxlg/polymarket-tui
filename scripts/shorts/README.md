@@ -89,6 +89,9 @@ Sheet-level flags:
 | `timer` | `false` | burn in an elapsed-seconds counter, top right |
 | `trim_boot` | `true` | start at the settled home screen rather than at launch |
 | `boot_caption` | - | caption for the pre-ready stretch when `trim_boot` is off |
+| `canvas` | `vertical` | `landscape` renders 1920x1080 for the landing page; pan mode becomes a 2-D camera (below) |
+| `zoom` | `1.0` | landscape pan: the zoom for beats that do not set their own |
+| `crf` | `20` | x264 quality of the final file (the landing page uses 27 for ~2 MB) |
 
 Clamping remaps every caption through the same time map that produced the
 footage, so cutting lag can never slide a caption off the frame it labels.
@@ -100,11 +103,29 @@ process launched - which is also why the speed sheet keeps the real boot. It
 still includes whatever reading pauses the sheet asks for, so it is honest
 about that journey, not a benchmark of the tool.
 
+## Landscape: the launch video
+
+`canvas: landscape` is the landing-page cut (`beats/launch-tour.json`, 1920x1080,
+Byron 2026-10-08: "the one that did zooming and focus areas"). A 120x38
+terminal is ~1.3:1, so it cannot be both wider than the frame and fully visible
+between the bands; landscape pan mode is a camera instead. Each beat names a
+2-D `focus` ("top left", "bottom", or anchors `[1, 0.18]`: the window's right
+edge on the terminal's, its top 18% of the way down) and a `zoom` (1.0 = the
+terminal's full width across the viewport, the top ~20 rows; 1.4 = ~14 rows
+at ~38px glyphs). The camera eases between windows over `PAN_RAMP` at each beat
+boundary and holds still in between. The crop is done per frame in Pillow
+(Lanczos, sub-pixel box): ffmpeg's `crop` cannot change size per frame and
+`zoompan` resamples bilinearly, which smears glyphs. The sheet's `note` records
+where each region sits in the 120x38 layout so anchors can be re-aimed after a
+layout change. The vertical path ignores all of this.
+
 ## The three sheets
 
 - `cold-start-speed` - launch to a streaming order book, counter running
 - `dry-trade` - the money path: cursor the book, `b`, size, review, place in DRY
 - `hormuz-term-structure` - one question priced at six dates, and the slide
+- `launch-tour` - the landing-page launch video (landscape camera, above): the
+  top market, the book, a DRY buy, the chart, the NO book, the tape, search
 
 ## Publishing
 

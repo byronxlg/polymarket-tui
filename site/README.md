@@ -1,11 +1,12 @@
 # Landing page (static, GitHub Pages)
 
 A single static page (`index.html`) plus `assets/`. Its hero plays the
-**20-second launch video** (`assets/brag.mp4`) and nothing else: one recording,
-autoplaying, muted, looped. The video is cut from stills of a recorded terminal
-session (browse -> star a watchlist -> open a market -> dry-run buy -> cursor
-the live book -> a public trader's profile -> search) kept in
-`assets/demo.cast`. The page itself is static: no CDN, no server, no player.
+**35-second launch video** (`assets/brag.mp4`) and nothing else: one recording,
+autoplaying, muted, looped. The video is one real terminal session recorded and
+cut by the shorts pipeline in landscape pan mode (`scripts/shorts/`, beat sheet
+`launch-tour.json`): a camera eases between the parts of the 120x38 screen each
+caption names (the book, the order ticket, the toast, the chart). The README's
+GIF is still cut from the older `assets/demo.cast` session. The page itself is static: no CDN, no server, no player.
 
 The cast used to be played on the page by a vendored
 [asciinema](https://asciinema.org) player below the video. That second,
@@ -80,16 +81,30 @@ uv run --with playwright python scripts/make_brag_stills.py     # brag/compositi
 
 ## Regenerate the launch video
 
-The 20-second launch video on the landing page and in the README is made with the
-`/brag` skill (Hyperframes, local render). Run `/brag` in the repo; the plan, the
-composition and the render land in `brag/` (`brag/brag.mp4`, `brag/brag.jpg`). The
-composition holds on three stills of the recorded demo, so a UI change means:
-re-record the demo, run `make_brag_stills.py` (it serves `site/` and injects the
-vendored player itself, since the page no longer loads one), then re-render the existing
-composition (`cd brag/composition && npx hyperframes check && npx hyperframes render`)
-- a full `/brag` rerun is only needed when the story changes. Copy `brag/brag.mp4`
-and `brag/brag.jpg` to `site/assets/`, keeping the mp4 near 2 MB (the renders/ output
-is re-encoded with `ffmpeg -crf 28 -preset slow`; the poster is a frame at 7.6 s).
+The launch video on the landing page and in the README is the shorts pipeline's
+landscape cut (Byron, 2026-10-08: the pan-and-zoom look of the daily shorts, not
+the still-based Hyperframes film). It records its own session, so a UI change
+means one re-record and one render, no stills:
+
+```sh
+bash scripts/shorts/record.sh scripts/shorts/beats/launch-tour.json out/   # authed DRY, redacted
+uv run python scripts/shorts/render.py scripts/shorts/beats/launch-tour.json out/
+cp out/launch-tour.mp4 brag/brag.mp4 && cp out/launch-tour.mp4 site/assets/brag.mp4
+ffmpeg -y -ss 9.5 -i site/assets/brag.mp4 -frames:v 1 -q:v 3 site/assets/brag.jpg
+cp site/assets/brag.jpg brag/brag.jpg
+```
+
+`brag/brag.mp4` is the copy `management`'s `bin/fleet check` compares the served
+URL against (G85), so both copies move together. The sheet sets `canvas:
+landscape`, `pan: true` and per-beat `focus` / `zoom`; `scripts/shorts/README.md`
+documents the flags, and the sheet's `note` records the focus anchors against the
+120x38 layout. Keep the mp4 near 2 MB (`crf` on the sheet, 27). The poster is the
+zoomed book at 9.5 s. Review the stills before committing: the header clock and
+the trending list are live, so every render is a different day's market.
+
+`brag/composition/` is the previous recipe, a Hyperframes film over three stills
+of `demo.cast` (`/brag` skill, `scripts/make_brag_stills.py`); it is kept for a
+story that needs titles and music, and is not what the page plays.
 
 ## The vendored asciinema player
 

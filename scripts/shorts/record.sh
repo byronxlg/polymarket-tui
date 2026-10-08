@@ -140,6 +140,9 @@ jq --argjson head "$HEAD_OFFSET" '{head_offset: $head, beats: .}' \
     "$TIMINGS.tmp" >"$TIMINGS"
 rm -f "$TIMINGS.tmp"
 
+# A short hold so the last beat's final repaint lands in the cast before the
+# quit; render.py freezes the footage at the last beat's end anyway.
+sleep 0.5
 K q
 sleep 1.5
 cleanup
