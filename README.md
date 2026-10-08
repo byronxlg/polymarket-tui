@@ -13,9 +13,9 @@ terminal.
 
 <sub>▶ [Watch the interactive demo](https://polymarket-tui.botsmith.dev/) - browse markets, open a live book, chart, search.</sub>
 
-[![polymarket-tui in 20 seconds](https://polymarket-tui.botsmith.dev/assets/brag.jpg)](https://polymarket-tui.botsmith.dev/assets/brag.mp4)
+[![polymarket-tui in 35 seconds](https://polymarket-tui.botsmith.dev/assets/brag.jpg)](https://polymarket-tui.botsmith.dev/assets/brag.mp4)
 
-<sub>▶ [Watch the 20-second launch video](https://polymarket-tui.botsmith.dev/assets/brag.mp4) - the live book, order entry, the dry-run toast.</sub>
+<sub>▶ [Watch the 35-second launch video](https://polymarket-tui.botsmith.dev/assets/brag.mp4) - one real session, the camera on the book, the order ticket, the dry-run toast, the chart.</sub>
 
 Built with Python 3.12 and [Textual](https://textual.textualize.io/).
 
@@ -59,11 +59,13 @@ and any trader's public positions all work read-only.
 ## Landing page
 
 A static landing page lives in [`site/`](site/) and deploys to GitHub Pages
-(https://polymarket-tui.botsmith.dev/). Its hero plays the 20-second launch
-video and nothing else - straight into the top market, cursor the live book, a
-dry-run buy, the NO flip, chart, trade tape, search. Preview it locally with
-`python3 -m http.server -d site 8000`. The footage behind the video and the GIF
-above is `site/assets/demo.cast`, re-recorded with `bash scripts/record_demo.sh`.
+(https://polymarket-tui.botsmith.dev/). Its hero plays the 35-second launch
+video and nothing else - one real session, the camera moving between the top
+market, the live book, a dry-run buy, the chart, the NO flip, the trade tape and
+search. It is cut by the shorts pipeline (`scripts/shorts/`, landscape canvas). Preview it locally with
+`python3 -m http.server -d site 8000`. The footage behind the GIF above is
+`site/assets/demo.cast`, re-recorded with `bash scripts/record_demo.sh`; the
+video records its own session from `scripts/shorts/beats/launch-tour.json`.
 See [`site/README.md`](site/README.md).
 
 ## Account setup

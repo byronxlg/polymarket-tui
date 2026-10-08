@@ -1,0 +1,25 @@
+{
+  "slug": "launch-tour",
+  "headline": "Polymarket in your terminal",
+  "tag": "uv tool install polymarket-tui",
+  "pan": true,
+  "canvas": "landscape",
+  "zoom": 1.25,
+  "crf": 27,
+  "note": "The landing-page launch video: one real recording cut in landscape pan mode (render.py, canvas landscape), following the tour in the site caption. Runs in DRY - the order is signed, never posted - and size 5 is the market minimum: the review validates against the real cash balance even in DRY, so a bigger size blocks the order and renders the balance (see record_demo.sh, PR #246). Never record this sheet with execution_live true. The trade tape is shown compact, never expanded with `a`: expanding it pulls a named trader's wallet and positions into the frame. Focus anchors are fractions of the terminal (0 = top/left, 1 = bottom/right) chosen against the 120x38 layout: outcome rail cols 0-36, YES/NO chips rows 4-6, book rows 11-23 cols 37-75, ORDER ticket rows 5-18 cols 78-117, chart rows 25-34, DRY toast row 36. Waits are short on purpose: the header clock repaints every second, so clamp_lag has nothing to cut and the sheet's wall time is the video's.",
+  "beats": [
+    { "caption": "Trending markets, live prices", "wait": 1.0, "focus": "top left", "zoom": 1.0 },
+    { "caption": "Open the top market", "keys": ["Down", "Up", "Enter"], "wait": 1.4, "focus": "top left", "zoom": 1.0 },
+    { "caption": "The order book, streaming", "keys": ["Enter"], "wait": 2.4, "focus": "top left", "zoom": 1.0 },
+    { "caption": "Cursor the depth you want", "keys": ["Down", "Down", "Down"], "wait": 1.6, "focus": [0, 0.42], "zoom": 1.4 },
+    { "caption": "b prefills the price from the touch", "keys": ["b"], "wait": 1.4, "focus": [1, 0.18], "zoom": 1.3 },
+    { "caption": "Size in shares", "type": "5", "wait": 1.0, "focus": [1, 0.18], "zoom": 1.3 },
+    { "caption": "Review: cost, payout, what actually fills", "keys": ["Enter"], "wait": 2.2, "focus": [1, 0.18], "zoom": 1.3 },
+    { "caption": "Placed. DRY signs it and never posts.", "keys": ["Enter"], "wait": 3.2, "focus": "bottom right", "zoom": 1.25 },
+    { "caption": "Price history, charted", "wait": 2.0, "focus": "bottom right", "zoom": 1.4 },
+    { "caption": "Flip to the NO book", "keys": ["Tab"], "wait": 1.8, "focus": [0.8, 0.14], "zoom": 1.25 },
+    { "caption": "Every trade as it prints", "wait": 2.0, "focus": "top right", "zoom": 1.4 },
+    { "caption": "Search any market", "keys": ["/"], "wait": 0.6, "focus": "top", "zoom": 1.0 },
+    { "caption": "All keyboard, no browser", "type": "bitcoin", "wait": 2.2, "focus": "top", "zoom": 1.0 }
+  ]
+}
