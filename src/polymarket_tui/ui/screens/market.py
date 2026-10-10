@@ -32,6 +32,7 @@ from polymarket_tui.models.market import Event, Market, OrderBook
 from polymarket_tui.services.orders import price_decimals, tick_size
 from polymarket_tui.ui.follow import CursorFollow
 from polymarket_tui.ui.liveness import alive
+from polymarket_tui.ui.staleness import RefreshOnReturn
 from polymarket_tui.ui.theme import AMBER, BLUE, DOWN, UP
 from polymarket_tui.ui.tiers import Tier, TierAware
 from polymarket_tui.ui.widgets.book_panel import BookPanel
@@ -186,7 +187,7 @@ class OutcomesToggle(Static):
         self.refresh()  # side-by-side vs stacked follows the measured width
 
 
-class MarketPane(TierAware, Vertical):
+class MarketPane(RefreshOnReturn, TierAware, Vertical):
     """Market detail body - hosted as a drill pane by NavHost.
 
     Owns the live order book in `_book`; OrderPanel finds this pane via the
@@ -848,6 +849,11 @@ class MarketPane(TierAware, Vertical):
         self.load_trades()
         self.load_position()
         self.load_own_orders()
+
+    def refresh_stale(self) -> None:
+        # Returning to a market only needs the chart caught up - the book,
+        # trades and own-orders intervals keep polling while hidden.
+        self.load_history()
 
     # -- order book navigation & cancel -----------------------------------------
 

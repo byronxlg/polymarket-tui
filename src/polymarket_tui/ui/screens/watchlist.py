@@ -19,6 +19,7 @@ from textual.widgets import Static, TabbedContent, TabPane
 
 from polymarket_tui.core import fmt
 from polymarket_tui.ui.liveness import alive
+from polymarket_tui.ui.staleness import RefreshOnReturn
 from polymarket_tui.ui.tiers import ColumnSpec, Tier, TierAware, effective_tier, fit_columns
 from polymarket_tui.ui.widgets.event_table import EventsTable
 from polymarket_tui.ui.widgets.preview import EventsBrowser
@@ -43,7 +44,7 @@ USERS_TIER_COLUMNS: dict[Tier, tuple[tuple[str, str, int], ...]] = {
 }
 
 
-class WatchlistPane(TierAware, Vertical):
+class WatchlistPane(RefreshOnReturn, TierAware, Vertical):
     """Starred events + followed traders - an alternate root drill pane."""
 
     header_title = "watchlist"
