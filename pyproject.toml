@@ -1,6 +1,6 @@
 [project]
 name = "polymarket-tui"
-version = "0.1.1"
+version = "0.1.2"
 description = "Fast, keyboard-driven terminal client for Polymarket"
 readme = "README.md"
 license = "MIT"
@@ -70,6 +70,8 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "-m 'not live'"
+markers = ["live: hits the real Polymarket APIs (api-contract.yml runs these daily)"]
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]

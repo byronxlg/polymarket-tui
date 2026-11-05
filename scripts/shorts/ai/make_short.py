@@ -41,7 +41,7 @@ BLUE = "#5b8ef7"
 MUTED = "#8a93a6"
 WHITE = "#e6e9f0"
 
-# Refresh from https://lb-api.polymarket.com/profit?window=all&limit=5 before
+# Refresh from https://data-api.polymarket.com/v2/leaderboard?time_period=all&limit=5 before
 # re-recording the voiceover - captions and audio must state current facts.
 # Numbers below pulled 2026-08-14.
 LEADERBOARD = [("1", "swisstony", "$23.4M"), ("2", "Theo4", "$22.0M"),

@@ -3,6 +3,28 @@
 All notable changes to polymarket-tui are documented here. This project follows
 [semantic versioning](https://semver.org/).
 
+## [0.1.2] - 2026-11-06
+
+### Fixed
+- Portfolio, profiles, market trades and the P&L strip work again. Polymarket
+  retired Data API v1, `lb-api` and `user-pnl-api` (all 410), which left these
+  screens empty in 0.1.1. The client now uses Data API v2.
+- A signed price can no longer be silently rounded down to a coarser tick; the
+  order is refused if the order API and the live book disagree.
+- Ticks come from the live book, not a stale market snapshot.
+- Confirm and sell amounts show every share digit, so a cash-out prefill is no
+  longer blocked by its own rounding.
+- A 502 or bracketed API text no longer crashes the app; closed positions no
+  longer crash on a duplicate row.
+
+### Added
+- The order panel says whether an order fills now or rests on the book.
+- Profile Active and Closed tabs, reading pop-outs for comments and rules, deeper
+  order book levels, closed-market resolution.
+
+### Changed
+- Spacious list layouts, documented keybindings, and navigation fixes.
+
 ## [0.1.1] - 2026-07-07
 
 ### Fixed

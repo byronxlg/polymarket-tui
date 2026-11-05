@@ -15,7 +15,7 @@ def make_pane() -> MarketPane:
     market = Market(
         slug="will-it-rain",
         question="Will it rain?",
-        conditionId="0xcond",
+        condition_id="0xcond",
         clobTokenIds='["tok-yes", "tok-no"]',
     )
     return MarketPane(market)

@@ -125,8 +125,7 @@ One scheme everywhere - press `?` in the app for the full reference:
 
 Public Polymarket APIs: `gamma-api.polymarket.com` (markets, events, search,
 comments), `clob.polymarket.com` (order books, price history, orders),
-`data-api.polymarket.com` (positions, trades, activity),
-`user-pnl-api.polymarket.com` (profit history). Trading uses
+`data-api.polymarket.com/v2` (positions, trades, activity, profit history). Trading uses
 `py-clob-client-v2` for CLOB V2 order signing.
 
 ## Docs

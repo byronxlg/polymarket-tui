@@ -17,7 +17,7 @@ otherwise standalone.
 The hook must be true. Pull the all-time profit leaderboard:
 
 ```sh
-curl -s "https://lb-api.polymarket.com/profit?window=all&limit=5"
+curl -s "https://data-api.polymarket.com/v2/leaderboard?time_period=all&limit=5"
 ```
 
 (2026-08-14: swisstony $23.4M, Theo4 $22.0M, Fredi9999 $16.6M, RN1 $12.7M,
