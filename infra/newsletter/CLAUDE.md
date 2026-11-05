@@ -1,122 +1,33 @@
 # infra/newsletter
 
-Terraform for the daily digest newsletter: subscribers sign up on the landing
-page, confirm by email (double opt-in), and get one email a day with Polymarket
-movers, volume leaders, ending-soon markets, and new markets. Region:
-ap-southeast-2. Costs sit inside the Lambda/DynamoDB free tiers at current
-scale; both functions carry reserved-concurrency caps.
+The newsletter is shut down (2026-11-05, Byron's request). The sign-up form, API, Lambdas,
+schedule, SES identity and their DNS records were destroyed through this config. What is left
+here is what outlives it:
 
-Status: the daily send is stopped since 2026-10-03 at Byron's request
-(`state = "DISABLED"` on `aws_scheduler_schedule.digest` in `schedule.tf`).
-Everything else is still deployed: sign-up, confirm and unsubscribe work and
-the subscriber table is kept. Set `state = "ENABLED"` and merge to resume.
+- `polymarket-tui-newsletter-subscribers` (DynamoDB, `prevent_destroy`): kept because deleting
+  data needs Byron's go. One row, Byron's own address. Nothing reads or writes it.
+- `polymarket-tui-newsletter-3usd` and `-5usd` budgets: account-wide spend alerts to Byron, not
+  specific to the newsletter. The directory name stays because the budget names, the state key
+  and the workflow do.
+- `polymarket-tui-tfstate` (S3, `prevent_destroy`): this config's remote state. Do not remove
+  that lifecycle rule.
+- `polymarket-tui-ci` (IAM user and policy): runs `.github/workflows/newsletter.yml`.
 
-## Pieces
-
-- `polymarket-tui-newsletter-api` (python3.12/arm64): POST /subscribe,
-  GET /confirm, GET|POST /unsubscribe, behind an HTTP API at
-  `polymarket-tui-api.botsmith.dev` (ACM cert, Cloudflare DNS, throttled).
-  The signup form in `site/index.html` posts here and hardcodes the hostname.
-  The hostname must stay a first-level name under the apex: anything under
-  `polymarket-tui.botsmith.dev` inherits github.io's CAA records through the
-  Pages CNAME during the CA's tree-climb, and ACM cannot issue a cert
-  (CAA_ERROR - hit on the first deploy with `api.polymarket-tui.`).
-- `polymarket-tui-newsletter-digest` (python3.12/arm64): builds the digest
-  from Gamma and sends via SES. EventBridge Scheduler fires it daily at 07:00
-  Pacific/Auckland. Retries are disabled at both the schedule and the lambda
-  (`maximum_retry_attempts = 0`): retrying a partially-sent digest would
-  double-send it - same principle as the app's timed-out-order rule.
-- `polymarket-tui-newsletter-subscribers` (DynamoDB): one row per email;
-  status walks pending -> confirmed -> unsubscribed; a per-subscriber token
-  gates confirm/unsubscribe links.
-- SES identity `polymarket-tui.botsmith.dev`, sender
-  `digest@polymarket-tui.botsmith.dev`, DKIM + custom MAIL FROM
-  (`bounce.`) + DMARC records in Cloudflare.
-- Intro blurb: one Bedrock converse call per digest (`var.blurb_model_id`,
-  currently `au.anthropic.claude-sonnet-4-6` - Sonnet 5 is gated for this
-  account on Bedrock; swap the variable when access arrives, or set it empty
-  to disable). Any blurb failure sends the digest without one. Cost is well
-  under $1/month at one call a day.
-- Budget alerts (user request 2026-07-18): `budgets.tf` emails
-  byron.lg.smith@gmail.com at $3 and $5 of ACTUAL monthly spend.
-  Account-wide on purpose - non-newsletter baseline was ~$0.12/month and no
-  cost-allocation tags are active (activating one only tags future usage
-  and lags ~24h).
-
-Lambda code lives in `src/` and ships as an `archive_file` zip inside this
-config - app-code pushes redeploy through the same plan/apply pipeline, no
-separate code-deploy path. The modules that don't touch AWS (`digest_data`,
-`digest_render`, `nl_common`) are stdlib-only and unit-tested by
-`tests/test_newsletter_digest.py` in the repo's normal pytest run.
-
-## DNS ownership note
-
-The botsmith.dev zone also carries the landing-page Pages CNAME
-(`polymarket-tui.botsmith.dev`), which is managed in x402-services' Terraform,
-not here. This config only manages newsletter-specific record names (DKIM
-under `_domainkey.`, `bounce.`, `_dmarc.`, `polymarket-tui-api.`), so the two states never
-touch the same records.
-
-## State
-
-Remote state in S3 (`s3://polymarket-tui-tfstate/newsletter/terraform.tfstate`)
-with S3 native locking (`use_lockfile`, no DynamoDB). The state bucket is
-managed here with `prevent_destroy` - do not remove that lifecycle rule.
+To bring the newsletter back: `git revert` the shutdown PRs (the code and how it worked are in
+history at 5df0dd6), let `newsletter.yml` apply, and restore the form on `site/index.html`.
 
 ## Applying changes
 
-Never apply locally. Push to main: `.github/workflows/newsletter.yml` runs
-`terraform plan -out` + `apply` with the `polymarket-tui-ci` credentials
-(GitHub Actions secrets `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`) and a
-Cloudflare token scoped to botsmith.dev DNS (`CLOUDFLARE_API_TOKEN`). Pull
-requests run plan only. Local `terraform plan` for inspection is fine.
+Never apply locally. Push to main: `.github/workflows/newsletter.yml` runs `terraform plan -out`
+and `apply` with the `polymarket-tui-ci` credentials (GitHub Actions secrets `AWS_ACCESS_KEY_ID`
+and `AWS_SECRET_ACCESS_KEY`). Pull requests run plan only. Local `terraform plan` for inspection
+is fine.
 
-### Bootstrap (one-time, NOT yet done)
-
-The state bucket and CI user cannot create themselves. Same procedure as
-x402-services: comment out `backend.tf`, `terraform apply -target` of the
-tfstate bucket resources + `polymarket-tui-ci` user/policy/attachment with
-local state under admin credentials, restore `backend.tf`, then
-`terraform init -migrate-state`. Everything else (lambdas, SES, API, DNS,
-schedule) is first applied by GitHub Actions.
-
-### CI credentials (out-of-band, documented exception)
-
-`polymarket-tui-ci` access keys are intentionally not in Terraform state.
-Create with:
+`polymarket-tui-ci` access keys are intentionally not in Terraform state. Create with:
 
 ```sh
 doppler run --project global --config home -- aws iam create-access-key --user-name polymarket-tui-ci
 ```
 
-then store as GitHub Actions repo secrets (`gh secret set`). Rotate by
-creating a second key, updating the secrets, deleting the old one - never
-delete first.
-
-## SES sandbox
-
-A fresh SES account only delivers to verified addresses. This account has
-production access (the digest was delivered on 2026-10-01 and 10-02 with no
-recipient identity present), so the config no longer declares a test
-recipient: the block was removed 2026-10-03. If the config is ever applied to
-a fresh account, request production access once in the SES console
-(ap-southeast-2 -> Account dashboard -> Request production access; cite the
-double-opt-in flow and the one-click unsubscribe headers), or verify a
-recipient by hand for testing. Until then, subscribe confirmations to
-unverified addresses fail silently server-side by design (the API never leaks
-delivery state).
-
-## Testing a real run
-
-Invoking the digest lambda sends real email to every confirmed subscriber -
-treat it like the money path. To exercise it end to end:
-subscribe with a test address on the site, click the confirm link,
-then invoke `polymarket-tui-newsletter-digest` from the Lambda console (or
-wait for the 07:00 NZ run, when the schedule is enabled). Read the CloudWatch summary line
-(`sent/failed/subscribers`) rather than assuming.
-
-## Follow-ups not built yet
-
-- Bounce/complaint handling (SES event destination -> suppress subscriber).
-  Matters once the list is bigger than friends-and-family.
-- A welcome email on confirm (today the confirm page is the only feedback).
+then store as GitHub Actions repo secrets (`gh secret set`). Rotate by creating a second key,
+updating the secrets, deleting the old one - never delete first.

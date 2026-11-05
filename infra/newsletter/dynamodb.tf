@@ -1,5 +1,5 @@
-# One row per subscriber, keyed by normalized email. status walks
-# pending -> confirmed -> unsubscribed; token gates confirm/unsubscribe links.
+# Kept when the newsletter was shut down (2026-11-05): nothing reads or writes it,
+# and deleting it needs Byron's go. One row, Byron's own address.
 resource "aws_dynamodb_table" "subscribers" {
   name         = "${local.prefix}-subscribers"
   billing_mode = "PAY_PER_REQUEST"
@@ -12,5 +12,9 @@ resource "aws_dynamodb_table" "subscribers" {
 
   point_in_time_recovery {
     enabled = true
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }

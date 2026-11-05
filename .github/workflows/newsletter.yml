@@ -1,9 +1,7 @@
 name: Deploy newsletter
 
-# Terraform for the daily digest newsletter (infra/newsletter). Pull requests
-# run plan only; pushes to main plan and apply the same plan. The lambda code
-# ships inside the Terraform config (archive_file of src/), so code pushes
-# redeploy through the same pipeline - there is no separate code-deploy path.
+# Terraform for what is left of the shut-down newsletter (infra/newsletter). Pull requests
+# run plan only; pushes to main plan and apply the same plan.
 on:
   push:
     branches: [main]
