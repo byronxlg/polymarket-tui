@@ -93,7 +93,7 @@ merge gates; `publish.yml` runs the test suite before it uploads, which is the o
 | `YOUTUBE_PRIVACY` (`private`) and the `YOUTUBE_*` secrets | `daily-short.yml` | upload step is skipped when `YOUTUBE_REFRESH_TOKEN` is unset; uploads stay private until the Google API audit passes | `gh secret list`; step `if:` on `HAS_YOUTUBE` |
 | `TELEGRAM_BOT_TOKEN` | Actions secret | short delivery and failure message to chat `8851680837` | `gh secret list` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Actions secret | blog job runs on plan usage, not API billing | `gh secret list`; a blog run that fails at auth |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `CLOUDFLARE_API_TOKEN` | Actions secrets | `newsletter.yml` Terraform credentials (`polymarket-tui-ci` user; Cloudflare token scoped to botsmith.dev DNS) | `gh secret list` |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Actions secrets | `newsletter.yml` Terraform credentials (`polymarket-tui-ci` user). `CLOUDFLARE_API_TOKEN` is also still set but unused since the newsletter shutdown; removing it is a credential change and needs Byron's go | `gh secret list` |
 | Workflow enabled or disabled | GitHub | whether a cron fires at all | `gh workflow list --all` (today: `daily-short.yml` is `disabled_manually`; `blog-post.yml` is active but has no `schedule:` trigger since 2026-10-03) |
 | `POLYMARKET_EXECUTION_LIVE`, `L` toggle | the user's own machine (`~/.config/polymarket-tui/credentials.toml`) | real orders. Not a CI concern; documented in `docs/trading.md` | n/a here |
 
