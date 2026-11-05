@@ -1,10 +1,8 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  account_id   = data.aws_caller_identity.current.account_id
-  prefix       = "polymarket-tui-newsletter"
-  sender_email = "digest@${var.sender_domain}"
-  api_base_url = "https://${var.api_domain}"
+  account_id = data.aws_caller_identity.current.account_id
+  prefix     = "polymarket-tui-newsletter"
 }
 
 # --- Terraform state backend (bootstrapped locally once, see CLAUDE.md) ---

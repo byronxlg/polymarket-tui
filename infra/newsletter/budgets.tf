@@ -1,8 +1,8 @@
 # Spend alerts (user request 2026-07-18): email at $3 and $5 of monthly spend.
-# Account-wide by design: the account's non-newsletter baseline is ~$0.12/month
-# (checked 2026-07-18), so these are effectively project alerts without the
-# cost-allocation-tag activation lag (tags only apply to usage recorded after
-# activation, and none are active in this account).
+# Account-wide by design, so they outlive the newsletter they were added for: the
+# account's baseline was ~$0.12/month (checked 2026-07-18), so these are effectively
+# project alerts without the cost-allocation-tag activation lag (tags only apply to
+# usage recorded after activation, and none are active in this account).
 
 resource "aws_budgets_budget" "monthly" {
   for_each = {
