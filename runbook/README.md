@@ -32,6 +32,7 @@ machine; there is no server in between.
 | --- | --- | --- | --- |
 | Latest GitHub release is on PyPI within 1 h of publishing | every release | per release | `curl -s https://pypi.org/pypi/polymarket-tui/json \| jq -r .info.version` equals `gh release view --json tagName` minus the `v` |
 | https://polymarket-tui.botsmith.dev/ returns 200 | 99% of checks | 30 days | `curl -s -o /dev/null -w '%{http_code}' https://polymarket-tui.botsmith.dev/` |
+| Every Polymarket read the app makes answers, with real values | daily | 7 days | `api-contract.yml` (`pytest -m live`), Telegram on failure; added after the Data API v1 retirement sat unnoticed from 2026-11-02 to 2026-11-05 |
 | Each enabled scheduled workflow's last run is within 2x its cadence | every cron | 7 days (weekly review) | `gh run list --workflow <file> --limit 1` |
 
 Recovery targets: RTO 14 days (projects.yaml `sla.restore`), RPO n/a. The only state this project
@@ -40,10 +41,9 @@ recovery on, `prevent_destroy`); nothing depends on it.
 
 ## Who is watching
 
-Nobody off-host. Monitor kind is `ci-only`: the only signals are GitHub's own scheduled-workflow
-failure email, the `Report failure to Telegram` step in `daily-short.yml`, and the weekly fleet
-review. `blog-post.yml` has no failure notification of its own. Since 2026-10-03 no scheduled
-workflow is enabled in this repo (blog cron removed, `daily-short.yml` disabled), so there is no
+Nobody off-host. Monitor kind is `ci-only`: the signals are the daily `api-contract.yml` (the app's
+real reads against the live API, Telegram on failure), GitHub's own scheduled-workflow failure
+email, the `Report failure to Telegram` step in `daily-short.yml`, and the weekly fleet review. `blog-post.yml` has no failure notification of its own. Since 2026-10-03 the blog cron is removed and `daily-short.yml` disabled, so apart from the contract there is no
 cron to go quiet. If one is re-enabled: GitHub disables scheduled workflows after 60 days without
 repo activity, nothing here would notice, and the daily blog commits that used to keep the repo
 active are gone. Nothing checks that the site answers 200 or that the Homebrew

@@ -7,7 +7,7 @@ Four upstream surfaces. Shapes below were verified against the live APIs on 2026
 |---|---|---|---|
 | Gamma | `https://gamma-api.polymarket.com` | none | discovery, metadata, search, tags |
 | CLOB REST | `https://clob.polymarket.com` | none for market data; L2 creds for user state/orders | books, prices, history, orders, balance |
-| Data-API | `https://data-api.polymarket.com` | none (keyed by address) | positions, P&L, activity, portfolio value |
+| Data-API | `https://data-api.polymarket.com/v2` | none (keyed by address) | positions, P&L, activity, portfolio value |
 | CLOB WS | `wss://ws-subscriptions-clob.polymarket.com/ws/` | user channel needs L2 creds | live books, prices, own orders/fills |
 
 Rate limits: CLOB ~50 req/s per key; Gamma/Data-API unspecified - back off on 429.
@@ -205,81 +205,62 @@ Known rejection strings to map to user-facing errors: `not enough balance / allo
 Keyed by proxy-wallet address (`POLYMARKET_FUNDER`). No auth: it is public on-chain-derived
 data. This is what the web UI's portfolio page uses.
 
-### GET /positions?user=0x...&limit=&offset=
+### v2, since v1 was retired (410, first seen 2026-11-02)
 
-Verified fields per position:
+Base `https://data-api.polymarket.com/v2`, contract at `/v2/openapi.json`. `data-api` v1,
+`lb-api` and `user-pnl-api` all answer 410. Every response is `{data, pagination?}`,
+snake_case, amounts as JSON numbers. A null number means unavailable, not zero, so
+`models/portfolio.py` drops nulls to the field's default rather than lose the row. Paging is
+cursor-only (`next_cursor`, no `offset`); `limit` caps at 1000 and applies to the first page.
+`tests/test_data_api_v2.py` holds real rows; its live test runs daily in `api-contract.yml`.
 
-```
-asset (token id), conditionId, eventId, eventSlug, slug, title, icon,
-outcome, outcomeIndex, oppositeAsset, oppositeOutcome,
-size, avgPrice, initialValue, curPrice, currentValue,
-cashPnl, percentPnl, realizedPnl, percentRealizedPnl, totalBought,
-redeemable, mergeable, negativeRisk, endDate, proxyWallet
-```
+### GET /v2/positions?user=0x...
 
-This single endpoint gives the entire positions table including P&L - no client-side
-computation needed. Additional params worth verifying at impl: `sortBy=CURRENT|CASHPNL`,
-`sizeThreshold`, `redeemable=true`.
+`status` defaults to `OPEN`: a superset with unredeemed winners, but without resolved losers
+(`REDEEMABLE_LOST`) and archived markets (`include_archived=true`). Dust floor 0.1 shares.
 
-### GET /closed-positions?user=0x...&limit=&offset=&sortBy=&sortDirection=
+Fields the app maps: `token_id` to `asset`, `current_size` to `size`, `current_price` to
+`cur_price`, `entry_cost_usdc` to `initial_value`, `unrealized_pnl` to `cash_pnl`. Same name:
+`condition_id`, `event_slug`, `slug`, `title`, `outcome`, `outcome_index`, `avg_price`,
+`current_value`, `percent_pnl`, `realized_pnl`, `redeemable`, `end_date` (bare date).
 
-Backs the Closed tab (profile + portfolio). A *different shape* from `/positions`, not
-the same rows with `size: 0`:
+### GET /v2/positions?user=0x...&status=CLOSED&sort_by=TIMESTAMP&sort_direction=DESC
 
-```
-asset (token id), conditionId, eventSlug, slug, title, icon,
-outcome, outcomeIndex, oppositeAsset, oppositeOutcome,
-avgPrice, curPrice, totalBought, realizedPnl,
-timestamp (when it closed), endDate, proxyWallet
-```
+Backs the Closed tab. The default order is `REALIZED_PNL`, a highlight reel, so a history must
+ask for `TIMESTAMP`.
 
-Quirks pinned 2026-07-10:
+- `last_event_at` is when it closed. `current_size` is 0; `total_size` is the shares held.
+- Return is `percent_realized_pnl`; `percent_pnl` reads 0 here. `total_cost_usdc` is only the
+  fees by now: cost is `total_size * avg_price`, which is what the server's percentage uses.
+- `current_price` is 1/0 for a position held to resolution but a mid price for one sold out
+  beforehand - it does **not** mean won/lost. Only the sign of `realized_pnl` is a fact.
 
-- **The page caps at 50 rows.** `limit=500` returns 50; `offset=100` returns another 50.
-  Walk offsets until a short page (`api/data.py: CLOSED_PAGE_LIMIT`).
-- `sortBy` accepts only `[REALIZEDPNL AVGPRICE PRICE TITLE TIMESTAMP]` - `CURRENT` and
-  `PERCENTREALIZEDPNL` (both valid on `/positions`) 400 here. The **default is
-  REALIZEDPNL** (biggest wins first), so a history view must pass `sortBy=TIMESTAMP`.
-- No `size` (the shares are gone) and no percentage: return on cost is
-  `realizedPnl / totalBought`.
-- `curPrice` is 1/0 for a position held to resolution but a mid price for one sold out
-  beforehand - it does **not** mean won/lost. Only the sign of `realizedPnl` is a fact.
-- `endDate` carries a full timestamp (`2026-06-06T00:00:00Z`) where `/positions` sends a
-  bare date (`2026-07-10`).
-- `closed=true` and `eventStatus=resolved` on `/positions` are silently ignored (they
-  return the active set), so there is no way to get this from `/positions`.
+### GET /v2/value?user=0x... and /v2/user-stats?user=0x...
 
-### GET /value?user=0x...
+`{data: {proxy_wallet, value}}`: positions mark-to-market. `user-stats` `trades` counts
+**distinct markets**, not trades: the "markets" stat on the profile header. `data: null` means
+no such user; zeros mean a user who never traded.
 
-Verified: `[{"user": "0x...", "value": 9.4937}]` - total portfolio value (positions
-mark-to-market). Header-bar stat alongside USDC cash balance from CLOB.
+### GET /v2/leaderboard?user=0x...&time_period=all
 
-### GET /traded?user=0x...
+With `user` it answers one object: `{pnl, volume, rank_pnl, rank_volume, ...}`, the profile
+header's Profit and Volume. `time_period` defaults to `day`. `profile_stats()` gathers these
+routes concurrently and drops any field whose route errored rather than blanking the line.
 
-Verified: `{"user": "0x...", "traded": 339}` - count of markets ever traded. The
-"markets" stat on the profile header.
+### GET /v2/user-pnl?user=0x...&interval=1m&fidelity=1d
 
-### Leaderboard - lb-api.polymarket.com
+`{data: {points: [{timestamp, position_pnl, ...}]}}`. `position_pnl` is realized plus unrealized;
+the P&L strip plots it.
 
-`GET /volume?window=all&limit=1&address=0x...` and `GET /profit?...` (same params) each
-answer `[{proxyWallet, amount, pseudonym, name, bio, profileImage}]`, or `[]` for an
-address that never traded. `amount` is the stat; these are the profile header's Volume
-and Profit. `/profit` agrees with the last point of `user-pnl` (682.41 for
-wettor-bettor-b on 2026-07-10). Different host from data-api, hence a separate failure
-domain: `profile_stats()` gathers all four concurrently and drops any field whose
-service errored rather than blanking the line.
+### GET /v2/activity?user=0x...&limit=
 
-### GET /activity?user=0x...&limit=&offset=
+`type`, `side`, `size`, `usdc_size`, `price`, `outcome`, `title`, `slug`, `event_slug`,
+`condition_id`, `token_id`, `timestamp`, `transaction_hash`, plus profile fields. Deposits and
+withdrawals are excluded unless `exclude_deposits_withdrawals=false`.
 
-Verified fields: `type` (TRADE/SPLIT/MERGE/REDEEM/REWARD/CONVERSION - verify full enum),
-`side`, `size`, `usdcSize`, `price`, `outcome`, `title`, `slug`, `eventSlug`,
-`conditionId`, `asset`, `timestamp`, `transactionHash`, plus profile fields.
-Backs the activity screen. Param `type=TRADE` filters.
+### GET /v2/trades?condition=<conditionId>&limit=
 
-### Other endpoints (stretch, verify at impl)
-
-`/trades?market=<conditionId>` - public recent trades for a market (the web UI's
-"activity" tab on a market page). `/holders?market=` - top holders.
+Public recent trades for a market. Same row shape without `usdc_size`, derived from size * price.
 
 ## 4. CLOB WebSocket
 
@@ -354,5 +335,5 @@ The three IDs and where each is used - a constant source of bugs, so pin it:
 | token id (outcome) | `43943...` (uint256 decimal string) | Gamma `clobTokenIds` | all CLOB book/price/order calls, WS market channel, data-api `asset` |
 
 Mapping: event 1-N markets; market has exactly 2 token ids (YES=index 0, NO=index 1).
-`data-api` positions carry `asset` (token id) + `conditionId` + `eventSlug`, so joining
+`data-api` positions carry `token_id` + `condition_id` + `event_slug`, so joining
 back to Gamma metadata is direct.

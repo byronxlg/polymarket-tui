@@ -1,9 +1,8 @@
 """Closed positions: the settled half of a profile (Active | Closed).
 
-data-api serves these from /closed-positions with a different shape than
-/positions - no size (the shares are gone), realized P&L instead of a mark, and
-no percentage - and it silently caps a page at 50 rows. A client that trusts
-its own `limit` shows a truncated history and calls it complete.
+data-api v2 serves these from /positions?status=CLOSED: the same route as open
+positions, but the shares are gone, so the money is realized P&L rather than a
+mark, and the default order is biggest win rather than most recent.
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
-from polymarket_tui.api.data import BASE_URL, CLOSED_LIMIT, CLOSED_PAGE_LIMIT, DataApiClient
+from polymarket_tui.api.data import BASE_URL, CLOSED_LIMIT, DataApiClient
 from polymarket_tui.core.links import market_url
 from polymarket_tui.models.portfolio import ClosedPosition
 from polymarket_tui.ui.theme import DOWN, UP
@@ -26,29 +25,37 @@ from polymarket_tui.ui.widgets.tables import (
     closed_row,
 )
 
-# A real /closed-positions record (wettor-bettor-b, 2026-07-10). Note endDate
-# carries a full timestamp here while /positions sends a bare date.
+# A real /v2/positions?status=CLOSED record, 2026-11-05. Note total_cost_usdc is
+# only the fees by now, and percent_pnl is 0: the return is percent_realized_pnl.
 RAW = {
-    "proxyWallet": "0x20118f14091ee38afa401ee89e7b8343e6c8845b",
-    "asset": "57295447409380755776069872216650648586165601801513220125339658071871455932443",
-    "conditionId": "0x289f4797323bc8dfa3b1dcddc80410aa358f8a34336a550c7afbad32f5915da3",
-    "avgPrice": 0.543042,
-    "totalBought": 560.144189,
-    "realizedPnl": 250.357573,
-    "curPrice": 1,
-    "title": "Will the highest temperature in Wellington be 16°C on June 6?",
-    "slug": "highest-temperature-in-wellington-on-june-6-2026-16c",
-    "eventSlug": "highest-temperature-in-wellington-on-june-6-2026",
-    "outcome": "No",
-    "outcomeIndex": 1,
-    "endDate": "2026-06-06T00:00:00Z",
-    "timestamp": 1780702263,
+    "proxy_wallet": "0xafd26fec8dd53547af5abc2b64d9492db4e1a9e9",
+    "token_id": "24284034030654287997033489800446777667354760444381473294763283411133277982539",
+    "condition_id": "0x885e8eff6428727c847afad007ac5ba620a3cf8ff11db532c2dfa8a2d14a19db",
+    "current_size": 0.0,
+    "avg_price": 0.4111,
+    "entry_cost_usdc": 0.0,
+    "total_cost_usdc": 0.77485,
+    "current_price": 1.0,
+    "current_value": 0.0,
+    "total_size": 133.9926,
+    "realized_pnl": 78.9015,
+    "unrealized_pnl": 0.0,
+    "percent_pnl": 0.0,
+    "percent_realized_pnl": 143.2203,
+    "status": "CLOSED",
+    "title": "Bitcoin Up or Down - September 9, 8:20PM-8:25PM ET",
+    "slug": "btc-updown-5m-1788999600",
+    "event_slug": "btc-updown-5m-1788999600",
+    "outcome": "Up",
+    "outcome_index": 0,
+    "end_date": "2026-09-10",
+    "last_event_at": 1789000543,
 }
 
 
 def _raw(i: int, **over) -> dict:
-    stamp = RAW["timestamp"] - i
-    return {**RAW, "asset": str(i), "slug": f"market-{i}", "timestamp": stamp, **over}
+    stamp = RAW["last_event_at"] - i
+    return {**RAW, "token_id": str(i), "slug": f"market-{i}", "last_event_at": stamp, **over}
 
 
 def _cell(pos: ClosedPosition, key: str):
@@ -62,139 +69,115 @@ def _cell(pos: ClosedPosition, key: str):
 
 def test_parses_the_live_payload() -> None:
     pos = ClosedPosition.model_validate(RAW)
-    assert pos.total_bought == pytest.approx(560.144189)
-    assert pos.realized_pnl == pytest.approx(250.357573)
-    assert pos.condition_id.startswith("0x289f")
-    assert pos.event_slug == "highest-temperature-in-wellington-on-june-6-2026"
-    assert pos.end_date == datetime(2026, 6, 6, tzinfo=UTC)
+    assert pos.realized_pnl == pytest.approx(78.9015)
+    assert pos.condition_id.startswith("0x885e")
+    assert pos.asset == RAW["token_id"]
+    assert pos.cur_price == 1.0
+    assert pos.end_date == datetime(2026, 9, 10)  # v2 sends a bare date
 
 
-def test_percent_pnl_is_return_on_cost() -> None:
-    # The endpoint sends no percentage; it is realized against what went in.
-    pos = ClosedPosition(totalBought=200.0, realizedPnl=50.0)
-    assert pos.percent_pnl == pytest.approx(25.0)
+def test_percent_is_the_servers_return_on_cost_not_the_open_positions_field() -> None:
+    assert ClosedPosition.model_validate(RAW).percent_pnl == pytest.approx(143.2203)
 
 
-def test_percent_pnl_of_a_zero_cost_position_is_zero_not_a_crash() -> None:
-    assert ClosedPosition(totalBought=0.0, realizedPnl=0.0).percent_pnl == 0.0
+def test_cost_is_what_went_in_not_the_fees() -> None:
+    # realized / cost must agree with the server's percentage, or the Cost
+    # column and the % beside it describe different positions.
+    pos = ClosedPosition.model_validate(RAW)
+    assert pos.total_bought == pytest.approx(55.08, abs=0.01)
+    assert pos.realized_pnl / pos.total_bought * 100 == pytest.approx(143.2, abs=0.1)
+
+
+def test_a_null_amount_means_unavailable_and_keeps_the_row() -> None:
+    pos = ClosedPosition.model_validate({**RAW, "percent_realized_pnl": None})
+    assert pos.percent_pnl == 0.0
 
 
 def test_closed_at_reads_the_timestamp() -> None:
     assert ClosedPosition.model_validate(RAW).closed_at == datetime.fromtimestamp(
-        RAW["timestamp"], tz=UTC
+        RAW["last_event_at"], tz=UTC
     )
     assert ClosedPosition(timestamp=0).closed_at is None
 
 
-# -- client paging -------------------------------------------------------
+# -- client --------------------------------------------------------------
 
 
-def _client(pages: dict[int, int]) -> tuple[DataApiClient, list[httpx.Request]]:
-    """Serve `pages[offset]` rows for each offset; record every request."""
+def _client(rows: list[dict]) -> tuple[DataApiClient, list[httpx.Request]]:
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
-        offset = int(request.url.params.get("offset", 0))
-        limit = int(request.url.params.get("limit", CLOSED_PAGE_LIMIT))
-        rows = min(pages.get(offset, 0), limit)
-        return httpx.Response(200, json=[_raw(offset + i) for i in range(rows)])
+        return httpx.Response(200, json={"data": rows, "pagination": {"has_more": False}})
 
     http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url=BASE_URL)
     return DataApiClient(http), seen
 
 
 @pytest.mark.asyncio
-async def test_walks_offsets_past_the_fifty_row_page_cap() -> None:
-    # 107 settled positions: the server hands back 50, 50, then 7.
-    client, seen = _client({0: 50, 50: 50, 100: 7})
-    out = await client.closed_positions("0xf", limit=150)
-    assert len(out) == 107
-    assert [int(r.url.params["offset"]) for r in seen] == [0, 50, 100]
-
-
-@pytest.mark.asyncio
-async def test_a_row_straddling_a_page_boundary_is_not_duplicated() -> None:
-    # Offset pages are not a stable cursor: tied timestamps reorder between
-    # requests and a position settling mid-walk shifts later offsets by one,
-    # so page 3 can open with the row that closed page 2. The table keys rows
-    # on slug|asset; a repeat is a DuplicateKey crash in the portfolio pane.
-    seen: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        offset = int(request.url.params.get("offset", 0))
-        start = offset - offset // 50  # each later page re-sends its predecessor's last row
-        rows = 50 if offset < 100 else 7
-        return httpx.Response(200, json=[_raw(start + i) for i in range(rows)])
-
-    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url=BASE_URL)
-    out = await DataApiClient(http).closed_positions("0xf", limit=150)
-    keys = [(p.slug, p.asset) for p in out]
-    assert len(keys) == len(set(keys))
-    assert len(out) == 105  # 107 rows served, two of them repeats
-    assert [int(r.url.params["offset"]) for r in seen] == [0, 50, 100]
-
-
-@pytest.mark.asyncio
-async def test_a_short_first_page_ends_the_walk() -> None:
-    client, seen = _client({0: 12})
-    assert len(await client.closed_positions("0xf", limit=150)) == 12
-    assert len(seen) == 1  # no speculative second request
-
-
-@pytest.mark.asyncio
-async def test_an_empty_history_makes_one_request() -> None:
-    client, seen = _client({})
-    assert await client.closed_positions("0xf") == []
-    assert len(seen) == 1
-
-
-@pytest.mark.asyncio
-async def test_limit_is_honoured_across_pages() -> None:
-    client, seen = _client({0: 50, 50: 50})
-    out = await client.closed_positions("0xf", limit=60)
-    assert len(out) == 60
-    # Second page asks for only the 10 rows still wanted, not another 50.
-    assert [int(r.url.params["limit"]) for r in seen] == [50, 10]
-
-
-@pytest.mark.asyncio
-async def test_a_deeper_history_than_the_cap_comes_back_exactly_full() -> None:
-    # The panes decide whether to say "showing the N most recently closed" by
-    # comparing len(rows) to CLOSED_LIMIT, so a truncated read must fill it
-    # exactly - never overshoot, never come up one short.
-    client, _ = _client({0: 50, 50: 50, 100: 50, 150: 50})
-    assert len(await client.closed_positions("0xf", limit=CLOSED_LIMIT)) == CLOSED_LIMIT
-
-
-@pytest.mark.asyncio
-async def test_asks_for_most_recently_closed_first() -> None:
-    # The endpoint's default sort is REALIZEDPNL - a highlight reel, not a
-    # history. Closed is a history, so it must ask for TIMESTAMP DESC.
-    client, seen = _client({0: 3})
+async def test_asks_for_closed_most_recent_first_up_to_the_limit() -> None:
+    # The default sort is REALIZED_PNL - a highlight reel, not a history.
+    client, seen = _client([_raw(0)])
     await client.closed_positions("0xf")
-    assert seen[0].url.params["sortBy"] == "TIMESTAMP"
-    assert seen[0].url.params["sortDirection"] == "DESC"
+    params = seen[0].url.params
+    assert seen[0].url.path == "/v2/positions"
+    assert params["status"] == "CLOSED"
+    assert params["sort_by"] == "TIMESTAMP"
+    assert params["sort_direction"] == "DESC"
+    assert int(params["limit"]) == CLOSED_LIMIT
+
+
+@pytest.mark.asyncio
+async def test_a_repeated_row_is_not_duplicated() -> None:
+    # The table keys rows on slug|asset; a repeat is a DuplicateKey crash.
+    client, _ = _client([_raw(0), _raw(1), _raw(0)])
+    keys = [(p.slug, p.asset) for p in await client.closed_positions("0xf")]
+    assert len(keys) == 2 and len(set(keys)) == 2
+
+
+@pytest.mark.asyncio
+async def test_an_empty_history_and_a_null_payload_are_both_empty() -> None:
+    assert await _client([])[0].closed_positions("0xf") == []
+    http = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"data": None})),
+        base_url=BASE_URL,
+    )
+    assert await DataApiClient(http).closed_positions("0xf") == []
 
 
 # -- profile stats -------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_profile_stats_survives_one_dead_service() -> None:
+async def test_profile_stats_survives_one_dead_route() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        if "lb-api" in request.url.host:
-            return httpx.Response(503)  # leaderboard down
-        if request.url.path == "/value":
-            return httpx.Response(200, json=[{"value": 398.48}])
-        return httpx.Response(200, json={"traded": 339})
+        if request.url.path == "/v2/leaderboard":
+            return httpx.Response(503)
+        if request.url.path == "/v2/value":
+            return httpx.Response(200, json={"data": {"value": 398.48}})
+        return httpx.Response(200, json={"data": {"trades": 339}})
 
     http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url=BASE_URL)
     stats = await DataApiClient(http).profile_stats("0xf")
     assert stats.value == pytest.approx(398.48)
     assert stats.markets_traded == 339
     assert stats.profit is None and stats.volume is None  # dropped, not fatal
+
+
+@pytest.mark.asyncio
+async def test_profile_stats_reads_the_all_time_standing() -> None:
+    seen: dict[str, httpx.Request] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen[request.url.path] = request
+        return httpx.Response(200, json={"data": {"pnl": -212.5, "volume": 20078.6, "value": 1.0}})
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url=BASE_URL)
+    stats = await DataApiClient(http).profile_stats("0xf")
+    assert stats.profit == pytest.approx(-212.5)
+    assert stats.volume == pytest.approx(20078.6)
+    # The board defaults to `day`; the header says all-time.
+    assert seen["/v2/leaderboard"].url.params["time_period"] == "all"
 
 
 # -- rows ----------------------------------------------------------------
@@ -209,8 +192,8 @@ def test_row_has_one_cell_per_column_at_every_tier() -> None:
 
 
 def test_realized_pnl_carries_the_sign_colour() -> None:
-    win = _cell(ClosedPosition(totalBought=100.0, realizedPnl=25.0), "realized")
-    loss = _cell(ClosedPosition(totalBought=100.0, realizedPnl=-25.0), "realized")
+    win = _cell(ClosedPosition(realized_pnl=25.0, percent_pnl=25.0), "realized")
+    loss = _cell(ClosedPosition(realized_pnl=-25.0, percent_pnl=-25.0), "realized")
     assert win.style == UP and "+25.00" in win.plain and "+25%" in win.plain
     assert loss.style == DOWN and "-25.00" in loss.plain and "-25%" in loss.plain
 
@@ -221,12 +204,12 @@ def test_a_settled_winner_states_the_pnl_and_draws_no_verdict() -> None:
     row = closed_row(ClosedPosition.model_validate(RAW))
     text = " ".join(cell.plain if hasattr(cell, "plain") else str(cell) for cell in row)
     assert "won" not in text.lower() and "lost" not in text.lower()
-    assert "+250.36" in text
+    assert "+78.90" in text
 
 
 def test_spacious_meta_line_states_outcome_avg_and_close_date() -> None:
     meta = closed_meta(ClosedPosition.model_validate(RAW))
-    assert meta.startswith("No · avg 54.3c · closed ")
+    assert meta.startswith("Up · avg 41.1c · closed ")
 
 
 # -- open on web ---------------------------------------------------------
@@ -238,7 +221,7 @@ def test_web_url_prefers_the_event_slug() -> None:
     # still exists. The event page is the canonical 200.
     pos = ClosedPosition.model_validate(RAW)
     assert market_url(pos.event_slug, pos.slug) == (
-        "https://polymarket.com/event/highest-temperature-in-wellington-on-june-6-2026"
+        "https://polymarket.com/event/btc-updown-5m-1788999600"
     )
 
 

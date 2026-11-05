@@ -1,4 +1,4 @@
-"""Portfolio domain models (data-api and CLOB shapes)."""
+"""Portfolio domain models (data-api v2, gamma and CLOB shapes)."""
 
 from __future__ import annotations
 
@@ -7,26 +7,42 @@ from datetime import UTC, datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
-class Position(BaseModel):
+class _DataApiRow(BaseModel):
+    """A row of data-api v2 (snake_case, every amount a JSON number).
+
+    v2 documents a null numeric as "unavailable, not zero", and these fields are
+    non-optional floats, so a null must fall back to the field's default rather
+    than fail validation and take the whole response down with one row.
+    """
+
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    asset: str = ""  # token id
-    condition_id: str = Field(default="", alias="conditionId")
-    event_slug: str = Field(default="", alias="eventSlug")
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_nulls(cls, data: object) -> object:
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if v is not None}
+        return data
+
+
+class Position(_DataApiRow):
+    asset: str = Field(default="", alias="token_id")
+    condition_id: str = ""
+    event_slug: str = ""
     slug: str = ""
     title: str = ""
     outcome: str = ""
-    outcome_index: int = Field(default=0, alias="outcomeIndex")
-    size: float = 0.0
-    avg_price: float = Field(default=0.0, alias="avgPrice")
-    cur_price: float = Field(default=0.0, alias="curPrice")
-    initial_value: float = Field(default=0.0, alias="initialValue")
-    current_value: float = Field(default=0.0, alias="currentValue")
-    cash_pnl: float = Field(default=0.0, alias="cashPnl")
-    percent_pnl: float = Field(default=0.0, alias="percentPnl")
-    realized_pnl: float = Field(default=0.0, alias="realizedPnl")
+    outcome_index: int = 0
+    size: float = Field(default=0.0, alias="current_size")
+    avg_price: float = 0.0
+    cur_price: float = Field(default=0.0, alias="current_price")
+    initial_value: float = Field(default=0.0, alias="entry_cost_usdc")
+    current_value: float = 0.0
+    cash_pnl: float = Field(default=0.0, alias="unrealized_pnl")
+    percent_pnl: float = 0.0
+    realized_pnl: float = 0.0
     redeemable: bool = False
-    end_date: datetime | None = Field(default=None, alias="endDate")
+    end_date: datetime | None = None
 
     @property
     def resolved_loss(self) -> bool:
@@ -36,41 +52,38 @@ class Position(BaseModel):
         return self.redeemable and self.cur_price < 0.5
 
 
-class ClosedPosition(BaseModel):
-    """A settled position from data-api /closed-positions.
+class ClosedPosition(_DataApiRow):
+    """An exited position: data-api /v2/positions?status=CLOSED.
 
-    Not a Position with size 0: the endpoint returns a different shape. The
-    shares are gone, so there is no size/current value to mark - the money is
-    realized_pnl measured against total_bought (the USDC that went in).
+    The shares are gone (current_size is 0), so there is no current value to
+    mark - the money is realized_pnl measured against what went in.
 
     cur_price is 1 or 0 for a position held to resolution, but a mid price for
     one sold out beforehand, so it does not mean "won". The sign of
     realized_pnl is the fact; the app states it and draws no verdict.
     """
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    asset: str = ""  # token id
-    condition_id: str = Field(default="", alias="conditionId")
-    event_slug: str = Field(default="", alias="eventSlug")
+    asset: str = Field(default="", alias="token_id")
+    condition_id: str = ""
+    event_slug: str = ""
     slug: str = ""
     title: str = ""
     outcome: str = ""
-    outcome_index: int = Field(default=0, alias="outcomeIndex")
-    avg_price: float = Field(default=0.0, alias="avgPrice")
-    cur_price: float = Field(default=0.0, alias="curPrice")
-    total_bought: float = Field(default=0.0, alias="totalBought")
-    realized_pnl: float = Field(default=0.0, alias="realizedPnl")
-    timestamp: int = 0  # when the position closed
-    end_date: datetime | None = Field(default=None, alias="endDate")
+    outcome_index: int = 0
+    avg_price: float = 0.0
+    cur_price: float = Field(default=0.0, alias="current_price")
+    total_size: float = 0.0  # shares ever held; current_size is 0 by now
+    realized_pnl: float = 0.0
+    percent_pnl: float = Field(default=0.0, alias="percent_realized_pnl")
+    timestamp: int = Field(default=0, alias="last_event_at")  # when it closed
+    end_date: datetime | None = None
 
     @property
-    def percent_pnl(self) -> float:
-        """Return on cost. The endpoint sends no percentage (unlike /positions),
-        and total_bought is the cost basis the realized figure is earned on."""
-        if not self.total_bought:
-            return 0.0
-        return self.realized_pnl / self.total_bought * 100.0
+    def total_bought(self) -> float:
+        """USDC that went in: total_cost_usdc is not it, that is only the fees
+        once a position has fully exited. The server's own percent_realized_pnl
+        is realized_pnl over this figure."""
+        return self.total_size * self.avg_price
 
     @property
     def closed_at(self) -> datetime | None:
@@ -79,24 +92,22 @@ class ClosedPosition(BaseModel):
         return datetime.fromtimestamp(self.timestamp, tz=UTC)
 
 
-class ActivityItem(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
+class ActivityItem(_DataApiRow):
     type: str = ""
     side: str = ""
     size: float = 0.0
-    usdc_size: float = Field(default=0.0, alias="usdcSize")
+    usdc_size: float = 0.0
     price: float = 0.0
     outcome: str = ""
     title: str = ""
     slug: str = ""
-    event_slug: str = Field(default="", alias="eventSlug")
-    condition_id: str = Field(default="", alias="conditionId")
-    asset: str = ""
+    event_slug: str = ""
+    condition_id: str = ""
+    asset: str = Field(default="", alias="token_id")
     timestamp: int = 0
     name: str = ""
     pseudonym: str = ""
-    proxy_wallet: str = Field(default="", alias="proxyWallet")
+    proxy_wallet: str = ""
 
     @model_validator(mode="after")
     def _derive_usdc(self) -> ActivityItem:
