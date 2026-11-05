@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import time
 
 from polymarket_tui.api.clob_auth import AuthedClobClient
@@ -14,6 +15,9 @@ from polymarket_tui.models.portfolio import ActivityItem, ClosedPosition, OpenOr
 POSITIONS_TTL = 30.0
 VALUE_TTL = 60.0
 ORDERS_TTL = 15.0
+# A stamp that is always stale. Not 0.0: time.monotonic() counts from boot, so within a TTL of
+# boot a zero stamp reads as fresh and the empty cache is served as if fetched.
+NEVER = -math.inf
 
 
 class PortfolioService:
@@ -31,16 +35,16 @@ class PortfolioService:
         self._authed = authed
         self._gen = 0  # bumped by invalidate(); in-flight fetches check it
         self._positions: list[Position] = []
-        self._positions_at = 0.0
+        self._positions_at = NEVER
         self._positions_lock = asyncio.Lock()
         self._value: float | None = None
-        self._value_at = 0.0
+        self._value_at = NEVER
         self._value_lock = asyncio.Lock()
         self._balance: float | None = None
-        self._balance_at = 0.0
+        self._balance_at = NEVER
         self._balance_lock = asyncio.Lock()
         self._orders: list[OpenOrder] = []
-        self._orders_at = 0.0
+        self._orders_at = NEVER
         self._orders_lock = asyncio.Lock()
 
     @property
@@ -49,15 +53,15 @@ class PortfolioService:
 
     def invalidate(self) -> None:
         self._gen += 1
-        self._positions_at = 0.0
-        self._value_at = 0.0
-        self._balance_at = 0.0
-        self._orders_at = 0.0
+        self._positions_at = NEVER
+        self._value_at = NEVER
+        self._balance_at = NEVER
+        self._orders_at = NEVER
 
     def _stamp(self, gen: int, now: float) -> float:
-        """TTL stamp for a fetch started at generation `gen`: zero (stays
+        """TTL stamp for a fetch started at generation `gen`: NEVER (stays
         stale) when an invalidate() landed while the fetch was in flight."""
-        return now if gen == self._gen else 0.0
+        return now if gen == self._gen else NEVER
 
     async def positions(self, force: bool = False) -> list[Position]:
         if not self.user:

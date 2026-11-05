@@ -102,3 +102,13 @@ async def test_no_user_returns_empty_without_fetching():
     svc = PortfolioService(Settings(), data, authed=None)
     assert await svc.positions() == []
     assert data.positions_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_first_call_fetches_on_a_freshly_booted_machine(monkeypatch):
+    """time.monotonic() counts from boot: a low value must not read as a fresh cache."""
+    monkeypatch.setattr("polymarket_tui.services.portfolio.time.monotonic", lambda: 1.0)
+    data = FakeData()
+    svc = make_service(data)
+    await svc.positions()
+    assert data.positions_calls == 1
