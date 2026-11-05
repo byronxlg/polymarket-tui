@@ -53,73 +53,9 @@ data "aws_iam_policy_document" "ci" {
   }
 
   statement {
-    sid     = "ManageLambda"
-    actions = ["lambda:*"]
-    resources = [
-      "arn:aws:lambda:${var.region}:${local.account_id}:function:${local.prefix}-*",
-      "arn:aws:lambda:${var.region}:${local.account_id}:function:${local.prefix}-*:*",
-    ]
-  }
-
-  statement {
-    sid       = "ManageLogs"
-    actions   = ["logs:*"]
-    resources = ["arn:aws:logs:${var.region}:${local.account_id}:log-group:/aws/lambda/${local.prefix}*"]
-  }
-
-  # List-type action; IAM does not support resource-scoping it.
-  statement {
-    sid       = "DescribeLogGroups"
-    actions   = ["logs:DescribeLogGroups"]
-    resources = ["*"]
-  }
-
-  statement {
     sid       = "ManageSubscriberTable"
     actions   = ["dynamodb:*"]
     resources = ["arn:aws:dynamodb:${var.region}:${local.account_id}:table/${local.prefix}-*"]
-  }
-
-  # SES identities. List/Get calls are not resource-scopable.
-  statement {
-    sid       = "ManageSesIdentities"
-    actions   = ["ses:*"]
-    resources = ["arn:aws:ses:${var.region}:${local.account_id}:identity/*"]
-  }
-
-  statement {
-    sid       = "ReadSesAccount"
-    actions   = ["ses:Get*", "ses:List*", "ses:Describe*"]
-    resources = ["*"]
-  }
-
-  # ACM create/list actions are not resource-scopable.
-  statement {
-    sid       = "ManageCertificates"
-    actions   = ["acm:*"]
-    resources = ["*"]
-  }
-
-  # API Gateway ARNs carry no account id and the v2 API id is generated, so
-  # scope by region only.
-  statement {
-    sid       = "ManageApiGateway"
-    actions   = ["apigateway:*"]
-    resources = ["arn:aws:apigateway:${var.region}::/*"]
-  }
-
-  statement {
-    sid     = "ManageSchedules"
-    actions = ["scheduler:*"]
-    resources = [
-      "arn:aws:scheduler:${var.region}:${local.account_id}:schedule/default/${local.prefix}-*",
-    ]
-  }
-
-  statement {
-    sid       = "ListSchedules"
-    actions   = ["scheduler:ListSchedules", "scheduler:ListScheduleGroups", "scheduler:GetScheduleGroup"]
-    resources = ["*"]
   }
 
   statement {
@@ -134,7 +70,6 @@ data "aws_iam_policy_document" "ci" {
     resources = [
       aws_iam_user.ci.arn,
       "arn:aws:iam::${local.account_id}:policy/polymarket-tui-ci",
-      "arn:aws:iam::${local.account_id}:role/${local.prefix}-*",
     ]
   }
 }
