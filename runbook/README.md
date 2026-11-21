@@ -54,6 +54,7 @@ formula tracks PyPI between reviews.
 | Question | File |
 | --- | --- |
 | How do changes reach users, how do I roll back? | [updates.md](updates.md) |
+| What may the blog agent do, and how is it stopped? | [loops.md](loops.md) |
 
 Tier 3 does not carry `health.md`, `recovery.md`, `dependencies.md` or `incidents/`. The
 objectives table above is the health check; rollback is in `updates.md`.
