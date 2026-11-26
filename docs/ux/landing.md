@@ -35,8 +35,8 @@ paragraphs (the stills show them), the API host list (it is in the README).
 
 | Control | Rest | Pressed | Busy | Done | Failed | Disabled |
 |---------|------|---------|------|------|--------|----------|
-| Copy button (Primer IconButton + copy feedback) | copy icon, muted | scales to 0.97, darker fill | none: the clipboard write is instant | check icon in success green and the label "Copied" for 2s, announced to screen readers, then back to rest | the command text is selected so a manual copy works; label "Select and copy" | never |
-| Install tabs (Primer SegmentedControl): uv, Homebrew, Script, Source | one selected, filled | darker fill | none | selection moves, command line swaps, Copy returns to rest | n/a (no network) | never |
+| Copy button (Primer IconButton + copy feedback) | copy icon, muted | scales to 0.97, darker fill | icon unchanged until the clipboard write resolves | check icon in success green and the label "Copied" for 2s, announced to screen readers, then back to rest | alert icon and "Copy failed" announced in a live region for 2s, then back to rest; the command stays selectable by hand | never |
+| Install tabs (Primer UnderlinePanels): uv, Homebrew, curl, git | one selected, filled | darker fill | none | selection moves, command line swaps, Copy returns to rest | n/a (no network) | never |
 | GitHub link, footer links | link colour | Primer pressed colour | browser's own | new page | browser's own | never |
 | Recording | plays muted, looped, no native controls; a Pause button under it | Pause button pressed state | poster still shown until the first frame | playing | poster still stays, no broken-video box | with reduced motion: paused on the poster, button reads Play |
 
@@ -50,8 +50,31 @@ A static page: no forms, no multi-step flow. The paths that need a test each:
 | First screen | tap Copy twice quickly | one "Copied", timer restarts, no flicker |
 | First screen | tap another install tab | that command shown on one line (scrolls sideways inside its box if longer), Copy at rest |
 | "Copied" showing | tap another tab | Copy returns to rest at once |
-| Clipboard refused | tap Copy | command selected, "Select and copy" |
+| Clipboard refused | tap Copy | alert icon, "Copy failed", rest after 2s |
 | Any | reload or back | the uv tab selected, video from the start |
 | Slow network | open page | text and install line usable before the video arrives; poster holds the space, no layout jump |
 | Reduced motion | open page | video paused on the poster, Play button |
 | Deep link `#install` (old links) | open | lands on the install line |
+| Old links `#features` `#keys` `#access` `#blog` `#install` (nav, 75 blog posts, blog index) | open | each id still exists on the nearest matching element (stills, keys, safety lines, footer Blog link, install box), with scroll margin under the top bar |
+| No JavaScript | open | all four commands listed one under another, no Copy buttons, video poster |
+| Offline or video blocked (Low Power Mode) | open | poster stays, button reads Play |
+| Back from GitHub (page restored from cache) | return | whatever tab was selected is still selected, Copy at rest |
+| Rotate the phone | rotate | nothing overflows; the install line still on one line |
+| git tab (two-line command) | select | both lines shown, one Copy for both |
+
+## After copying
+
+The reader knows they got it when the app is running, so the run command sits directly under
+the install box: "Then run" and `polymarket-tui`.
+
+## Review 1 (2026-11-26, independent agent)
+
+Twelve defects, all applied above and in `guide.md` and `words.md`: liability lines restored to
+the footer; Copy states made testable on iOS; the run command given a home; old anchors, no-JS,
+offline, cache-restore and rotate paths added; tabs changed to UnderlinePanels; GitHub branding
+excluded from borrowed layouts; the unused green button role removed; contrast figures corrected
+and given for raised surfaces; type moved onto Primer's scale; tabs named by tool. Still open:
+the blog-post skill and `runbook/loops.md` expect a post list at `#blog` on this page; posting is
+manual-only since 2026-10-03, so the list becomes one footer link and both documents are updated
+in the build PR. Confirmed correct by the review: all token names and values, Mona Sans and its
+licence, the named Primer Brand patterns, 2s confirmation, 44px targets.
