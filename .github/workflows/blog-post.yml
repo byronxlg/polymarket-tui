@@ -27,6 +27,8 @@ concurrency:
 jobs:
   write-post:
     runs-on: ubuntu-latest
+    # Past runs took 3 to 7 minutes; without this GitHub's default is 360.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +54,8 @@ jobs:
             the live APIs at write time, write the post, sync the blog
             index, landing page, feed, sitemap, and to-do list, verify the
             links, then create branch blog/<slug>, commit as
-            "Blog: <title>", push, and open a pull request.
+            "Blog: <title>", push with: git push -u origin blog/<slug>
+            and open a pull request.
 
             Then, if and only if the PR's diff is the post plus its sync files
             (site/blog/*, the landing #blog list, sitemap, docs/blog-todo.md),
@@ -64,6 +67,12 @@ jobs:
 
             If an open PR whose branch starts with blog/ already exists, stop
             without writing anything and say so - one pending post at a time.
+          # Bash is scoped to the commands the prompt and the skill name:
+          # curl (public APIs, local server check), python3 (pricechart.py,
+          # http.server), git on a blog/ branch, gh pr, and the one pages.yml
+          # dispatch. This narrows the tool list; it is not a sandbox (curl
+          # and python3 still reach the network). The turn cap is a CLI flag:
+          # claude-code-action@v1 has no max_turns input.
           claude_args: |
-            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
-            --max-turns 150
+            --allowedTools "Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,Bash(curl:*),Bash(jq:*),Bash(python3:*),Bash(date:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(sleep:*),Bash(kill:*),Bash(pkill:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git branch:*),Bash(git checkout -b blog/*),Bash(git switch -c blog/*),Bash(git add:*),Bash(git commit:*),Bash(git push -u origin blog/*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr create:*),Bash(gh pr merge:*),Bash(gh workflow run pages.yml)"
+            --max-turns 80
