@@ -1,6 +1,6 @@
 ---
 project: polymarket-tui
-reviewed: 2026-11-21
+reviewed: 2026-11-26
 loops: [L-blog]
 kill_switch: "gh workflow disable blog-post.yml -R byronxlg/polymarket-tui (not yet exercised; the cron is already off)"
 ---
@@ -53,6 +53,31 @@ Method and scales: management `docs/standard.md` "Agent loops".
 | L-blog | bump `pyproject.toml` on `main`, then `gh workflow run publish.yml` (PyPI release; environment `pypi` has no protection rules) | G3 | O1 | nothing; `actions: write` allows the dispatch | a PyPI release reaches `pip install` and, within a day, Homebrew; should be O6 |
 | L-blog | send data out (HTTP to any host) | G3 | O1 | nothing; Bash and network unrestricted | public repo; the exposure is the run's tokens |
 | L-blog | read AWS, Cloudflare, Telegram, YouTube secrets | G3 | O6 | not in the step's env; `GITHUB_TOKEN` cannot add a workflow that would expose them | hard block holds as long as workflow files stay out of the token's reach |
+
+## Calibration
+
+This repo's pairing, for L-blog and for a session a person starts here. Read before any
+shared-state or irreversible action (the global `oversight` rule points at this heading). Rows
+restate the "Actions" table above and grants Byron has already given; nothing here is new.
+
+Default pairing: G0 at O0-O1, G1 at O1-O2, G2 at O3-O4, G3 at O4-O5, or O6 when a person could
+not catch the mistake in time. An action with no row below takes the default. A package release
+(`gh release create`, `publish.yml`) by a session has no row: it stays G3 at O4-O5, on Byron's
+ask.
+
+| Action | Grade | Default | Here | Direction | Enforced by | Why | Granted |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Session: open a PR and squash-merge it once `ci.yml` is green | G2 | O3-O4 | O2 | looser | instruction; `ci.yml` runs on the PR but `main` is unprotected | revert is the undo. A merge is live at once for `install.sh` users and the site, and applies `infra/newsletter/**` through `newsletter.yml`: say so in the report | Byron, 2026-10-08, "you can merge freely" |
+| Session: restore to the committed state (re-run a failed workflow, revert a bad merge, redeploy the site) | G2 | O3-O4 | O2 | looser | `runbook/updates.md` "Roll back" | the runbook row is the pre-approval | Byron, 2026-08-31, "do whatever it takes to get them back up and running" (management D12) |
+| L-blog: squash-merge a PR whose diff is only the post and its sync files, then dispatch `pages.yml` | G2 | O3-O4 | O2 | looser | prompt only; no code checks the diff | the PR is the audit trail; revert plus redeploy is the undo | Byron, 2026-07-17, post-only merges (`blog-post.yml` header) |
+| Push straight to `main`, or force-push, by a session or L-blog | G2 | O3-O4 | O6: open a PR | tighter | instruction only; `main` is unprotected and L-blog's token has `contents: write` | no review point and no CI before it is live | reason only |
+| A design change to the public site nobody asked for | G2 | O3-O4 | O3; excluded from the merge row above | tighter | instruction only | a look that goes live unseen gets undone | management D71 |
+| Turn the blog cron back on, or bring the newsletter back | G3 | O4-O5 | O6: Byron's decision | tighter | instruction only; the cron is a comment in `blog-post.yml` | Byron stopped both; daily posts reach the public unread | management D48, D73 |
+| L-blog: bump the version, create a release or dispatch `publish.yml` | G3 | O4-O5 | O6 | tighter | prompt only: `actions: write` allows the dispatch and the `pypi` environment has no reviewer (gap, see Guards) | a PyPI version cannot be re-uploaded and reaches `pip install` and Homebrew | reason only |
+| L-blog: send repo content or tokens to any host other than the reads the skill names | G3 | O4-O5 | O6 | tighter | nothing: network is open (gap) | the exposure is the run's tokens | reason only |
+| Switch the app to LIVE, or place or cancel a real order | G3 | O4-O5 | O6 unless Byron's request names it | tighter | instruction (`CLAUDE.md`); no wallet key in this repo or its secrets, so no workflow can | real money, no undo | `CLAUDE.md`, user request 2026-07-05 |
+| Create, rotate, revoke or delete a credential or repo secret; change the `pypi` environment | G3 | O4-O5 | O6 | tighter | instruction only | irreversible; may be in use elsewhere | house rule |
+| Local `terraform apply` or `aws` write | G3 | O4-O5 | O6: through `newsletter.yml` | tighter | instruction only | no audit trail, no rollback | house rule; `runbook/updates.md` |
 
 ## Guards
 
