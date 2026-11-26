@@ -8,10 +8,10 @@ Page: https://polymarket-tui.botsmith.dev/ (`site/index.html`).
 | # | Decision | Status |
 |---|----------|--------|
 | 1 | Who the page is for and what they want | set |
-| 2 | Which published design system it follows | sent |
-| 3 | The path from landing to installed: what stays on the page, what goes | proposed |
-| 4 | Whether the blog pages are in this pass | proposed |
-| 5 | Two different directions built with real content; pick one | proposed |
+| 2 | Which published design system it follows | set |
+| 3 | The page itself: two different directions built with real content (what stays, what goes, in what order); pick one | proposed |
+| 4 | Blog pages take the same colours and type (small, batched: not asked) | proposed |
+| 5 | Try the built page on a phone: yes, or what feels wrong | proposed |
 | 6 | Go live | proposed |
 
 ## As now (2026-11-26, WebKit, 390px wide)
@@ -43,3 +43,18 @@ What it means for the build:
 - The proof it is real is the recording of a real session, not prose about it.
 - Every other section is judged by whether it gets this person to a running app sooner or
   more surely.
+
+## 2. Design system
+
+Shown 2026-11-26 as one picture: the first screen at 390px as now and in GitHub Primer, IBM
+Carbon and Vercel Geist (same words, same recording). The first ask was three text descriptions;
+Byron: "When asking for visual decisions youre gonna need to show me".
+
+Answer (Byron, 2026-11-26, Claude Code session): "A" (GitHub Primer)
+
+What it means for the build: `guide.md` maps every element on the page to a named Primer
+pattern, with its states and Primer's writing rules. Nothing on the page is styled by taste; an
+element with no Primer pattern is raised as a question, not invented.
+
+Plan documents: `landing.md` (brief, control states, paths), `guide.md` (tokens and patterns),
+`words.md` (every word the page may show).
