@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>polymarket-tui: Polymarket in your terminal</title>
+<meta name="description" content="A keyboard-driven terminal client for Polymarket: markets, live order books, charts, portfolio and orders.">
+<meta name="theme-color" content="#010409">
+<link rel="alternate" type="application/rss+xml" title="polymarket-tui blog" href="../blog/feed.xml">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='14' fill='%23010409'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%23f0f6fc' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="../assets/fonts/monasans-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <span class="name">polymarket-tui</span>
+  <a class="link press" href="https://github.com/byronxlg/polymarket-tui">GitHub</a>
+</div></header>
+
+<main>
+<div class="hero">
+<div class="rec"><div class="frame">
+  <video id="rec" muted loop playsinline preload="metadata" poster="../assets/rec-poster.jpg" aria-label="Recording of one polymarket-tui session: a market, its order book, an order in DRY, a price chart and search">
+    <source src="../assets/brag.mp4" type="video/mp4">
+  </video>
+  <button class="btn press" id="rec-btn" type="button" hidden>Play</button>
+</div></div>
+<div class="hero-text">
+  <div class="head">
+    <h1>Polymarket in your terminal</h1>
+    <p class="facts-line"><span>v0.1.2</span><span>macOS, Linux</span></p>
+  </div>
+<div class="install" id="install" data-install>
+  <div class="panel" id="i-0" data-name="uv">
+    <p class="panel-name">uv</p>
+    <div class="cmd"><pre>uv tool install polymarket-tui</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+    <p class="run">Then run<code>polymarket-tui</code></p>
+  </div>
+  <div class="panel" id="i-1" data-name="Homebrew">
+    <p class="panel-name">Homebrew</p>
+    <div class="cmd"><pre>brew install byronxlg/<wbr>tap/<wbr>polymarket-tui</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+    <p class="run">Then run<code>polymarket-tui</code></p>
+  </div>
+  <div class="panel" id="i-2" data-name="curl">
+    <p class="panel-name">curl</p>
+    <div class="cmd"><pre>curl -sSL https://raw.githubusercontent.com/<wbr>byronxlg/<wbr>polymarket-tui/<wbr>main/<wbr>install.sh | bash</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+    <p class="run">Then run<code>polymarket-tui</code></p>
+  </div>
+  <div class="panel" id="i-3" data-name="git">
+    <p class="panel-name">git</p>
+    <div class="cmd"><pre>git clone https://github.com/<wbr>byronxlg/<wbr>polymarket-tui
+cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+  </div>
+</div>
+  <p class="safe" id="access">New installs start in <span class="label dry">DRY</span>: orders are never posted.</p>
+</div>
+</div>
+
+<div class="wrap">
+
+  <div class="rivers" id="features">
+  <section class="river">
+    <h2>Order book</h2>
+    <img src="../assets/stills/order-book.jpg" width="860" height="640" loading="lazy" alt="Order book for YES: asks from 18.0c to 18.5c, bids from 17.7c to 17.9c, streaming">
+  </section>
+  <section class="river">
+    <h2>Order review</h2>
+    <img src="../assets/stills/order-review.jpg" width="880" height="720" loading="lazy" alt="Order review in DRY: buy 5 YES at 17.7c, cost $0.89, payout $5.00 if it wins">
+    <div class="more">
+      <div class="safety">
+        <p><span class="label live">LIVE</span> posts real orders. <kbd>L</kbd> switches between DRY and LIVE, and asks first. It opens in the mode you left.</p>
+        <p>Browse with no wallet. <a href="https://github.com/byronxlg/polymarket-tui#account-setup">Add a wallet to trade</a></p>
+      </div>
+    </div>
+  </section>
+  <section class="river">
+    <h2>Price chart</h2>
+    <img src="../assets/stills/price-chart.jpg" width="1840" height="490" loading="lazy" alt="Price chart for YES at 17.9c, from July to October">
+  </section>
+  <section class="river">
+    <h2>Search</h2>
+    <img src="../assets/stills/search.jpg" width="1180" height="700" loading="lazy" alt="Search results for bitcoin: a list of markets with prices">
+  </section>
+  </div>
+
+  <section class="keys" id="keys">
+    <h2>Keys</h2>
+    <table>
+      <tr><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></td><td>Move, open, back</td></tr>
+      <tr><td><kbd>space</kbd></td><td>Add to Watchlist, or switch the YES and NO order book</td></tr>
+      <tr><td><kbd>tab</kbd></td><td>Next pane</td></tr>
+      <tr><td><kbd>b</kbd><kbd>s</kbd></td><td>Buy, Sell</td></tr>
+      <tr><td><kbd>/</kbd></td><td>Search</td></tr>
+      <tr><td><kbd>p</kbd><kbd>w</kbd></td><td>Portfolio, Watchlist</td></tr>
+      <tr><td><kbd>L</kbd></td><td>DRY or LIVE</td></tr>
+      <tr><td><kbd>?</kbd><kbd>q</kbd></td><td>All keys, Quit</td></tr>
+    </table>
+  </section>
+
+  <div class="again">
+<div class="install" data-install>
+  <div class="panel" id="j-0" data-name="uv">
+    <p class="panel-name">uv</p>
+    <div class="cmd"><pre>uv tool install polymarket-tui</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+    <p class="run">Then run<code>polymarket-tui</code></p>
+  </div>
+  <div class="panel" id="j-1" data-name="Homebrew">
+    <p class="panel-name">Homebrew</p>
+    <div class="cmd"><pre>brew install byronxlg/<wbr>tap/<wbr>polymarket-tui</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+    <p class="run">Then run<code>polymarket-tui</code></p>
+  </div>
+  <div class="panel" id="j-2" data-name="curl">
+    <p class="panel-name">curl</p>
+    <div class="cmd"><pre>curl -sSL https://raw.githubusercontent.com/<wbr>byronxlg/<wbr>polymarket-tui/<wbr>main/<wbr>install.sh | bash</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+    <p class="run">Then run<code>polymarket-tui</code></p>
+  </div>
+  <div class="panel" id="j-3" data-name="git">
+    <p class="panel-name">git</p>
+    <div class="cmd"><pre>git clone https://github.com/<wbr>byronxlg/<wbr>polymarket-tui
+cd polymarket-tui &amp;&amp; uv sync &amp;&amp; uv run polymarket-tui</pre><button class="copy press" type="button" aria-label="Copy install command" data-state="rest"><svg class="i-copy" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg><svg class="i-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg><svg class="i-bad" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg><span class="said" aria-hidden="true"></span></button></div>
+  </div>
+</div>
+  </div>
+</div>
+</main>
+
+<footer class="foot"><div class="wrap">
+  <p>Unofficial. Not affiliated with Polymarket. In LIVE it posts real orders with real money. You are responsible for your trades. No warranty. Deposits, withdrawals and redemptions stay on polymarket.com.</p>
+  <nav aria-label="Links">
+    <a class="press" href="https://github.com/byronxlg/polymarket-tui">GitHub</a>
+    <a class="press" id="blog" href="../blog/">Blog</a>
+    <a class="press" href="https://polymarket.com">Polymarket</a>
+  </nav>
+</div></footer>
+<p class="sr" id="said" role="status" aria-live="polite"></p>
+
+<script>
+(function () {
+  var doc = document, root = doc.documentElement;
+  root.classList.add("js");
+  // iOS Safari only applies :active while a touch listener exists.
+  doc.addEventListener("touchstart", function () {}, { passive: true });
+
+  // Install tabs (Primer UnderlinePanels): built from the panels, so without
+  // scripts every command is simply listed. One choice drives both boxes.
+  var boxes = [].slice.call(doc.querySelectorAll("[data-install]"));
+  var pick = 0;
+  function show(i) {
+    pick = i;
+    boxes.forEach(function (box) {
+      [].forEach.call(box.querySelectorAll(".panel"), function (p, n) { p.hidden = n !== i; });
+      [].forEach.call(box.querySelectorAll(".tab"), function (t, n) {
+        t.setAttribute("aria-selected", n === i ? "true" : "false");
+        t.tabIndex = n === i ? 0 : -1;
+      });
+      [].forEach.call(box.querySelectorAll(".copy"), rest);
+    });
+  }
+  boxes.forEach(function (box) {
+    var list = doc.createElement("div");
+    list.className = "tabs"; list.setAttribute("role", "tablist"); list.setAttribute("aria-label", "Install with");
+    var panels = [].slice.call(box.querySelectorAll(".panel"));
+    panels.forEach(function (p, i) {
+      var t = doc.createElement("button");
+      t.type = "button"; t.className = "tab press"; t.textContent = p.dataset.name;
+      t.setAttribute("role", "tab"); t.setAttribute("aria-controls", p.id);
+      p.setAttribute("role", "tabpanel"); p.setAttribute("aria-label", p.dataset.name);
+      t.addEventListener("click", function () { show(i); });
+      t.addEventListener("keydown", function (e) {
+        var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (!d) return;
+        var n = (i + d + panels.length) % panels.length;
+        show(n); list.children[n].focus(); e.preventDefault();
+      });
+      list.appendChild(t);
+    });
+    box.insertBefore(list, box.firstChild);
+  });
+  show(0);
+
+  // Copy (Primer copy pattern): confirm only once the write resolves; say it
+  // to screen readers; back to rest after 2s.
+  var said = doc.getElementById("said");
+  function rest(b) {
+    clearTimeout(b._t); b.dataset.state = "rest"; b.querySelector(".said").textContent = "";
+  }
+  function mark(b, state, word) {
+    clearTimeout(b._t); b.dataset.state = state; b.querySelector(".said").textContent = word;
+    said.textContent = ""; said.textContent = word;
+    b._t = setTimeout(function () { rest(b); }, 2000);
+  }
+  [].forEach.call(doc.querySelectorAll(".copy"), function (b) {
+    b.addEventListener("click", function () {
+      var text = b.parentNode.querySelector("pre").textContent;
+      var done = function () { mark(b, "done", "Copied"); };
+      var failed = function () { mark(b, "failed", "Copy failed"); };
+      try { navigator.clipboard.writeText(text).then(done, failed); } catch (e) { failed(); }
+    });
+  });
+
+  // Recording: plays muted unless motion is reduced or the browser refuses;
+  // the button always says what pressing it will do.
+  var rec = doc.getElementById("rec"), btn = doc.getElementById("rec-btn");
+  var moving = false;
+  function label() { btn.textContent = moving && !rec.paused ? "Pause" : "Play"; }
+  btn.hidden = false;
+  rec.addEventListener("playing", function () { moving = true; label(); });
+  rec.addEventListener("pause", label);
+  rec.querySelector("source").addEventListener("error", function () { moving = false; rec.pause(); label(); });
+  btn.addEventListener("click", function () { if (rec.paused) { var p = rec.play(); if (p) p.catch(label); } else rec.pause(); });
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) { var p = rec.play(); if (p) p.catch(label); }
+  // Restored from the back-forward cache: leave the chosen tab, reset Copy.
+  addEventListener("pageshow", function (e) { if (e.persisted) { show(pick); label(); } });
+})();
+</script>
+</body>
+</html>

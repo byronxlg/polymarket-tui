@@ -10,8 +10,8 @@ Page: https://polymarket-tui.botsmith.dev/ (`site/index.html`).
 | 1 | Who the page is for and what they want | set |
 | 2 | Which published design system it follows | set |
 | 3 | The page itself: two different directions built with real content (what stays, what goes, in what order); pick one | set |
-| 4 | Blog pages take the same colours and type (small, batched: not asked) | proposed |
-| 5 | Try the built page on a phone: yes, or what feels wrong | proposed |
+| 4 | Blog pages take the same colours and type (small, batched: not asked) | built as `site/assets/blog-next.css`, applied when the page goes live |
+| 5 | Try the built page on a phone: yes, or what feels wrong | sent |
 | 6 | Go live | proposed |
 
 ## As now (2026-11-26, WebKit, 390px wide)
@@ -72,3 +72,10 @@ install box follow on the first screen; then Order book, Order review (with the 
 no-account lines), Price chart and Search as large stills from the real session; then Keys; then
 the install box again; then the footer. Built at `site/next/` first so it can be tried on a
 phone beside the live page.
+
+## Found on the way: the live page misstates LIVE
+
+The old page says "Every session starts DRY" and that `L` arms LIVE "for the session". The
+README and `core/credstore.py` say the choice persists across sessions. The new page says what
+the app does: new installs start in DRY, `L` switches and asks first, and it opens in the mode
+you left.

@@ -10,7 +10,7 @@ What they already know: Polymarket, order books, YES and NO, limit orders, `uv` 
 The one thing they do: copy an install line.
 
 What they must learn at this moment: it is real (a recording of a real session), it will not
-spend money by accident (starts in DRY), and how to install it.
+spend money by accident (starts in DRY; LIVE is a confirmed switch that then stays on), and how to install it.
 
 Word budget: 220 words on the page, footer included (646 today).
 
@@ -78,3 +78,34 @@ the blog-post skill and `runbook/loops.md` expect a post list at `#blog` on this
 manual-only since 2026-10-03, so the list becomes one footer link and both documents are updated
 in the build PR. Confirmed correct by the review: all token names and values, Mona Sans and its
 licence, the named Primer Brand patterns, 2s confirmation, 44px targets.
+
+## Blind juror (2026-11-26)
+
+A fresh agent saw the live page and the new page as unlabelled versions P and Q (WebKit, 390px,
+plus state captures), judged against cli.github.com, brew.sh, astral.sh/uv and GitHub's Primer
+pages, and walked the reader's path.
+
+| | Round 1: old | Round 1: new | Round 2: old | Round 2: new |
+|---|---|---|---|---|
+| Time to the install command | 3 | 9 | 3 | 9 |
+| Hierarchy | 5 | 7 | 5 | 7 |
+| Proof it is real | 5 | 8 | 5 | 8 |
+| Money-safety clarity | 6 | 5 | 3 | 8 |
+| Feedback and states | - | 7 | - | 8 |
+| Craft | 5 | 6 | 4 | 6 |
+
+Round 1 verdict: ship the new page, with one serious defect (money safety below the fold and
+worded so it undercut itself). Fixed before round 2: DRY line on the first screen; the command
+stays visible when copied or failed; no "Then run" on the git tab; recording cropped to remove
+its baked-in title and install line, Pause on the frame's corner, poster when blocked; headings
+above their stills; chart and search stills re-cropped; install line on the first screen when
+rotated and on desktop.
+
+Round 2 verdict: the new page "beats P clearly, not narrowly". One fix it said should block
+shipping, done: every command is readable in full (long commands wrap at slashes; the copy
+button is 44px). Round 2 told the juror how LIVE behaves, which is why the old page's
+money-safety score fell: it says "Every session starts DRY" in three places, and that is wrong.
+
+Left as is, with reasons: the recording's text is small at phone width until the camera pushes
+in (re-cutting the video is a shorts-pipeline job, not a page change); the stills keep the app's
+own coloured panel borders; with scripts off all four commands are listed twice (top and bottom).
